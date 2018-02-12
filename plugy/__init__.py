@@ -1,3 +1,3 @@
 #!/usr/bin/env python
 
-from main import *
+from plugy.main import *
