@@ -16,7 +16,7 @@ import matplotlib.figure
 import matplotlib.backends.backend_pdf
 
 
-class BDQuick(object):
+class Plugy(object):
     
     def __init__(self, infile = '20180124_pancreas-tumor_denes3.txt',
                  cut = (None, None), drugs = [],
