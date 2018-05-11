@@ -9,6 +9,8 @@ Usage:
 ######
 
 .. highlight:: python
+
+.. code-block:: python
     
     import plugy
 
