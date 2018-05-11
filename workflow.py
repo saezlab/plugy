@@ -11,7 +11,7 @@ drugs = [
     '20:Soratinib', '21:TGF-β', '22:Dasatinib'
 ]
 
-b = plugy.BDQuick(infile = '06022018_mouse_kidney_1b.txt',
+p = plugy.Plugy(infile = '06022018_mouse_kidney_1b.txt',
                     cut = (3225, 11200), drugs = drugs)
 
-b.main()
+p.main()
