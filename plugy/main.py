@@ -68,8 +68,11 @@ class Plugy(object):
             '20:Soratinib', '21:TGF-β', '22:Dasatinib'
         ]
         
-        >>> p = plugy.Plugy(infile = '06022018_mouse_kidney_1b.txt',
-                    cut = (3225, 11200), drugs = drugs)
+        >>> p = plugy.Plugy(
+            infile = 'example_screen.txt',
+            cut = (3225, 11200),
+            drugs = drugs
+        )
         
         >>> p.main()
         """
@@ -113,6 +116,7 @@ class Plugy(object):
         self.plot_peaks()
         self.sample_names()
         self.samples_df()
+        self.export()
     
     def reader(self):
         """
@@ -422,7 +426,7 @@ class Plugy(object):
     
     def export(self, outfile = None):
         """
-        Writes the `peaksdf` data frame into csv file.
+        Writes the `peaksdf` data frame into tsv file.
         """
         
         outfile = outfile or '%s.peaks.tsv' % self.infile

@@ -1,10 +1,14 @@
+*************************************************************
 Python module for plug based microfluidics data preprocessing
-#############################################################
+*************************************************************
+
+* Tested in Python 3.6
+* Questions, issues: turei.denes@gmail.com
 
 Usage:
-======
+######
 
-.. code-block:: python
+.. highlight:: python
     
     import plugy
 
@@ -14,7 +18,10 @@ Usage:
         '20:Soratinib', '21:TGF-β', '22:Dasatinib'
     ]
 
-    p = plugy.Plugy(infile = '06022018_mouse_kidney_1b.txt',
-                        cut = (3225, 11200), drugs = drugs)
+    p = plugy.Plugy(
+        infile = 'example_screen.txt',
+        cut = (3225, 11200),
+        drugs = drugs
+    )
 
     p.main()
