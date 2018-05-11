@@ -1,15 +1,13 @@
-*************************************************************
 Python module for plug based microfluidics data preprocessing
-*************************************************************
+=============================================================
 
-* Tested in Python 3.6
-* Questions, issues: turei.denes@gmail.com
+*  Tested in Python 3.6
+*  Questions, issues: turei.denes@gmail.com
 
 Usage:
-######
+-----
 
-.. code-block:: python
-    
+```python
     import plugy
 
      drugs = [
@@ -25,3 +23,4 @@ Usage:
     )
 
     p.main()
+```
