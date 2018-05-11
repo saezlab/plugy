@@ -11,6 +11,7 @@ Usage:
 .. highlight:: python
 
 .. code-block:: python
+    :linenos:
     
     import plugy
 
