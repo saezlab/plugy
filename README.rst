@@ -5,6 +5,7 @@ Usage:
 ------
 
 .. code-block:: python
+    
     import plugy
 
      drugs = [
