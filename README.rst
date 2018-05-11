@@ -8,10 +8,7 @@ Python module for plug based microfluidics data preprocessing
 Usage:
 ######
 
-.. highlight:: python
-
 .. code-block:: python
-    :linenos:
     
     import plugy
 
