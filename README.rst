@@ -4,7 +4,7 @@ Python module for plug based microfluidics data preprocessing
 Usage:
 ------
 
-.. code:: python
+.. code-block:: python
     import plugy
 
      drugs = [
@@ -17,5 +17,3 @@ Usage:
                         cut = (3225, 11200), drugs = drugs)
 
     p.main()
-
-foo bar
