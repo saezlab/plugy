@@ -2,7 +2,7 @@ Python module for plug based microfluidics data preprocessing
 #############################################################
 
 Usage:
-------
+======
 
 .. code-block:: python
     
