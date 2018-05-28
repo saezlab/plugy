@@ -45,7 +45,9 @@ class Plugy(object):
                  discard = (2, 1),
                  gaussian_smoothing_sigma = 33,
                  adaptive_threshold_blocksize = 111,
-                 adaptive_threshold_method = 'gaussian'
+                 adaptive_threshold_method = 'gaussian',
+                 drug_sep = '&',
+                 direct_drug_combinations = False
         ):
         """
         This object represents a plug based microfluidics screen.
@@ -171,7 +173,7 @@ class Plugy(object):
         """
         
         self.sample_names()
-        self.samples_df()
+        self.find_cycles()
         self.export()
     
     def read(self):
@@ -337,6 +339,118 @@ class Plugy(object):
             'value'
         )
     
+    def find_cycles(self):
+        """
+        Finds the boundaries of sample cycles based on barcode lengths.
+        Barcodes between samples usually consist of 4-7 plugs while between
+        cycles more than 10 plugs.
+        
+        This would not be necessary if we could be sure the data starts at
+        the beginning of a cycle and ends at the end of a cycle.
+        Sometimes this is not the case so it is better to find cycles
+        based on barcode patterns.
+        Also cycles with lower number of samples than expected should be
+        excluded.
+        """
+        
+        def get_drugs(row):
+            # drugs is a vector of sample order within cycles
+            # the sequence number of a sample in the cycle
+            # will correspond to the drug combination
+            
+            if self.sample_cnt[row.cycle] + 1 < len(self.samples_drugs):
+                
+                return None, None, None
+            
+            drs = self.samples_drugs[row.sampl]
+            drs_t = drs.split(self.drug_sep)
+            dr1, dr2 = (
+                (drs_t[0].strip(), drs_t[1].strip())
+                if len(drs_t) > 1 else
+                (drs_t[0].strip(), 'Medium')
+            )
+            return drs, dr1, dr2
+        
+        
+        self.peakdf['barcode'] = pd.Series(
+            np.logical_not(
+                np.logical_or(
+                    self.peakdf.orange > self.peakdf.blue,
+                    self.peakdf.green  > self.peakdf.blue
+                )
+            )
+        )
+        
+        # counters
+        current_cycle = 0
+        bc_peaks = 0
+        sm_peaks = 0
+        sample_in_cycle = 0
+        # new vectors
+        cycle   = []
+        sample  = []
+        discard = []
+        
+        for i, bc in enumerate(self.peakdf.barcode):
+            
+            # counting barcode peaks
+            bc_peaks += bc
+            # counting sample peaks
+            sm_peaks += not bc
+            
+            # first barcode plug after sample
+            if not bc_peaks and bc:
+                
+                # mark first and last sample peaks as discarded
+                discard[
+                    -sm_peaks : -sm_peaks + self.discard[0]
+                ] = [False] * self.discard[0]
+                discard[-self.discard[1]:] = [False] * self.discard[1]
+                # resetting sample peak counter
+                sm_peaks = 0
+            
+            # first sample plug after barcode
+            if bc_peaks and not bc:
+                
+                # increasing sample in cycle counter
+                sample_in_cycle += 1
+                # if barcode was longer than 9 plugs
+                # a new cycle starts
+                if bc_peaks > 9:
+                    
+                    current_cycle += 1
+                    # first sample in the cycle
+                    sample_in_cycle = 0
+                # resetting barcode peak counter
+                bc_peaks = 0
+            
+            cycle.append(current_cycle)
+            sample.append(sample_in_cycle)
+            discard.append(False)
+        
+        # adding new columns to the data frame
+        self.peakdf['cycle']   = pd.Series(cycle)
+        # name should not be `sample` because `pandas.DataFrame` has
+        # a bound method under that name...
+        self.peakdf['sampl']   = pd.Series(sample)
+        self.peakdf['discard'] = pd.Series(discard)
+        
+        self.samples_per_cycles()
+        
+        self.peakdf['drugs'], self.peakdf['drug1'], self.peakdf['drug2'] = (
+            zip(*self.peakdf.apply(get_drugs, axis = 1))
+        )
+    
+    def samples_per_cycles(self):
+        """
+        Creates a `pandas.DataFrame` with cycle IDs and
+        number of samples in its two columns. The data
+        frame will be assigned to the `sample_cnt`
+        attribute.
+        """
+        
+        self.sample_cnt = self.peakdf.groupby('cycle').sampl.max()
+    
     def samples_df(self):
         """
         Iterates through the `peakdf` data frame and processes
@@ -365,9 +479,6 @@ class Plugy(object):
               which means first 2 and the last plug are to be
               discarded.
         """
-        
-        insample  = self.peakdf.orange > self.peakdf.blue
-        inbarcode = np.logical_not(insample)
         
         bci = 0 # number of current barcode segment
         smi = 0 # number of current sample segment
@@ -447,7 +558,6 @@ class Plugy(object):
                 drs.append('NA')
         
         self.peakdf['barcode']    = pd.Series(inbarcode)
-        self.peakdf['sample']     = pd.Series(insample)
         self.peakdf['barcode_id'] = pd.Series(np.array(bca))
         self.peakdf['sample_id']  = pd.Series(np.array(sma))
         self.peakdf['drug1']      = pd.Series(np.array(dr1))
@@ -590,6 +700,11 @@ class Plugy(object):
         Important: Please override this method if you used different
         drug sequence!
         """
+        
+        if self.direct_drug_combinations:
+            
+            self.samples_drugs = self.drugs
+            return
         
         sys.stdout.write(
             '\t:: Assuming sample (valve pair opening) sequence '
