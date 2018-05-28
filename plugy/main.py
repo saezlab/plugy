@@ -17,22 +17,35 @@ import matplotlib as mpl
 import matplotlib.figure
 import matplotlib.backends.backend_pdf
 
+import skimage.filters
+from scipy import ndimage as ndi
+
 
 class Plugy(object):
+    
+    colors = {
+        'green':  '#5D9731',
+        'blue':   '#3A73BA',
+        'orange': '#F68026'
+    }
     
     def __init__(self,
                  infile,
                  cut = (None, None),
                  drugs = [],
-                 signal_threshold = 0.02,
+                 signal_threshold = .02,
+                 adaptive_signal_threshold = True,
                  peak_minwidth = 5,
                  channels = {
-                     'barcode': ('blue', 2),
-                     'cells':   ('orange', 3),
+                     'barcode': ('blue', 3),
+                     'cells':   ('orange', 2),
                      'readout': ('green', 1)
                  },
                  bc_mean_peaks = 1,
-                 discard = (2, 1)
+                 discard = (2, 1),
+                 gaussian_smoothing_sigma = 33,
+                 adaptive_threshold_blocksize = 111,
+                 adaptive_threshold_method = 'gaussian'
         ):
         """
         This object represents a plug based microfluidics screen.
@@ -51,12 +64,26 @@ class Plugy(object):
                 Threshold to be used at the selection
                 of peaks. Values in any channel above this will be considered as
                 a peak (plug).
+            :param bool adaptive_signal_threshold:
+                Apply adaptive thresholding to identify peaks. This may help if
+                the plugs are so close to each other that the signal from one or
+                more channels do not drop below the `signal_threshold` value at
+                their boundaries.
             :param int peak_minwidth:
                 Minimum width of a peak in data points.
                 E.g. if acquisition rate is 300 Hz a width of 300 means 1 second.
             :param dict channels:
                 A dict of channels with channel names as keys and tuples of
                 color and column index as values.
+            :param int gaussian_smoothing_sigma:
+                Sigma parameter for the gaussian curve used for smoothing before
+                adaptive thresholding.
+            :param int adaptive_threshold_blocksize:
+                Blocksize for adaptive thresholding.
+                Passed to `skimage.filters.threshold_local`.
+            :param str adaptive_threshold_method:
+                Method for adaptive thresholding.
+                Passed to `skimage.filters.threshold_local`.
         
         Example:
         
@@ -78,13 +105,23 @@ class Plugy(object):
         """
         
         self.infile = infile
-        self.channels = ['green', 'orange', 'blue']
-        self.cut = cut
-        self.drugs = drugs
-        self.peak_minwidth = peak_minwidth
-        self.signal_threshold = signal_threshold
-        self.bc_min_peaks = bc_mean_peaks
-        self.discard = discard
+        self.set_channels(channels)
+        
+        for k, v in locals().items():
+            
+            if not hasattr(self, k):
+                
+                setattr(self, k, v)
+        #self.cut = cut
+        #self.drugs = drugs
+        #self.peak_minwidth = peak_minwidth
+        #self.signal_threshold = signal_threshold
+        #self.adaptive_signal_threshold = adaptive_signal_threshold
+        #self.bc_min_peaks = bc_mean_peaks
+        #self.discard = discard
+        #self.gaussian_smoothing_sigma = gaussian_smoothing_sigma
+        #self.adaptive_threshold_blocksize = adaptive_threshold_blocksize
+        #self.adaptive_threshold_method = adaptive_threshold_method
     
     def reload(self):
         """
@@ -109,16 +146,35 @@ class Plugy(object):
         and exports the preprocessed data.
         """
         
-        self.reader()
+        self.peaks()
+        self.samples()
+    
+    def peaks(self):
+        """
+        First part of the workflow. Identifies peaks and plots them.
+        Running this first is useful to investigate the plot and find
+        out optimal values for the `cut` parameter and the method to
+        detect cycles. Calling `main()` runs both this part and the
+        second part (see `samples()`).
+        """
+        self.read()
         self.strip()
         self.find_peaks()
         self.peaks_df()
         self.plot_peaks()
+        self.plot_peaks(raw = True)
+    
+    def samples(self):
+        """
+        Second part of the workflow. Identifies samples, builds a data
+        frame and exports the preprocessed data.
+        """
+        
         self.sample_names()
         self.samples_df()
         self.export()
     
-    def reader(self):
+    def read(self):
         """
         Reads data from `infile`. It starts reading after the line
         starting with `Time` or `X_Value`. But check your file to
@@ -143,6 +199,17 @@ class Plugy(object):
                 self.data.append([float(i) for i in l])
         
         self.data = np.array(self.data)
+    
+    def set_channels(self, channels):
+        
+        self.channels  = channels
+        self.channelsl = [
+            x[0] for x in
+            sorted(
+                self.channels.values(),
+                key = lambda x: x[1]
+            )
+        ]
     
     def strip(self):
         """
@@ -179,11 +246,46 @@ class Plugy(object):
               each channel values within the peak.
         """
         
-        # peak segments
-        self.peaks = np.any(self.data[:,1:4] > self.signal_threshold, 1)
+        # peak segmentation first by fix threshold
+        self.peaksa = np.any(self.data[:,1:4] > self.signal_threshold, 1)
+        
+        # then optionally by adaptive threshold
+        if self.adaptive_signal_threshold:
+            
+            at_channels = []
+            
+            for color, i in self.channels.values():
+                
+                this_channel = self.data[:,i]
+                # smooth before thresholding
+                this_channel = ndi.filters.gaussian_filter(
+                    this_channel,
+                    sigma = self.gaussian_smoothing_sigma
+                )
+                # skimage.filters.threshold_local works only on 2D arrays
+                this_channel.shape = (this_channel.shape[0], 1)
+                
+                this_at = skimage.filters.threshold_local(
+                    this_channel,
+                    self.adaptive_threshold_blocksize,
+                    method = self.adaptive_threshold_method #,
+                    #param  = 50 # slightly larger sigma than default
+                )
+                # adaptive and fix thresholds are combined
+                at_channels.append(
+                    np.logical_and(
+                        this_channel > this_at,
+                        this_channel > self.signal_threshold
+                    )
+                )
+                
+                # self.data[:,i] = this_channel[:,0]
+            
+            # then we combine the detected peaks from all channels
+            self.peaksa = np.any(np.hstack(at_channels), 1)
         
         # indices of peak starts and ends
-        startend = np.where(self.peaks[1:] ^ self.peaks[:-1])[0] + 1
+        startend = np.where(self.peaksa[1:] ^ self.peaksa[:-1])[0] + 1
         
         if len(startend) % 2 == 1:
             
@@ -225,12 +327,12 @@ class Plugy(object):
         
         self.peakdf = pd.DataFrame(
             self.peakval,
-            columns = ['i0', 'i1', 't0', 't1'] + self.channels
+            columns = ['i0', 'i1', 't0', 't1'] + self.channelsl
         )
         self.peakdf_n = pd.melt(
             self.peakdf,
             ['i0', 'i1', 't0', 't1'],
-            self.channels,
+            self.channelsl,
             'channel',
             'value'
         )
@@ -354,36 +456,123 @@ class Plugy(object):
         self.peakdf['runs']       = pd.Series(np.array(rns))
         self.peakdf['discard']    = pd.Series(np.array(dsc))
     
-    def plot_peaks(self):
+    def plot_peaks(self, pdf_png = 'pdf', raw = False):
         """
         Creates a plot with median intensities of each channel
         from each peak.
+        
+        :param str pdf_png: File type. Default is `pdf`, alternative is `png`.
+        :param bool raw: Plot not only peak medians but also raw data.
         """
         
-        pdfname = '%s.raw.pdf' % self.infile
+        pdf_png = 'png' if pdf_png == 'png' or raw else 'pdf'
+        
+        fname = '%s.raw.%s' % (self.infile, pdf_png)
         
         sys.stdout.write(
-            '\t:: Plotting median intensities into\n\t   `%s`.\n' % pdfname
+            '\t:: Plotting median intensities into\n\t   `%s`.\n' % fname
         )
         
-        pdf = mpl.backends.backend_pdf.PdfPages(pdfname)
         fig = mpl.figure.Figure(figsize = (300, 3))
-        cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+        
+        if pdf_png == 'pdf':
+            
+            pdf = mpl.backends.backend_pdf.PdfPages(fname)
+            cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+            
+        else:
+            # else means png
+            cvs = mpl.backends.backend_agg.FigureCanvasAgg(fig)
         
         ax = fig.add_subplot(111)
-        ax.scatter(self.peakdf.t0, self.peakdf.green,
-                   c = '#5D9731', label = 'Green', s = 2)
-        ax.scatter(self.peakdf.t0, self.peakdf.blue,
-                   c = '#3A73BA', label = 'Blue', s = 2)
-        ax.scatter(self.peakdf.t0, self.peakdf.orange,
-                   c = '#F68026', label = 'Orange', s = 2)
+        
+        if raw:
+            
+            for color, i in self.channels.values():
+                
+                ax.plot(
+                    self.data[:,0],
+                    self.data[:,i],
+                    c = self.colors[color],
+                    zorder = 1
+                )
+            
+            ymax = np.max(
+                self.data[:,
+                    min([x[1] for x in self.channels.values()]):
+                    max([x[1] for x in self.channels.values()]) + 1
+                ]
+            )
+            
+            # highlighting plugs
+            bc_sample = (
+                ndi.filters.gaussian_filter(
+                    self.data[:,self.channels['barcode'][1]],
+                    13
+                ) >
+                np.vstack((
+                    ndi.filters.gaussian_filter(
+                        self.data[:,self.channels['cells'][1]],
+                        13
+                    ),
+                    ndi.filters.gaussian_filter(
+                        self.data[:,self.channels['readout'][1]],
+                        13
+                    )
+                )).max(0)
+            )
+            
+            ax.fill_between(
+                self.data[:,0],
+                0,
+                ymax,
+                where = np.logical_and(
+                    self.peaksa, bc_sample
+                ),
+                facecolor = '#C8CADF', # light blue
+                zorder = 0
+            )
+            
+            ax.fill_between(
+                self.data[:,0],
+                0,
+                ymax,
+                where = np.logical_and(
+                    self.peaksa, np.logical_not(bc_sample)
+                ),
+                facecolor = '#FBD1A7', # light orange
+                zorder = 0
+            )
+        
+        # scatterplots for the peak medians of each channel
+        for color, i in self.channels.values():
+            
+            ax.scatter(
+                self.peakdf.t0,
+                getattr(self.peakdf, color),
+                c = self.colors[color],
+                edgecolors = '#000000' if raw else 'none',
+                linewidths = 1,
+                label = color.upper(),
+                s = 12,
+                zorder = 2
+            )
+        
         _ = ax.set_xlabel('Time (s)')
         _ = ax.set_ylabel('Fluorescence\nintensity')
         
         fig.tight_layout()
         cvs.draw()
-        cvs.print_figure(pdf)
-        pdf.close()
+        
+        if pdf_png == 'pdf':
+            
+            cvs.print_figure(pdf)
+            pdf.close()
+            
+        else:
+            
+            cvs.print_png(fname)
+        
         fig.clf()
     
     def sample_names(self):
