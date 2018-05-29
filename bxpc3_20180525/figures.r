@@ -20,8 +20,9 @@ d <- suppressMessages(read_tsv(infile)) %>%
         runs = factor(cycle, levels = unique(cycle), ordered = TRUE)
     )
 
-p <- ggplot(d, aes(y = green, x = drugs_runs)) +
+p <- ggplot(d, aes(y = green, x = drugs)) +
     geom_boxplot(outlier.size = .5, lwd = .2) +
+    facet_grid(. ~ runs) +
     # scale_color_brewer(guide = FALSE, palette = 'Set1') +
     theme_linedraw() +
     xlab('Sample (drug combination)') +
@@ -29,10 +30,12 @@ p <- ggplot(d, aes(y = green, x = drugs_runs)) +
     ggtitle('Caspase3 activity upon drug combination treatment in BxPC3 cells') +
     theme(
         text = element_text(family = 'DINPro'),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, size = 8, hjust = 1)
+        axis.text.x = element_text(angle = 90, vjust = 0.5, size = 8, hjust = 1),
+        panel.grid.major = element_line(color = '#CCCCCC'),
+        panel.grid.minor = element_line(color = '#CCCCCC')
     )
 
-ggsave(sprintf('%s.runs.pdf', infile), device = cairo_pdf, width = 18, height = 4)
+ggsave(sprintf('%s.drugs_by-cycle.pdf', infile), device = cairo_pdf, width = 18, height = 4)
 
 
 p <- ggplot(d, aes(y = green, x = drugs)) +
