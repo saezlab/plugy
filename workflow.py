@@ -15,3 +15,11 @@ p = plugy.Plugy(infile = '06022018_mouse_kidney_1b.txt',
                     cut = (3225, 11200), drugs = drugs)
 
 p.main()
+
+
+p = plugy.Plugy(
+    infile = '/home/denes/archive/microfluidics/20181014_fusion/02.txt',
+    cut = (None, None),
+)
+
+p.peaks()
