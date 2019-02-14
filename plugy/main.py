@@ -60,7 +60,7 @@ class Plugy(object):
                  adaptive_threshold_blocksize = 111,
                  adaptive_threshold_method = 'gaussian',
                  drug_sep = '&',
-                 direct_drug_combinations = False
+                 direct_drug_combinations = False,
         ):
         """
         This object represents a plug based microfluidics screen.
@@ -681,6 +681,14 @@ class Plugy(object):
                 zorder = 2
             )
         
+        _ = ax.xaxis.set_ticks(
+            np.arange(
+                min(self.data[:,0]),
+                max(self.data[:,0]),
+                25
+            )
+        )
+        _ = ax.margins(x = 0, y = 0.05)
         _ = ax.set_xlabel('Time (s)')
         _ = ax.set_ylabel('Fluorescence\nintensity')
         
