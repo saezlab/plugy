@@ -283,8 +283,9 @@ class Plugy(object):
             
             at_channels = []
             sm_channels = []
+            channels = sorted(self.channels.values(), key = lambda x: x[1])
             
-            for color, i in self.channels.values():
+            for color, i in channels:
                 
                 this_channel = self.data[:,i]
                 # smooth before thresholding
