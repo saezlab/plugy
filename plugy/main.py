@@ -36,10 +36,16 @@ from scipy import ndimage as ndi
 
 class Plugy(object):
     
-    colors = {
+    _colors = {
         'green':  '#5D9731',
         'blue':   '#3A73BA',
         'orange': '#F68026'
+    }
+    
+    _channels = {
+        'barcode': ('blue', 3),
+        'cells':   ('orange', 2),
+        'readout': ('green', 1),
     }
     
     def __init__(
@@ -51,11 +57,8 @@ class Plugy(object):
             signal_threshold = .02,
             adaptive_signal_threshold = True,
             peak_minwidth = 5,
-            channels = {
-            'barcode': ('blue', 3),
-            'cells':   ('orange', 2),
-            'readout': ('green', 1),
-            },
+            channels = None,
+            colors = None,
             bc_mean_peaks = 1,
             discard = (2, 1),
             gaussian_smoothing_sigma = 33,
@@ -134,6 +137,8 @@ class Plugy(object):
         
         self.name = os.path.split(self.infile)[-1]
         os.makedirs(self.results_dir, exist_ok = True)
+        self.channels = self.channels or self._channels
+        self.colors = self.colors or self._colors
     
     
     reload(self):
