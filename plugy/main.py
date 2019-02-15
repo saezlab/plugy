@@ -714,7 +714,7 @@ class Plugy(object):
             np.arange(
                 min(self.data[:,0]),
                 max(self.data[:,0]),
-                25
+                5,
             )
         )
         _ = ax.margins(x = 0, y = 0.05)
