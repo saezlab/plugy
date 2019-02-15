@@ -42,26 +42,27 @@ class Plugy(object):
         'orange': '#F68026'
     }
     
-    def __init__(self,
-                 infile,
-                 results_dir = 'results',
-                 cut = (None, None),
-                 drugs = [],
-                 signal_threshold = .02,
-                 adaptive_signal_threshold = True,
-                 peak_minwidth = 5,
-                 channels = {
-                     'barcode': ('blue', 3),
-                     'cells':   ('orange', 2),
-                     'readout': ('green', 1)
-                 },
-                 bc_mean_peaks = 1,
-                 discard = (2, 1),
-                 gaussian_smoothing_sigma = 33,
-                 adaptive_threshold_blocksize = 111,
-                 adaptive_threshold_method = 'gaussian',
-                 drug_sep = '&',
-                 direct_drug_combinations = False,
+    def __init__(
+            self,
+            infile,
+            results_dir = 'results',
+            cut = (None, None),
+            drugs = [],
+            signal_threshold = .02,
+            adaptive_signal_threshold = True,
+            peak_minwidth = 5,
+            channels = {
+            'barcode': ('blue', 3),
+            'cells':   ('orange', 2),
+            'readout': ('green', 1),
+            },
+            bc_mean_peaks = 1,
+            discard = (2, 1),
+            gaussian_smoothing_sigma = 33,
+            adaptive_threshold_blocksize = 111,
+            adaptive_threshold_method = 'gaussian',
+            drug_sep = '&',
+            direct_drug_combinations = False,
         ):
         """
         This object represents a plug based microfluidics screen.
