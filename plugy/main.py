@@ -21,6 +21,7 @@ from __future__ import print_function
 from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
+import os
 import sys
 import imp
 import numpy as np
@@ -127,7 +128,10 @@ class Plugy(object):
         """
         
         self.infile = infile
-        self.set_channels(channels)
+        self.name = os.path.split(self.infile)[-1]
+        self.channels = channels or self._channels
+        self.colors = colors or self._colors
+        self.set_channels(self.channels)
         
         for k, v in locals().items():
             
@@ -135,13 +139,10 @@ class Plugy(object):
                 
                 setattr(self, k, v)
         
-        self.name = os.path.split(self.infile)[-1]
         os.makedirs(self.results_dir, exist_ok = True)
-        self.channels = self.channels or self._channels
-        self.colors = self.colors or self._colors
     
     
-    reload(self):
+    def reload(self):
         """
         Reloads the module and updates the instance.
         Use this to make updates on this code while
@@ -609,11 +610,11 @@ class Plugy(object):
         
         pdf_png = 'png' if pdf_png == 'png' or raw else 'pdf'
         
-        fname = fname or '%s.raw.%s' % (self.infile, pdf_png)
-        fname = os.path.join(results_dir, fname)
+        fname = fname or '%s.raw.%s' % (self.name, pdf_png)
+        fname = os.path.join(self.results_dir, fname)
         
         sys.stdout.write(
-            '\t:: Plotting median intensities into\n\t   `%s`.\n' % fname
+            '\t:: Plotting median intensities into `%s`.\n' % fname
         )
         
         fig = mpl.figure.Figure(figsize = (300, 3))
