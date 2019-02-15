@@ -44,6 +44,7 @@ class Plugy(object):
     
     def __init__(self,
                  infile,
+                 results_dir = 'results',
                  cut = (None, None),
                  drugs = [],
                  signal_threshold = .02,
@@ -68,6 +69,8 @@ class Plugy(object):
         Args:
             :param str infile:
                 Name of the file containing the acquired data.
+            :param str results_dir:
+                Directory to save the plots and output tables into.
             :param tuple cut:
                 A segment of the data along the time axis to be
                 used. E.g. `(800, 9000)` the data points before 800 s and after
@@ -127,18 +130,12 @@ class Plugy(object):
             if not hasattr(self, k):
                 
                 setattr(self, k, v)
-        #self.cut = cut
-        #self.drugs = drugs
-        #self.peak_minwidth = peak_minwidth
-        #self.signal_threshold = signal_threshold
-        #self.adaptive_signal_threshold = adaptive_signal_threshold
-        #self.bc_min_peaks = bc_mean_peaks
-        #self.discard = discard
-        #self.gaussian_smoothing_sigma = gaussian_smoothing_sigma
-        #self.adaptive_threshold_blocksize = adaptive_threshold_blocksize
-        #self.adaptive_threshold_method = adaptive_threshold_method
+        
+        self.name = os.path.split(self.infile)[-1]
+        os.makedirs(self.results_dir, exist_ok = True)
     
-    def reload(self):
+    
+    reload(self):
         """
         Reloads the module and updates the instance.
         Use this to make updates on this code while
@@ -150,6 +147,7 @@ class Plugy(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
     
     def main(self):
         """
@@ -163,6 +161,7 @@ class Plugy(object):
         
         self.peaks()
         self.samples()
+    
     
     def peaks(self):
         """
@@ -179,6 +178,7 @@ class Plugy(object):
         self.plot_peaks()
         self.plot_peaks(raw = True)
     
+    
     def samples(self):
         """
         Second part of the workflow. Identifies samples, builds a data
@@ -188,6 +188,7 @@ class Plugy(object):
         self.sample_names()
         self.find_cycles()
         self.export()
+    
     
     def read(self):
         """
@@ -204,7 +205,10 @@ class Plugy(object):
             
             for l in fp:
                 
-                if l[1:].strip().startswith('Time') or l.startswith('X_Value'):
+                if (
+                    l[1:].strip().startswith('Time') or
+                    l.startswith('X_Value')
+                ):
                     
                     break
             
@@ -214,6 +218,7 @@ class Plugy(object):
                 self.data.append([float(i) for i in l])
         
         self.data = np.array(self.data)
+    
     
     def set_channels(self, channels):
         
@@ -225,6 +230,7 @@ class Plugy(object):
                 key = lambda x: x[1]
             )
         ]
+    
     
     def strip(self):
         """
@@ -244,6 +250,7 @@ class Plugy(object):
         if self.cut[1] is not None:
             
             self.data = self.data[np.where(self.data[:,0] < self.cut[1])[0],:]
+    
     
     def find_peaks(self):
         """
@@ -268,6 +275,7 @@ class Plugy(object):
         if self.adaptive_signal_threshold:
             
             at_channels = []
+            sm_channels = []
             
             for color, i in self.channels.values():
                 
@@ -293,13 +301,16 @@ class Plugy(object):
                         this_channel > self.signal_threshold
                     )
                 )
+                sm_channels.append(this_channel)
                 
                 # self.data[:,i] = this_channel[:,0]
             
             # then we combine the detected peaks from all channels
-            self.peaksa = np.any(np.hstack(at_channels), 1)
+            self._peaksa = np.hstack(at_channels)
+            self.smoothened = np.hstack(sm_channels)
         
         # indices of peak starts and ends
+        self.peaksa = np.any(self._peaksa, 1)
         startend = np.where(self.peaksa[1:] ^ self.peaksa[:-1])[0] + 1
         
         if len(startend) % 2 == 1:
@@ -331,6 +342,7 @@ class Plugy(object):
             
         self.peakval = np.array(peakval)
         self.startend = startend
+    
     
     def peaks_df(self):
         """
@@ -579,7 +591,8 @@ class Plugy(object):
         self.peakdf['runs']       = pd.Series(np.array(rns))
         self.peakdf['discard']    = pd.Series(np.array(dsc))
     
-    def plot_peaks(self, pdf_png = 'pdf', raw = False):
+    
+    def plot_peaks(self, fname = None, pdf_png = 'pdf', raw = False):
         """
         Creates a plot with median intensities of each channel
         from each peak.
@@ -590,7 +603,8 @@ class Plugy(object):
         
         pdf_png = 'png' if pdf_png == 'png' or raw else 'pdf'
         
-        fname = '%s.raw.%s' % (self.infile, pdf_png)
+        fname = fname or '%s.raw.%s' % (self.infile, pdf_png)
+        fname = os.path.join(results_dir, fname)
         
         sys.stdout.write(
             '\t:: Plotting median intensities into\n\t   `%s`.\n' % fname
@@ -613,11 +627,18 @@ class Plugy(object):
             
             for color, i in self.channels.values():
                 
+                #ax.plot(
+                    #self.data[:,0],
+                    #self.data[:,i],
+                    #c = self.colors[color],
+                    #zorder = 1,
+                #)
+                
                 ax.plot(
                     self.data[:,0],
-                    self.data[:,i],
+                    self.smoothened[:,i - 1],
                     c = self.colors[color],
-                    zorder = 1
+                    zorder = 1,
                 )
             
             ymax = np.max(
@@ -706,6 +727,7 @@ class Plugy(object):
         
         fig.clf()
     
+    
     def sample_names(self):
         """
         From a linear list of drug names creates the sequence of
@@ -748,6 +770,7 @@ class Plugy(object):
         names.append((self.drugs[0], self.drugs[1]))
         
         self.samples_drugs = names
+    
     
     def export(self, outfile = None):
         """
