@@ -70,6 +70,7 @@ class Plugy(object):
             adaptive_threshold_sigma = 190,
             drug_sep = '&',
             direct_drug_combinations = False,
+            barcode_intensity_correction = 1.0,
         ):
         """
         This object represents a plug based microfluidics screen.
@@ -110,6 +111,12 @@ class Plugy(object):
             :param str adaptive_threshold_method:
                 Method for adaptive thresholding.
                 Passed to `skimage.filters.threshold_local`.
+            :param float barcode_intensity_correction:
+                Plugs considered to be part of the barcode if the intensity
+                of the barcode channel is higher than any other channel.
+                You can use this parameter to adjust this step, e.g. if
+                the gain of the barcode channel or dye concentration was
+                unusually low or high.
         
         Example:
         
@@ -656,19 +663,19 @@ class Plugy(object):
             
             for color, i in self.channels.values():
                 
-                #ax.plot(
-                    #self.data[:,0],
-                    #self.data[:,i],
-                    #c = self.colors[color],
-                    #zorder = 1,
-                #)
-                
                 ax.plot(
                     self.data[:,0],
-                    self.smoothened[:,i - 1],
+                    self.data[:,i],
                     c = self.colors[color],
                     zorder = 1,
                 )
+                
+                #ax.plot(
+                    #self.data[:,0],
+                    #self.smoothened[:,i - 1],
+                    #c = self.colors[color],
+                    #zorder = 1,
+                #)
             
             ymax = np.max(
                 self.data[:,
@@ -682,7 +689,7 @@ class Plugy(object):
                 ndi.filters.gaussian_filter(
                     self.data[:,self.channels['barcode'][1]],
                     13
-                ) >
+                ) * self.barcode_intensity_correction >
                 np.vstack((
                     ndi.filters.gaussian_filter(
                         self.data[:,self.channels['cells'][1]],
