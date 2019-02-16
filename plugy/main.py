@@ -32,6 +32,7 @@ import matplotlib.figure
 import matplotlib.backends.backend_pdf
 
 import skimage.filters
+import skimage.morphology
 from scipy import ndimage as ndi
 
 
@@ -68,6 +69,7 @@ class Plugy(object):
             adaptive_threshold_method = 'gaussian',
             adaptive_threshold_sigma = 190,
             adaptive_threshold_offset = 0.01,
+            merge_close_peaks = 50,
             drug_sep = '&',
             direct_drug_combinations = False,
             barcode_intensity_correction = 1.0,
@@ -118,6 +120,9 @@ class Plugy(object):
             The adaptive threshold will be adjusted by this offset.
             Try fine tune with this and the sigma value if you see plug
             segments get broken into parts.
+        merge_close_peaks : int
+            If the distance between neighboring peaks is lower than this
+            threshold the peaks will be merged.
         barcode_intensity_correction : float
             Plugs considered to be part of the barcode if the intensity
             of the barcode channel is higher than any other channel.
@@ -349,8 +354,26 @@ class Plugy(object):
             self.smoothened = np.hstack(sm_channels)
             self.at_values = np.hstack(at_values)
         
-        # indices of peak starts and ends
+        # boolean array for selection of peaks
         self.peaksa = np.any(self._peaksa, 1)
+        
+        if self.merge_close_peaks:
+            
+            # same with skimage, but this is much slower:
+            #
+            #self.peaksa = skimage.morphology.binary_closing(
+                #image = self.peaksa,
+                #selem = skimage.morphology.square(self.merge_close_peaks),
+                #out = self.peaksa,
+            #)
+            
+            self.peaksa = ndi.binary_closing(
+                input = self.peaksa,
+                structure = np.array([1] * self.merge_close_peaks),
+                output = self.peaksa,
+            )
+        
+        # indices of peak starts and ends
         # bitwise XOR operator
         startend = np.where(self.peaksa[1:] ^ self.peaksa[:-1])[0] + 1
         
