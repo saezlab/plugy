@@ -61,13 +61,13 @@ class Plugy(object):
             peak_minwidth = 5,
             channels = None,
             colors = None,
-            bc_mean_peaks = 1,
             discard = (2, 1),
             x_ticks_density = 5,
             gaussian_smoothing_sigma = 33,
             adaptive_threshold_blocksize = 111,
             adaptive_threshold_method = 'gaussian',
             adaptive_threshold_sigma = 190,
+            adaptive_threshold_offset = 0.01,
             drug_sep = '&',
             direct_drug_combinations = False,
             barcode_intensity_correction = 1.0,
@@ -111,6 +111,12 @@ class Plugy(object):
             :param str adaptive_threshold_method:
                 Method for adaptive thresholding.
                 Passed to `skimage.filters.threshold_local`.
+            :param int adaptive_threshold_sigma:
+                Parameter for the Gaussian function at adaptive threshold.
+            :param float adaptive_threshold_offset:
+                The adaptive threshold will be adjusted by this offset.
+                Try fine tune with this and the sigma value if you see plug
+                segments get broken into parts.
             :param float barcode_intensity_correction:
                 Plugs considered to be part of the barcode if the intensity
                 of the barcode channel is higher than any other channel.
@@ -311,8 +317,9 @@ class Plugy(object):
                     this_channel,
                     self.adaptive_threshold_blocksize,
                     method = self.adaptive_threshold_method,
-                    param  = 190, # slightly larger sigma than default
-                ) - 0.01
+                    # slightly larger sigma than default
+                    param  = self.adaptive_threshold_sigma,
+                ) - self.adaptive_threshold_offset
                 
                 # adaptive and fix thresholds are combined
                 at_channels.append(
