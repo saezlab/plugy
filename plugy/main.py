@@ -287,6 +287,9 @@ class Plugy(object):
         Finds peaks i.e. plugs.
             * Whereever any channel is above the `signal_threshold` is
               considered to be a peak segment
+            * If `adaptive_signal_threshold` is `True` an adaptive a
+              Gaussian smoothing and adaptive thresholding applied to
+              each channel
             * Then indices corresponding to start and end of each peak
               segment are determined. These are stored in the `startend`
               array where first column contains the start indices and
@@ -833,7 +836,8 @@ class Plugy(object):
         Writes the `peaksdf` data frame into tsv file.
         """
         
-        outfile = outfile or '%s.peaks.tsv' % self.infile
+        outfile = outfile or '%s.peaks.tsv' % self.name
+        outfile = os.path.join(self.results_dir, outfile)
         
         sys.stdout.write(
             '\t:: Exporting peaks data into\n\t   `%s`\n' % outfile
