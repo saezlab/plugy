@@ -73,58 +73,65 @@ class Plugy(object):
             barcode_intensity_correction = 1.0,
         ):
         """
-        This object represents a plug based microfluidics screen.
+        Represents a plug based microfluidics screen.
         
-        Args:
-            :param str infile:
-                Name of the file containing the acquired data.
-            :param str results_dir:
-                Directory to save the plots and output tables into.
-            :param tuple cut:
-                A segment of the data along the time axis to be
-                used. E.g. `(800, 9000)` the data points before 800 s and after
-                9000 s will be removed.
-            :param list drugs:
-                List of the compounds connected to inlets 11-22
-                of the BD chip.
-            :param float signal_threshold:
-                Threshold to be used at the selection
-                of peaks. Values in any channel above this will be considered as
-                a peak (plug).
-            :param bool adaptive_signal_threshold:
-                Apply adaptive thresholding to identify peaks. This may help if
-                the plugs are so close to each other that the signal from one or
-                more channels do not drop below the `signal_threshold` value at
-                their boundaries.
-            :param int peak_minwidth:
-                Minimum width of a peak in data points.
-                E.g. if acquisition rate is 300 Hz a width of 300 means 1 second.
-            :param dict channels:
-                A dict of channels with channel names as keys and tuples of
-                color and column index as values.
-            :param int gaussian_smoothing_sigma:
-                Sigma parameter for the gaussian curve used for smoothing before
-                adaptive thresholding.
-            :param int adaptive_threshold_blocksize:
-                Blocksize for adaptive thresholding.
-                Passed to `skimage.filters.threshold_local`.
-            :param str adaptive_threshold_method:
-                Method for adaptive thresholding.
-                Passed to `skimage.filters.threshold_local`.
-            :param int adaptive_threshold_sigma:
-                Parameter for the Gaussian function at adaptive threshold.
-            :param float adaptive_threshold_offset:
-                The adaptive threshold will be adjusted by this offset.
-                Try fine tune with this and the sigma value if you see plug
-                segments get broken into parts.
-            :param float barcode_intensity_correction:
-                Plugs considered to be part of the barcode if the intensity
-                of the barcode channel is higher than any other channel.
-                You can use this parameter to adjust this step, e.g. if
-                the gain of the barcode channel or dye concentration was
-                unusually low or high.
+        Parameters
+        ----------
+        infile : str
+            Name of the file containing the acquired data.
+        results_dir : str
+            Directory to save the plots and output tables into.
+        cut : tuple
+            A segment of the data along the time axis to be
+            used. E.g. `(800, 9000)` the data points before 800 s and after
+            9000 s will be removed.
+        drugs : list
+            List of the compounds connected to inlets 11-22
+            of the BD chip.
+        signal_threshold : float
+            Threshold to be used at the selection
+            of peaks. Values in any channel above this will be considered as
+            a peak (plug).
+        adaptive_signal_threshold : bool
+            Apply adaptive thresholding to identify peaks. This may help if
+            the plugs are so close to each other that the signal from one or
+            more channels do not drop below the `signal_threshold` value at
+            their boundaries.
+        peak_minwidth : int
+            Minimum width of a peak in data points.
+            E.g. if acquisition rate is 300 Hz a width of 300 means 1 second.
+        channels : dict
+            A dict of channels with channel names as keys and tuples of
+            color and column index as values.
+        gaussian_smoothing_sigma : int
+            Sigma parameter for the gaussian curve used for smoothing before
+            adaptive thresholding.
+        adaptive_threshold_blocksize : int
+            Blocksize for adaptive thresholding.
+            Passed to `skimage.filters.threshold_local`.
+        adaptive_threshold_method : str
+            Method for adaptive thresholding.
+            Passed to `skimage.filters.threshold_local`.
+        adaptive_threshold_sigma : int
+            Parameter for the Gaussian function at adaptive threshold.
+        adaptive_threshold_offset : float
+            The adaptive threshold will be adjusted by this offset.
+            Try fine tune with this and the sigma value if you see plug
+            segments get broken into parts.
+        barcode_intensity_correction : float
+            Plugs considered to be part of the barcode if the intensity
+            of the barcode channel is higher than any other channel.
+            You can use this parameter to adjust this step, e.g. if
+            the gain of the barcode channel or dye concentration was
+            unusually low or high.
+        drug_sep : str
+            Something between drug names in labels of drug combinations.
+        direct_drug_combinations : bool
+            The sequence of drug combinations provided directly instead
+            of to be inferred from the valve-drug assignments.
         
-        Example:
+        Example
+        -------
         
         >>> import plugy
         
@@ -640,8 +647,8 @@ class Plugy(object):
         Creates a plot with median intensities of each channel
         from each peak.
         
-        :param str pdf_png: File type. Default is `pdf`, alternative is `png`.
-        :param bool raw: Plot not only peak medians but also raw data.
+        pdf_png : str File type. Default is `pdf`, alternative is `png`.
+        raw : bool Plot not only peak medians but also raw data.
         """
         
         pdf_png = 'png' if pdf_png == 'png' or raw else 'pdf'
