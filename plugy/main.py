@@ -49,6 +49,7 @@ class Plugy(object):
         'readout': ('green', 1),
     }
     
+    
     def __init__(
             self,
             infile,
@@ -62,9 +63,11 @@ class Plugy(object):
             colors = None,
             bc_mean_peaks = 1,
             discard = (2, 1),
+            x_ticks_density = 5,
             gaussian_smoothing_sigma = 33,
             adaptive_threshold_blocksize = 111,
             adaptive_threshold_method = 'gaussian',
+            adaptive_threshold_sigma = 190,
             drug_sep = '&',
             direct_drug_combinations = False,
         ):
@@ -283,6 +286,7 @@ class Plugy(object):
             
             at_channels = []
             sm_channels = []
+            at_values = []
             channels = sorted(self.channels.values(), key = lambda x: x[1])
             
             for color, i in channels:
@@ -299,9 +303,10 @@ class Plugy(object):
                 this_at = skimage.filters.threshold_local(
                     this_channel,
                     self.adaptive_threshold_blocksize,
-                    method = self.adaptive_threshold_method #,
-                    #param  = 50 # slightly larger sigma than default
-                )
+                    method = self.adaptive_threshold_method,
+                    param  = 190, # slightly larger sigma than default
+                ) - 0.01
+                
                 # adaptive and fix thresholds are combined
                 at_channels.append(
                     np.logical_and(
@@ -309,27 +314,40 @@ class Plugy(object):
                         this_channel > self.signal_threshold
                     )
                 )
+                
                 sm_channels.append(this_channel)
+                at_values.append(this_at)
                 
                 # self.data[:,i] = this_channel[:,0]
             
             # then we combine the detected peaks from all channels
             self._peaksa = np.hstack(at_channels)
             self.smoothened = np.hstack(sm_channels)
+            self.at_values = np.hstack(at_values)
         
         # indices of peak starts and ends
         self.peaksa = np.any(self._peaksa, 1)
+        # bitwise XOR operator
         startend = np.where(self.peaksa[1:] ^ self.peaksa[:-1])[0] + 1
         
+        # if the sequence starts in a middle of a plug we remove this
+        if self.peaksa[0]:
+            
+            startend = startend[1:]
+        
+        # if the sequence ends with a plug started with no end
+        # we remove this
         if len(startend) % 2 == 1:
             
             startend = startend[:-1]
         
+        # arranging start and end indices in 2 columns
         startend = np.vstack([
             startend[range(0, len(startend), 2)],
             startend[range(1, len(startend), 2)]
         ]).T
         
+        # removing too short plugs
         startend = startend[
             np.where(startend[:,1] - startend[:,0] >= self.peak_minwidth)
         ]
@@ -365,12 +383,13 @@ class Plugy(object):
             columns = ['i0', 'i1', 't0', 't1'] + self.channelsl
         )
         self.peakdf_n = pd.melt(
-            self.peakdf,
-            ['i0', 'i1', 't0', 't1'],
-            self.channelsl,
-            'channel',
-            'value'
+            frame = self.peakdf,
+            id_vars = ['i0', 'i1', 't0', 't1'],
+            value_vars = self.channelsl,
+            var_name = 'channel',
+            value_name = 'value',
         )
+    
     
     def find_cycles(self):
         """
@@ -474,6 +493,7 @@ class Plugy(object):
             zip(*self.peakdf.apply(get_drugs, axis = 1))
         )
     
+    
     def samples_per_cycles(self):
         """
         Creates a `pandas.DataFrame` with cycle IDs and
@@ -483,6 +503,7 @@ class Plugy(object):
         """
         
         self.sample_cnt = self.peakdf.groupby('cycle').sampl.max()
+    
     
     def samples_df(self):
         """
@@ -626,7 +647,7 @@ class Plugy(object):
             cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
             
         else:
-            # else means png
+            # png
             cvs = mpl.backends.backend_agg.FigureCanvasAgg(fig)
         
         ax = fig.add_subplot(111)
@@ -674,6 +695,7 @@ class Plugy(object):
                 )).max(0)
             )
             
+            # barcode plugs
             ax.fill_between(
                 self.data[:,0],
                 0,
@@ -685,6 +707,7 @@ class Plugy(object):
                 zorder = 0
             )
             
+            # all other plugs
             ax.fill_between(
                 self.data[:,0],
                 0,
@@ -712,9 +735,13 @@ class Plugy(object):
         
         _ = ax.xaxis.set_ticks(
             np.arange(
-                min(self.data[:,0]),
+                (
+                    min(self.data[:,0]) //
+                    self.x_ticks_density +
+                    self.x_ticks_density
+                ),
                 max(self.data[:,0]),
-                5,
+                self.x_ticks_density,
             )
         )
         _ = ax.margins(x = 0, y = 0.05)
