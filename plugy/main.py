@@ -278,13 +278,27 @@ class Plugy(object):
         the end.
         """
         
-        if self.cut[0] is not None:
+        if not isinstance(self.cut[0], tuple):
             
-            self.data = self.data[np.where(self.data[:,0] > self.cut[0])[0],:]
+            self.cut = (self.cut,)
         
-        if self.cut[1] is not None:
+        keep = []
+        
+        for cut in self.cut:
             
-            self.data = self.data[np.where(self.data[:,0] < self.cut[1])[0],:]
+            data = self.data
+            
+            if cut[0] is not None:
+                
+                data = data[np.where(data[:,0] > cut[0])[0],:]
+            
+            if self.cut[1] is not None:
+                
+                data = data[np.where(data[:,0] < cut[1])[0],:]
+            
+            keep.append(data)
+        
+        self.data = np.vstack(keep)
     
     
     def find_peaks(self):
@@ -407,7 +421,9 @@ class Plugy(object):
                 se[0], # start index
                 se[1], # end index
                 np.min(self.data[se[0]:se[1],0]), # the start time
-                np.max(self.data[se[0]:se[1],0])  # the end time
+                np.max(self.data[se[0]:se[1],0]), # the end time
+                np.max(self.data[se[0]:se[1],0]) -
+                np.min(self.data[se[0]:se[1],0])  # length
                 ] + [
                 np.median(self.data[se[0]:se[1],i])
                 for i in range(1, 4)
@@ -427,11 +443,11 @@ class Plugy(object):
         
         self.peakdf = pd.DataFrame(
             self.peakval,
-            columns = ['i0', 'i1', 't0', 't1'] + self.channelsl
+            columns = ['i0', 'i1', 't0', 't1', 'length'] + self.channelsl
         )
         self.peakdf_n = pd.melt(
             frame = self.peakdf,
-            id_vars = ['i0', 'i1', 't0', 't1'],
+            id_vars = ['i0', 'i1', 't0', 't1', 'length'],
             value_vars = self.channelsl,
             var_name = 'channel',
             value_name = 'value',
