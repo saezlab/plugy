@@ -292,7 +292,7 @@ class Plugy(object):
                 
                 data = data[np.where(data[:,0] > cut[0])[0],:]
             
-            if self.cut[1] is not None:
+            if cut[1] is not None:
                 
                 data = data[np.where(data[:,0] < cut[1])[0],:]
             
