@@ -812,6 +812,7 @@ class Plugy(object):
         _ = ax.set_ylabel('Fluorescence\nintensity')
         
         fig.tight_layout()
+        fig.autofmt_xdate(rotation=90)
         cvs.draw()
         
         if pdf_png == 'pdf':
