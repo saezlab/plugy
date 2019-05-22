@@ -33,7 +33,10 @@ class EvalPlugy(Plugy):
     direct_drug_combinations: bool = False
     barcode_intensity_correction: float = 1.0
     ignore_orange_channel: bool = False
+    ignore_green_channel: bool = False
+    ignore_uv_channel: bool = False
     acquisition_rate: int = 300
+    correct_acquisition_time: bool = True
     figure_file_type: str = ".svg"
 
     def __post_init__(self):
@@ -43,11 +46,8 @@ class EvalPlugy(Plugy):
         self.data = None
         self.read()
 
-        if self.ignore_orange_channel:
-            self.set_channel_values(ignore_orange=True)
-
-        else:
-            self.set_channel_values()
+        self.set_channel_values(correct_time=self.correct_acquisition_time, ignore_green=self.ignore_green_channel, ignore_orange=self.ignore_orange_channel, ignore_uv=self.ignore_uv_channel)
+        self.save_plugy()
 
     def set_channel_values(self, correct_time: bool = True, ignore_green: bool = False, ignore_orange: bool = False, ignore_uv: bool = False):
         """
