@@ -5,6 +5,7 @@ Date        20.05.2019
 
 import pathlib as pl
 import numpy as np
+import pickle
 
 from dataclasses import dataclass, field
 from ..main import Plugy
@@ -78,3 +79,11 @@ class EvalPlugy(Plugy):
 
                 if ignore_uv and (col == 3):
                     value[...] = 0
+
+    def save_plugy(self, export_filename: str = "evalPlugyObject.p"):
+        """
+        Saves the EvalPlugy object as a serialized pickle in the results_dir
+        :param export_filename: Filename for the object
+        """
+        with self.results_dir.joinpath(export_filename).open("wb") as p:
+            pickle.dump(self, p)
