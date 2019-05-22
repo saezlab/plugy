@@ -5,7 +5,6 @@ Date        20.05.2019
 
 import pathlib as pl
 import numpy as np
-import pandas as pd
 
 from dataclasses import dataclass, field
 from ..main import Plugy
@@ -20,8 +19,8 @@ class EvalPlugy(Plugy):
     signal_threshold: float = .02
     adaptive_signal_threshold: bool = True
     peak_minwidth: float = 5
-    channels: dict = field(default_factory=lambda: {"green": "#5D9731", "blue":   "#3A73BA", "orange": "#F68026"})
-    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue":   "#3A73BA", "orange": "#F68026"})
+    channels: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     discard: tuple = (2, 1)
     x_ticks_density: float = 5
     gaussian_smoothing_sigma: float = 33
@@ -44,34 +43,38 @@ class EvalPlugy(Plugy):
         self.data = None
         self.read()
 
-        self.correct_acquisition_time()
-
         if self.ignore_orange_channel:
-            self.set_channel_values("orange", 0)
+            self.set_channel_values(ignore_orange=True)
 
-    def correct_acquisition_time(self):
+        else:
+            self.set_channel_values()
+
+    def set_channel_values(self, correct_time: bool = True, ignore_green: bool = False, ignore_orange: bool = False, ignore_uv: bool = False):
         """
-        Corrects reported acquisition times by multiplying the index of the measurement by 1/acquisition rate
-        :return: None
+        Sets & corrects values in the multichannel acquisition data.
+        :param correct_time: If the time should be corrected from having 100 measurements at a single
+                             timepoint to evenly spaced measurements using the acquisition rate.
+        :param ignore_green: If all values of the green channel should be set to 0
+        :param ignore_orange: If all values of the orange channel should be set to 0
+        :param ignore_uv: If all values of the uv channel should be set to 0
         """
-        time_between_samplings = 1/self.acquisition_rate
-        # idx = 0
-        # for line in np.nditer(self.data, op_flags=["readwrite"]):
-        #     print(line)
-        #     line[0] = idx * time_between_samplings
-        #     idx += 1
+        time_between_samplings = 1 / self.acquisition_rate
+
+        # Iterate through self.data and overwrite if iteration successful
         with np.nditer(self.data, op_flags=["readwrite"]) as data:
             for idx, value in enumerate(data):
-                if idx % 4 is 0:
+                # Get the column index
+                col = idx % 4
+
+                # Change column values depending on parameters
+                if correct_time and (col == 0):
                     value[...] = (idx / 4) * time_between_samplings
 
-        print(self.data)
+                if ignore_green and (col == 1):
+                    value[...] = 0
 
-    def set_channel_values(self, channel: str, value: float = 0):
-        """
-        Sets each measurement for the specified channel to the specified value
-        :param channel: The channel to modify: "green", "blue" or "orange"
-        :param value: All measurements of this channel are set to this value
-        :return: None
-        """
-        self.data[channel] = value
+                if ignore_orange and (col == 2):
+                    value[...] = 0
+
+                if ignore_uv and (col == 3):
+                    value[...] = 0
