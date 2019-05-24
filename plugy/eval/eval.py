@@ -15,6 +15,7 @@ from ..main import Plugy
 class EvalPlugy(Plugy):
     infile: pl.Path
     results_dir: pl.Path = pl.Path.cwd().joinpath("results")
+    experiment_name: str = "evalPlugyObject"
     cut: tuple = (None, None)
     drugs: list = field(default_factory=list)
     signal_threshold: float = .02
@@ -48,7 +49,7 @@ class EvalPlugy(Plugy):
         self.read()
 
         self.set_channel_values(correct_time=self.correct_acquisition_time, ignore_green=self.ignore_green_channel, ignore_orange=self.ignore_orange_channel, ignore_uv=self.ignore_uv_channel)
-        self.save_plugy()
+        self.save_plugy(self.experiment_name)
 
     def set_channel_values(self, correct_time: bool = True, ignore_green: bool = False, ignore_orange: bool = False, ignore_uv: bool = False):
         """
@@ -80,7 +81,7 @@ class EvalPlugy(Plugy):
                 if ignore_uv and (col == 3):
                     value[...] = 0
 
-    def save_plugy(self, export_filename: str = "evalPlugyObject.p"):
+    def save_plugy(self, export_filename: str):
         """
         Saves the EvalPlugy object as a serialized pickle in the results_dir
         :param export_filename: Filename for the object
