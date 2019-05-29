@@ -120,6 +120,7 @@ class EvalPlugy(Plugy):
         temp_df = temp_df.loc[temp_df[0] > self.cut[0]]
         temp_df = temp_df.loc[temp_df[0] < self.cut[1]]
 
+        # noinspection PyAttributeOutsideInit
         self.data = temp_df.values
 
     # def filter_barcodes(self, n_discards: int = 1):
