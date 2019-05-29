@@ -43,7 +43,8 @@ class EvalPlugy(Plugy):
 
     def __post_init__(self):
         """
-        Upon initialization of the EvalPlugy object, the infile is read and preprocessed
+        Upon initialization of the EvalPlugy object, some additional attributes are collected and the results_dir is
+        created if it does not exist already.
         """
         self.data = None
         self.filtered_peaks = pd.DataFrame()
@@ -58,14 +59,10 @@ class EvalPlugy(Plugy):
         except FileExistsError:
             pass
 
-        # self.read()
-        #
-        # self.set_channel_values(correct_time=self.correct_acquisition_time, ignore_green=self.ignore_green_channel, ignore_orange=self.ignore_orange_channel, ignore_uv=self.ignore_uv_channel)
-        # self.save_plugy(self.experiment_name)
-
     def main(self):
         """
-        Similar to Plugy.main(), with added call to EvalPlugy.set_channel_values() to correct timing and ignore unused channels.
+        Similar to Plugy.main(), with added call to EvalPlugy.set_channel_values()
+        to correct timing and ignore unused channels.
         """
         self.read()
         self.set_channel_values(correct_time=self.correct_acquisition_time, ignore_green=self.ignore_green_channel, ignore_orange=self.ignore_orange_channel, ignore_uv=self.ignore_uv_channel)
@@ -123,26 +120,6 @@ class EvalPlugy(Plugy):
         # noinspection PyAttributeOutsideInit
         self.data = temp_df.values
 
-    # def filter_barcodes(self, n_discards: int = 1):
-    #     barcodes = self..barcode
-    #
-    #     discards = []
-    #
-    #     for idx in range(len(barcodes)):
-    #         try:
-    #             if barcodes[idx] or barcodes[idx - nDiscards] or barcodes[idx + nDiscards]:
-    #                 discards.append(True)
-    #
-    #             else:
-    #                 discards.append(False)
-    #         except KeyError:
-    #             discards.append(False)
-    #
-    #     peaksDf.discard = discards
-    #
-    #     filteredPeaks = peaksDf.loc[lambda df: df.discard == False, :]
-    #     return filteredPeaks
-
     def save_plugy(self, export_filename: str):
         """
         Saves the EvalPlugy object as a serialized pickle in the results_dir
@@ -150,11 +127,3 @@ class EvalPlugy(Plugy):
         """
         with self.results_dir.joinpath(export_filename).open("wb") as p:
             pickle.dump(self, p)
-
-
-# class Test:
-#     def __init__(self):
-#         self.data = np.ndarray([1])
-#
-#     def test(self):
-#         self.data = np.ndarray([1, 2, 3])
