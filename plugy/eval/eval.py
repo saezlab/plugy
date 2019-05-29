@@ -16,7 +16,6 @@ from ..main import Plugy
 class EvalPlugy(Plugy):
     infile: pl.Path
     results_dir: pl.Path = pl.Path.cwd().joinpath("results")
-    experiment_name: str = "evalPlugyObject"
     cut: tuple = (None, None)
     drugs: list = field(default_factory=list)
     signal_threshold: float = .02
@@ -80,7 +79,7 @@ class EvalPlugy(Plugy):
         self.find_cycles()
         self.export()
 
-        self.save_plugy(self.experiment_name)
+        self.save_plugy(self.name)
 
     def set_channel_values(self, correct_time: bool = True, ignore_green: bool = False, ignore_orange: bool = False, ignore_uv: bool = False):
         """
