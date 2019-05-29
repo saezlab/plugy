@@ -5,6 +5,7 @@ Date        20.05.2019
 
 import pathlib as pl
 import numpy as np
+import pandas as pd
 import pickle
 
 from dataclasses import dataclass, field
@@ -21,7 +22,7 @@ class EvalPlugy(Plugy):
     signal_threshold: float = .02
     adaptive_signal_threshold: bool = True
     peak_minwidth: float = 5
-    channels: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     discard: tuple = (2, 1)
     x_ticks_density: float = 5
@@ -46,9 +47,39 @@ class EvalPlugy(Plugy):
         Upon initialization of the EvalPlugy object, the infile is read and preprocessed
         """
         self.data = None
-        self.read()
+        self.filtered_peaks = pd.DataFrame()
+        self.set_channels(channels=self.channels)
+        self.name = self.infile.name
 
+        # Create result directory if it does not already exist
+        try:
+            self.results_dir.mkdir(parents=False, exist_ok=False)
+        except FileNotFoundError:
+            pass
+        except FileExistsError:
+            pass
+
+        # self.read()
+        #
+        # self.set_channel_values(correct_time=self.correct_acquisition_time, ignore_green=self.ignore_green_channel, ignore_orange=self.ignore_orange_channel, ignore_uv=self.ignore_uv_channel)
+        # self.save_plugy(self.experiment_name)
+
+    def main(self):
+        """
+        Similar to Plugy.main(), with added call to EvalPlugy.set_channel_values() to correct timing and ignore unused channels.
+        """
+        self.read()
         self.set_channel_values(correct_time=self.correct_acquisition_time, ignore_green=self.ignore_green_channel, ignore_orange=self.ignore_orange_channel, ignore_uv=self.ignore_uv_channel)
+        self.strip()
+        self.find_peaks()
+        self.peaks_df()
+        self.plot_peaks()
+        self.plot_peaks(raw=True)
+
+        self.sample_names()
+        self.find_cycles()
+        self.export()
+
         self.save_plugy(self.experiment_name)
 
     def set_channel_values(self, correct_time: bool = True, ignore_green: bool = False, ignore_orange: bool = False, ignore_uv: bool = False):
@@ -81,6 +112,37 @@ class EvalPlugy(Plugy):
                 if ignore_uv and (col == 3):
                     value[...] = 0
 
+    def strip(self):
+        """
+        Cuts away data acquired outside of the time interval specified with cut.
+        """
+        temp_df = pd.DataFrame(self.data)
+
+        temp_df = temp_df.loc[temp_df[0] > self.cut[0]]
+        temp_df = temp_df.loc[temp_df[0] < self.cut[1]]
+
+        self.data = temp_df.values
+
+    # def filter_barcodes(self, n_discards: int = 1):
+    #     barcodes = self..barcode
+    #
+    #     discards = []
+    #
+    #     for idx in range(len(barcodes)):
+    #         try:
+    #             if barcodes[idx] or barcodes[idx - nDiscards] or barcodes[idx + nDiscards]:
+    #                 discards.append(True)
+    #
+    #             else:
+    #                 discards.append(False)
+    #         except KeyError:
+    #             discards.append(False)
+    #
+    #     peaksDf.discard = discards
+    #
+    #     filteredPeaks = peaksDf.loc[lambda df: df.discard == False, :]
+    #     return filteredPeaks
+
     def save_plugy(self, export_filename: str):
         """
         Saves the EvalPlugy object as a serialized pickle in the results_dir
@@ -88,3 +150,11 @@ class EvalPlugy(Plugy):
         """
         with self.results_dir.joinpath(export_filename).open("wb") as p:
             pickle.dump(self, p)
+
+
+# class Test:
+#     def __init__(self):
+#         self.data = np.ndarray([1])
+#
+#     def test(self):
+#         self.data = np.ndarray([1, 2, 3])
