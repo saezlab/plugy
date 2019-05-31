@@ -21,6 +21,8 @@ class EvalPlugy(Plugy):
     signal_threshold: float = .02
     adaptive_signal_threshold: bool = True
     peak_minwidth: float = 5
+    plug_minlength: float = 0.5
+    n_bc_adjacent_discards: int = 1
     channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     discard: tuple = (2, 1)
@@ -75,6 +77,7 @@ class EvalPlugy(Plugy):
         self.sample_names()
         self.find_cycles()
         self.export()
+        self.filter_peakdf(discard_adjacent_plugs=self.n_bc_adjacent_discards, plug_length_threshold=self.plug_minlength)
 
         self.save_plugy(self.name)
 
@@ -127,3 +130,32 @@ class EvalPlugy(Plugy):
         """
         with self.results_dir.joinpath(export_filename + ".p").open("wb") as p:
             pickle.dump(self, p)
+
+    def filter_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5):
+        """
+        Filters peakdf to remove barcodes, too short plugs and plugs that are adjacent to barcodes
+        :param discard_adjacent_plugs: The number of plugs adjacent on both sides of the barcode to discard
+        :param plug_length_threshold: The minimum length of a plug to keep in seconds
+        :return: The filtered DataFrame, also sets self.filtered_peaks
+        """
+        discards = list()
+
+        # barcodes = self.peakdf.barcodes
+        for idx in range(len(self.peakdf.barcode)):
+            try:
+                if self.peakdf.barcode[idx] or self.peakdf.barcode[idx - discard_adjacent_plugs] or self.peakdf.barcode[idx + discard_adjacent_plugs] or self.peakdf.length[idx] < plug_length_threshold:
+                    discards.append(True)
+                else:
+                    discards.append(False)
+
+            except KeyError:
+                if self.peakdf.length[idx] < plug_length_threshold:
+                    discards.append(True)
+                else:
+                    discards.append(False)
+
+        self.peakdf.discard = discards
+
+        # noinspection PyAttributeOutsideInit
+        self.filtered_peaks = self.peakdf.loc[lambda df: df.discard == False, :]
+        return self.filtered_peaks
