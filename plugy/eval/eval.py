@@ -174,6 +174,26 @@ class EvalPlugy(Plugy):
         axes.set_title("Plug Fluorescence Distribution")
         return axes
 
+    def plot_valve_fluorescence(self, axes: plt.Axes, cycle: int = None):
+        """
+        Plots a violinplot with the fluorescence for each valve.
+        :param axes: plt.Axes object to draw on
+        :param cycle: Number of the cycle to draw or None for all cycles together
+        :return: The plt.Axes object with the plot
+        """
+        if cycle is None:
+            axes = sns.violinplot(x="drugs", y="green", data=self.filtered_peaks, ax=axes)
+            axes.set_title(f"Valve Fluorescence")
+        elif isinstance(cycle, int):
+            axes = sns.violinplot(x="drugs", y="green", data=self.filtered_peaks[self.filtered_peaks.cycle == cycle], ax=axes)
+            axes.set_title(f"Valve Fluorescence in Cycle {cycle}")
+        else:
+            raise AttributeError(f"Cycle has to be None or int, you specified {cycle} which is of type {type(cycle)}")
+
+        axes.set_ylabel("Fluorescence [AU]")
+
+        return axes
+
 
 def load_plugy_object(path: pl.Path) -> EvalPlugy:
     """
