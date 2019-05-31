@@ -7,6 +7,8 @@ import pathlib as pl
 import numpy as np
 import pandas as pd
 import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from dataclasses import dataclass, field
 from ..main import Plugy
