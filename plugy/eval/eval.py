@@ -162,6 +162,18 @@ class EvalPlugy(Plugy):
         self.filtered_peaks = self.peakdf.loc[lambda df: df.discard == False, :]
         return self.filtered_peaks
 
+    def plot_fluorescence_hist(self, axes: plt.Axes):
+        """
+        Plots the distribution of plug green fluorescence intensity
+        :param axes: plt.Axes object to draw on
+        :return: The plt.Axes object with the plot
+        """
+        axes = sns.distplot(self.filtered_peaks.green, rug=True, color="green", ax=axes)
+        axes.set_ylabel("Occurrences")
+        axes.set_xlabel("Green Channel Fluorescence [AU]")
+        axes.set_title("Plug Fluorescence Distribution")
+        return axes
+
 
 def load_plugy_object(path: pl.Path) -> EvalPlugy:
     """
