@@ -125,5 +125,5 @@ class EvalPlugy(Plugy):
         Saves the EvalPlugy object as a serialized pickle in the results_dir
         :param export_filename: Filename for the object
         """
-        with self.results_dir.joinpath(export_filename).open("wb") as p:
+        with self.results_dir.joinpath(export_filename + ".p").open("wb") as p:
             pickle.dump(self, p)
