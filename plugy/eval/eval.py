@@ -161,3 +161,13 @@ class EvalPlugy(Plugy):
         # noinspection PyAttributeOutsideInit
         self.filtered_peaks = self.peakdf.loc[lambda df: df.discard == False, :]
         return self.filtered_peaks
+
+
+def load_plugy_object(path: pl.Path) -> EvalPlugy:
+    """
+    Loads EvalPlugy object from the specified path.
+    :param path: Path as pathlib.Path object
+    :return: The stored plugy.eval.EvalPlugy object
+    """
+    with path.open("rb") as plugy_file:
+        return pickle.load(plugy_file)
