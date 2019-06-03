@@ -201,11 +201,11 @@ class EvalPlugy(Plugy):
         :param col_wrap: After how many subplots the column should be wrapped.
         :return: sns.FacetGrid object with the subplots
         """
-        indLengthBias = sns.lmplot(x="length", y="green", col="drugs", data=self.filtered_peaks, col_wrap=col_wrap)
-        indLengthBias.set_xlabels("Length")
-        indLengthBias.set_ylabels("Fluorescence [AU]")
+        length_bias_plot = sns.lmplot(x="length", y="green", col="drugs", data=self.filtered_peaks, col_wrap=col_wrap)
+        length_bias_plot.set_xlabels("Length")
+        length_bias_plot.set_ylabels("Fluorescence [AU]")
 
-        return indLengthBias
+        return length_bias_plot
 
 
 def load_plugy_object(path: pl.Path) -> EvalPlugy:
