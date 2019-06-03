@@ -194,6 +194,19 @@ class EvalPlugy(Plugy):
 
         return axes
 
+    def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
+        """
+        Plots each plugs fluorescence over its length grouped by valve. Also fits a linear regression to show if there
+        is a correlation between the readout and the plug length indicating non ideal mixing.
+        :param col_wrap: After how many subplots the column should be wrapped.
+        :return: sns.FacetGrid object with the subplots
+        """
+        indLengthBias = sns.lmplot(x="length", y="green", col="drugs", data=self.filtered_peaks, col_wrap=col_wrap)
+        indLengthBias.set_xlabels("Length")
+        indLengthBias.set_ylabels("Fluorescence [AU]")
+
+        return indLengthBias
+
 
 def load_plugy_object(path: pl.Path) -> EvalPlugy:
     """
