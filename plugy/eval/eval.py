@@ -133,7 +133,7 @@ class EvalPlugy(Plugy):
         with self.results_dir.joinpath(export_filename + ".p").open("wb") as p:
             pickle.dump(self, p)
 
-    def filter_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5):
+    def filter_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5) -> pd.DataFrame:
         """
         Filters peakdf to remove barcodes, too short plugs and plugs that are adjacent to barcodes
         :param discard_adjacent_plugs: The number of plugs adjacent on both sides of the barcode to discard
@@ -162,7 +162,7 @@ class EvalPlugy(Plugy):
         self.filtered_peaks = self.peakdf.loc[lambda df: df.discard == False, :]
         return self.filtered_peaks
 
-    def plot_fluorescence_hist(self, axes: plt.Axes):
+    def plot_fluorescence_hist(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots the distribution of plug green fluorescence intensity
         :param axes: plt.Axes object to draw on
@@ -174,7 +174,7 @@ class EvalPlugy(Plugy):
         axes.set_title("Plug Fluorescence Distribution")
         return axes
 
-    def plot_valve_fluorescence(self, axes: plt.Axes, cycle: int = None):
+    def plot_valve_fluorescence(self, axes: plt.Axes, cycle: int = None) -> plt.Axes:
         """
         Plots a violinplot with the fluorescence for each valve.
         :param axes: plt.Axes object to draw on
