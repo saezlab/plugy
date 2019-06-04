@@ -172,6 +172,13 @@ class EvalPlugy(Plugy):
         axes.set_ylabel("Occurrences")
         axes.set_xlabel("Green Channel Fluorescence [AU]")
         axes.set_title("Plug Fluorescence Distribution")
+
+        # Adding lines to visualize mean and 5 % Tolerance
+        mean = np.mean(self.filtered_peaks.green)
+        axes.axvline(x=mean, color="blue")
+        axes.axvline(x=mean*0.95, color="red")
+        axes.axvline(x=mean*1.05, color="red")
+
         return axes
 
     def plot_valve_fluorescence(self, axes: plt.Axes, cycle: int = None) -> plt.Axes:
