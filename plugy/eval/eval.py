@@ -214,6 +214,12 @@ class EvalPlugy(Plugy):
 
         return length_bias_plot
 
+    def check_drugs(self):
+        """
+        Checks that the drugs columns in peakdf contain labels
+        """
+        assert (None not in set(self.peakdf.drugs)), "drugs column in peakdf contains None indicating something wrong with thresholds like plug_minlength"
+
 
 def load_plugy_object(path: pl.Path) -> EvalPlugy:
     """
