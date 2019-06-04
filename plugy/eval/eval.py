@@ -77,9 +77,12 @@ class EvalPlugy(Plugy):
         self.plot_peaks(raw=True)
 
         self.sample_names()
+        self.filter_peakdf(plug_length_threshold=self.plug_minlength)
         self.find_cycles()
+        self.get_filtered_peakdf(discard_adjacent_plugs=self.n_bc_adjacent_discards, plug_length_threshold=self.plug_minlength)
+        self.find_cycles()
+        self.check_drugs()
         self.export()
-        self.filter_peakdf(discard_adjacent_plugs=self.n_bc_adjacent_discards, plug_length_threshold=self.plug_minlength)
 
         self.save_plugy(self.name)
 
@@ -133,7 +136,16 @@ class EvalPlugy(Plugy):
         with self.results_dir.joinpath(export_filename + ".p").open("wb") as p:
             pickle.dump(self, p)
 
-    def filter_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5) -> pd.DataFrame:
+    def filter_peakdf(self, plug_length_threshold: float = 0.5):
+        """
+        In place discards too short plugs in peakdf
+        :param plug_length_threshold: The minimum length of a plug to keep in seconds
+        """
+        # noinspection PyAttributeOutsideInit
+        self.peakdf = self.peakdf.loc[self.peakdf["length"] > plug_length_threshold]
+        self.peakdf.index = range(len(self.peakdf))
+
+    def get_filtered_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5) -> pd.DataFrame:
         """
         Filters peakdf to remove barcodes, too short plugs and plugs that are adjacent to barcodes
         :param discard_adjacent_plugs: The number of plugs adjacent on both sides of the barcode to discard
