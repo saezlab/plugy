@@ -215,6 +215,21 @@ class EvalPlugy(Plugy):
 
         return axes
 
+    def plot_valve_stability(self, axes: plt.Axes, valve: str) -> plt.Axes:
+        """
+        Plots a violinplot for a valve with its fluorescence in each cycle.
+        :param axes: plt.Axes object to draw on
+        :param valve: Name of the drug combination/valve as listed in the peakdf drugs column
+        :return: The plt.Axes object with the plot
+        """
+        axes = sns.violinplot(x="cycle", y="green", data=self.filtered_peaks[self.filtered_peaks.drugs == valve], ax=axes)
+
+        axes.set_title(valve)
+        axes.set_ylabel("Fluorescence [AU]")
+        axes.set_xlabel("Cycle")
+
+        return axes
+
     def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
         """
         Plots each plugs fluorescence over its length grouped by valve. Also fits a linear regression to show if there
