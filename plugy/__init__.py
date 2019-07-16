@@ -17,4 +17,4 @@
 #  Website: http://denes.omnipathdb.org/
 #
 
-from plugy.main import *
+# from plugy.main import *

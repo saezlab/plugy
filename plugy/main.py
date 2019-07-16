@@ -292,7 +292,7 @@ class Plugy(object):
                 
                 data = data[np.where(data[:,0] > cut[0])[0],:]
             
-            if self.cut[1] is not None:
+            if cut[1] is not None:
                 
                 data = data[np.where(data[:,0] < cut[1])[0],:]
             
@@ -812,6 +812,7 @@ class Plugy(object):
         _ = ax.set_ylabel('Fluorescence\nintensity')
         
         fig.tight_layout()
+        fig.autofmt_xdate(rotation=90)
         cvs.draw()
         
         if pdf_png == 'pdf':
