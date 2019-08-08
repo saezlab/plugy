@@ -64,6 +64,7 @@ class Plugy(object):
             colors = None,
             discard = (2, 1),
             x_ticks_density = 5,
+            bc_between_cycles = 9,
             gaussian_smoothing_sigma = 33,
             adaptive_threshold_blocksize = 111,
             adaptive_threshold_method = 'gaussian',
@@ -105,6 +106,8 @@ class Plugy(object):
         channels : dict
             A dict of channels with channel names as keys and tuples of
             color and column index as values.
+        bc_between_cycles : int
+            Number of barcodes between cycles to automatically determine cycle borders.
         gaussian_smoothing_sigma : int
             Sigma parameter for the gaussian curve used for smoothing before
             adaptive thresholding.
@@ -531,7 +534,7 @@ class Plugy(object):
                 sample_in_cycle += 1
                 # if barcode was longer than 9 plugs
                 # a new cycle starts
-                if bc_peaks > 9:
+                if bc_peaks > self.bc_between_cycles:
                     
                     current_cycle += 1
                     # first sample in the cycle
