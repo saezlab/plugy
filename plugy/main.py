@@ -479,17 +479,20 @@ class Plugy(object):
             if self.sample_cnt[row.cycle] + 1 < len(self.samples_drugs):
                 
                 return None, None, None
-            
-            drs = self.samples_drugs[row.sampl]
-            drs_t = drs.split(self.drug_sep)
-            dr1, dr2 = (
-                (drs_t[0].strip(), drs_t[1].strip())
-                if len(drs_t) > 1 else
-                (drs_t[0].strip(), 'Medium')
-            )
-            return drs, dr1, dr2
-        
-        
+
+            try:
+                drs = self.samples_drugs[row.sampl]
+            except IndexError:
+                raise IndexError(f"More samples (>= {row.sampl}) than drug combinations ({len(self.samples_drugs)}) for the current cycle ({row.cycle})")
+            # drs_t = drs.split(self.drug_sep)
+            # dr1, dr2 = (
+            #     (drs_t[0].strip(), drs_t[1].strip())
+            #     if len(drs_t) > 1 else
+            #     (drs_t[0].strip(), 'Medium')
+            # )
+
+            return drs, drs[0], drs[1]
+
         self.peakdf['barcode'] = pd.Series(
             np.logical_not(
                 np.logical_or(
