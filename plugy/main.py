@@ -23,7 +23,7 @@ from past.builtins import xrange, range, reduce
 
 import os
 import sys
-import imp
+import importlib
 import numpy as np
 import pandas as pd
 
@@ -183,7 +183,7 @@ class Plugy(object):
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
-        imp.reload(mod)
+        importlib.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
