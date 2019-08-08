@@ -63,6 +63,7 @@ class Plugy(object):
             channels = None,
             colors = None,
             discard = (2, 1),
+            n_bc_adjacent_discards = 1,
             x_ticks_density = 5,
             bc_between_cycles = 9,
             gaussian_smoothing_sigma = 33,
@@ -225,6 +226,7 @@ class Plugy(object):
         
         self.sample_names()
         self.find_cycles()
+        self.get_filtered_peakdf(discard_adjacent_plugs=n_bc_adjacent_discards)
         self.export()
     
     
