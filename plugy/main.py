@@ -890,3 +890,32 @@ class Plugy(object):
         )
         
         self.peakdf.to_csv(outfile, sep = '\t', index = False)
+
+    def get_filtered_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5) -> pd.DataFrame:
+        """
+        Filters peakdf to remove barcodes, too short plugs and plugs that are adjacent to barcodes
+        :param discard_adjacent_plugs: The number of plugs adjacent on both sides of the barcode to discard
+        :param plug_length_threshold: The minimum length of a plug to keep in seconds
+        :return: The filtered DataFrame, also sets self.filtered_peaks
+        """
+        discards = list()
+
+        # barcodes = self.peakdf.barcodes
+        for idx in range(len(self.peakdf.barcode)):
+            try:
+                if self.peakdf.barcode[idx] or self.peakdf.barcode[idx - discard_adjacent_plugs] or self.peakdf.barcode[idx + discard_adjacent_plugs] or self.peakdf.length[idx] < plug_length_threshold:
+                    discards.append(True)
+                else:
+                    discards.append(False)
+
+            except KeyError:
+                if self.peakdf.length[idx] < plug_length_threshold:
+                    discards.append(True)
+                else:
+                    discards.append(False)
+
+        self.peakdf.discard = discards
+
+        # noinspection PyAttributeOutsideInit
+        self.filtered_peaks = self.peakdf.loc[lambda df: df.discard == False, :]
+        return self.filtered_peaks
