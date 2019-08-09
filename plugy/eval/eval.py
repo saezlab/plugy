@@ -12,58 +12,58 @@ import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
 import seaborn as sns
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from ..main import Plugy
 
 
 @dataclass
 class EvalPlugy(Plugy):
-    infile: pl.Path
-    results_dir: pl.Path = pl.Path.cwd().joinpath("results")
-    cut: tuple = (None, None)
-    drugs: list = field(default_factory=list)
-    signal_threshold: float = .02
-    adaptive_signal_threshold: bool = True
-    peak_minwidth: float = 5
-    plug_minlength: float = 0.5
-    n_bc_adjacent_discards: int = 1
-    channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
-    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
-    discard: tuple = (2, 1)
-    x_ticks_density: float = 5
-    gaussian_smoothing_sigma: float = 33
-    adaptive_threshold_blocksize: float = 111
-    adaptive_threshold_method: str = "gaussian"
-    adaptive_threshold_sigma: float = 190
-    adaptive_threshold_offset: float = 0.01
-    merge_close_peaks: float = 50
-    drug_sep: str = "&"
-    direct_drug_combinations: bool = False
-    barcode_intensity_correction: float = 1.0
+    # infile: pl.Path
+    # results_dir: pl.Path = pl.Path.cwd().joinpath("results")
+    # cut: tuple = (None, None)
+    # drugs: list = field(default_factory=list)
+    # signal_threshold: float = .02
+    # adaptive_signal_threshold: bool = True
+    # peak_minwidth: float = 5
+    # plug_minlength: float = 0.5
+    # n_bc_adjacent_discards: int = 1
+    # channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
+    # colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    # discard: tuple = (2, 1)
+    # x_ticks_density: float = 5
+    # gaussian_smoothing_sigma: float = 33
+    # adaptive_threshold_blocksize: float = 111
+    # adaptive_threshold_method: str = "gaussian"
+    # adaptive_threshold_sigma: float = 190
+    # adaptive_threshold_offset: float = 0.01
+    # merge_close_peaks: float = 50
+    # drug_sep: str = "&"
+    # direct_drug_combinations: bool = False
+    # barcode_intensity_correction: float = 1.0
     ignore_orange_channel: bool = False
     ignore_green_channel: bool = False
     ignore_uv_channel: bool = False
-    acquisition_rate: int = 300
-    correct_acquisition_time: bool = True
-    figure_file_type: str = ".svg"
+    # acquisition_rate: int = 300
+    # correct_acquisition_time: bool = True
+    # figure_file_type: str = ".svg"
 
-    def __post_init__(self):
-        """
-        Upon initialization of the EvalPlugy object, some additional attributes are collected and the results_dir is
-        created if it does not exist already.
-        """
-        self.data = None
-        self.filtered_peaks = pd.DataFrame()
-        self.set_channels(channels=self.channels)
-        self.name = self.infile.name
-
-        # Create result directory if it does not already exist
-        try:
-            self.results_dir.mkdir(parents=False, exist_ok=False)
-        except FileNotFoundError:
-            pass
-        except FileExistsError:
-            pass
+    # def __post_init__(self):
+    #     """
+    #     Upon initialization of the EvalPlugy object, some additional attributes are collected and the results_dir is
+    #     created if it does not exist already.
+    #     """
+    #     self.data = None
+    #     self.filtered_peaks = pd.DataFrame()
+    #     self.set_channels(channels=self.channels)
+    #     self.name = self.infile.name
+    #
+    #     # Create result directory if it does not already exist
+    #     try:
+    #         self.results_dir.mkdir(parents=False, exist_ok=False)
+    #     except FileNotFoundError:
+    #         pass
+    #     except FileExistsError:
+    #         pass
 
     def main(self):
         """

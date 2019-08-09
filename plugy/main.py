@@ -18,154 +18,189 @@
 #
 
 
-import os
 import sys
 import importlib
 import numpy as np
 import pandas as pd
+import pathlib as pl
 
 import matplotlib as mpl
 import matplotlib.figure
 import matplotlib.backends.backend_pdf
+import matplotlib.backends.backend_agg
 
 import skimage.filters
 import skimage.morphology
 from scipy import ndimage as ndi
 
+from dataclasses import dataclass, field
 
+
+# noinspection PyAttributeOutsideInit
+@dataclass
 class Plugy(object):
-    _colors = {
-        'green': '#5D9731',
-        'blue': '#3A73BA',
-        'orange': '#F68026'
-    }
+    infile: pl.Path
+    results_dir: pl.Path = pl.Path.cwd().joinpath("results")
+    cut: tuple = (None, None)
+    drugs: list = field(default_factory=list)
+    signal_threshold: float = .02
+    adaptive_signal_threshold: bool = True
+    peak_minwidth: float = 5
+    plug_minlength: float = 0.5  # NEW
+    n_bc_adjacent_discards: int = 1
+    channels: dict = field(
+        default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
+    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    discard: tuple = (2, 1)
+    x_ticks_density: float = 5
+    gaussian_smoothing_sigma: float = 33
+    adaptive_threshold_blocksize: int = 111
+    adaptive_threshold_method: str = "gaussian"
+    adaptive_threshold_sigma: float = 190
+    adaptive_threshold_offset: float = 0.01
+    merge_close_peaks: int = 50
+    drug_sep: str = "&"
+    direct_drug_combinations: bool = False
+    barcode_intensity_correction: float = 1.0
+    bc_between_cycles: int = 9
+    acquisition_rate: int = 300
+    correct_acquisition_time: bool = True
+    figure_file_type: str = ".svg"
 
-    _channels = {
-        'barcode': ('blue', 3),
-        'cells': ('orange', 2),
-        'readout': ('green', 1),
-    }
+    # def __init__(
+    #         self,
+    #         infile,
+    #         results_dir='results',
+    #         cut=(None, None),
+    #         drugs=[],
+    #         signal_threshold=.02,
+    #         adaptive_signal_threshold=True,
+    #         peak_minwidth=5,
+    #         channels=None,
+    #         colors=None,
+    #         discard=(2, 1),
+    #         n_bc_adjacent_discards=1,
+    #         x_ticks_density=5,
+    #         bc_between_cycles=9,
+    #         gaussian_smoothing_sigma=33,
+    #         adaptive_threshold_blocksize=111,
+    #         adaptive_threshold_method='gaussian',
+    #         adaptive_threshold_sigma=190,
+    #         adaptive_threshold_offset=0.01,
+    #         merge_close_peaks=50,
+    #         drug_sep='&',
+    #         direct_drug_combinations=False,
+    #         barcode_intensity_correction=1.0,
+    # ):
+    #     """
+    #     Represents a plug based microfluidics screen.
+    #
+    #     Parameters
+    #     ----------
+    #     infile : str
+    #         Name of the file containing the acquired data.
+    #     results_dir : str
+    #         Directory to save the plots and output tables into.
+    #     cut : tuple
+    #         A segment of the data along the time axis to be
+    #         used. E.g. `(800, 9000)` the data points before 800 s and after
+    #         9000 s will be removed.
+    #     drugs : list
+    #         List of the compounds connected to inlets 11-22
+    #         of the BD chip.
+    #     signal_threshold : float
+    #         Threshold to be used at the selection
+    #         of peaks. Values in any channel above this will be considered as
+    #         a peak (plug).
+    #     adaptive_signal_threshold : bool
+    #         Apply adaptive thresholding to identify peaks. This may help if
+    #         the plugs are so close to each other that the signal from one or
+    #         more channels do not drop below the `signal_threshold` value at
+    #         their boundaries.
+    #     peak_minwidth : int
+    #         Minimum width of a peak in data points.
+    #         E.g. if acquisition rate is 300 Hz a width of 300 means 1 second.
+    #     channels : dict
+    #         A dict of channels with channel names as keys and tuples of
+    #         color and column index as values.
+    #     bc_between_cycles : int
+    #         Number of barcodes between cycles to automatically determine cycle borders.
+    #     gaussian_smoothing_sigma : int
+    #         Sigma parameter for the gaussian curve used for smoothing before
+    #         adaptive thresholding.
+    #     adaptive_threshold_blocksize : int
+    #         Blocksize for adaptive thresholding.
+    #         Passed to `skimage.filters.threshold_local`.
+    #     adaptive_threshold_method : str
+    #         Method for adaptive thresholding.
+    #         Passed to `skimage.filters.threshold_local`.
+    #     adaptive_threshold_sigma : int
+    #         Parameter for the Gaussian function at adaptive threshold.
+    #     adaptive_threshold_offset : float
+    #         The adaptive threshold will be adjusted by this offset.
+    #         Try fine tune with this and the sigma value if you see plug
+    #         segments get broken into parts.
+    #     merge_close_peaks : int
+    #         If the distance between neighboring peaks is lower than this
+    #         threshold the peaks will be merged.
+    #     barcode_intensity_correction : float
+    #         Plugs considered to be part of the barcode if the intensity
+    #         of the barcode channel is higher than any other channel.
+    #         You can use this parameter to adjust this step, e.g. if
+    #         the gain of the barcode channel or dye concentration was
+    #         unusually low or high.
+    #     drug_sep : str
+    #         Something between drug names in labels of drug combinations.
+    #     direct_drug_combinations : bool
+    #         The sequence of drug combinations provided directly instead
+    #         of to be inferred from the valve-drug assignments.
+    #
+    #     Example
+    #     -------
+    #
+    #     >>> import plugy
+    #
+    #     >>> drugs = [
+    #         '11:Void', '12:Void', '13:Nutlin', '14:Cyt-387', '15:IKK16',
+    #         '16:MK-2206', '17:IL-6', '18:Gefitinib', '19:IFN-γ',
+    #         '20:Soratinib', '21:TGF-β', '22:Dasatinib'
+    #     ]
+    #
+    #     >>> p = plugy.Plugy(
+    #         infile = 'example_screen.txt',
+    #         cut = (3225, 11200),
+    #         drugs = drugs
+    #     )
+    #
+    #     >>> p.main()
+    #     """
+    #
+    #     self.infile = infile
+    #     self.name = os.path.split(self.infile)[-1]
+    #     self.channels = channels or self.channels
+    #     self.colors = colors or self.colors
+    #     self.set_channels(self.channels)
+    #
+    #     for k, v in locals().items():
+    #
+    #         if not hasattr(self, k):
+    #             setattr(self, k, v)
+    #
+    #     os.makedirs(self.results_dir, exist_ok=True)
 
-    def __init__(
-            self,
-            infile,
-            results_dir='results',
-            cut=(None, None),
-            drugs=[],
-            signal_threshold=.02,
-            adaptive_signal_threshold=True,
-            peak_minwidth=5,
-            channels=None,
-            colors=None,
-            discard=(2, 1),
-            n_bc_adjacent_discards=1,
-            x_ticks_density=5,
-            bc_between_cycles=9,
-            gaussian_smoothing_sigma=33,
-            adaptive_threshold_blocksize=111,
-            adaptive_threshold_method='gaussian',
-            adaptive_threshold_sigma=190,
-            adaptive_threshold_offset=0.01,
-            merge_close_peaks=50,
-            drug_sep='&',
-            direct_drug_combinations=False,
-            barcode_intensity_correction=1.0,
-    ):
-        """
-        Represents a plug based microfluidics screen.
-        
-        Parameters
-        ----------
-        infile : str
-            Name of the file containing the acquired data.
-        results_dir : str
-            Directory to save the plots and output tables into.
-        cut : tuple
-            A segment of the data along the time axis to be
-            used. E.g. `(800, 9000)` the data points before 800 s and after
-            9000 s will be removed.
-        drugs : list
-            List of the compounds connected to inlets 11-22
-            of the BD chip.
-        signal_threshold : float
-            Threshold to be used at the selection
-            of peaks. Values in any channel above this will be considered as
-            a peak (plug).
-        adaptive_signal_threshold : bool
-            Apply adaptive thresholding to identify peaks. This may help if
-            the plugs are so close to each other that the signal from one or
-            more channels do not drop below the `signal_threshold` value at
-            their boundaries.
-        peak_minwidth : int
-            Minimum width of a peak in data points.
-            E.g. if acquisition rate is 300 Hz a width of 300 means 1 second.
-        channels : dict
-            A dict of channels with channel names as keys and tuples of
-            color and column index as values.
-        bc_between_cycles : int
-            Number of barcodes between cycles to automatically determine cycle borders.
-        gaussian_smoothing_sigma : int
-            Sigma parameter for the gaussian curve used for smoothing before
-            adaptive thresholding.
-        adaptive_threshold_blocksize : int
-            Blocksize for adaptive thresholding.
-            Passed to `skimage.filters.threshold_local`.
-        adaptive_threshold_method : str
-            Method for adaptive thresholding.
-            Passed to `skimage.filters.threshold_local`.
-        adaptive_threshold_sigma : int
-            Parameter for the Gaussian function at adaptive threshold.
-        adaptive_threshold_offset : float
-            The adaptive threshold will be adjusted by this offset.
-            Try fine tune with this and the sigma value if you see plug
-            segments get broken into parts.
-        merge_close_peaks : int
-            If the distance between neighboring peaks is lower than this
-            threshold the peaks will be merged.
-        barcode_intensity_correction : float
-            Plugs considered to be part of the barcode if the intensity
-            of the barcode channel is higher than any other channel.
-            You can use this parameter to adjust this step, e.g. if
-            the gain of the barcode channel or dye concentration was
-            unusually low or high.
-        drug_sep : str
-            Something between drug names in labels of drug combinations.
-        direct_drug_combinations : bool
-            The sequence of drug combinations provided directly instead
-            of to be inferred from the valve-drug assignments.
-        
-        Example
-        -------
-        
-        >>> import plugy
-        
-        >>> drugs = [
-            '11:Void', '12:Void', '13:Nutlin', '14:Cyt-387', '15:IKK16',
-            '16:MK-2206', '17:IL-6', '18:Gefitinib', '19:IFN-γ',
-            '20:Soratinib', '21:TGF-β', '22:Dasatinib'
-        ]
-        
-        >>> p = plugy.Plugy(
-            infile = 'example_screen.txt',
-            cut = (3225, 11200),
-            drugs = drugs
-        )
-        
-        >>> p.main()
-        """
+    def __post_init__(self):
+        self.filtered_peaks = pd.DataFrame()
 
-        self.infile = infile
-        self.name = os.path.split(self.infile)[-1]
-        self.channels = channels or self._channels
-        self.colors = colors or self._colors
-        self.set_channels(self.channels)
+        self.set_channels(channels=self.channels)
+        self.name = self.infile.name
 
-        for k, v in locals().items():
-
-            if not hasattr(self, k):
-                setattr(self, k, v)
-
-        os.makedirs(self.results_dir, exist_ok=True)
+        # Create result directory if it does not already exist
+        try:
+            self.results_dir.mkdir(parents=False, exist_ok=False)
+        except FileNotFoundError:
+            pass
+        except FileExistsError:
+            pass
 
     def reload(self):
         """
@@ -216,7 +251,7 @@ class Plugy(object):
 
         self.sample_names()
         self.find_cycles()
-        self.get_filtered_peakdf(discard_adjacent_plugs=n_bc_adjacent_discards)
+        self.get_filtered_peakdf(discard_adjacent_plugs=self.n_bc_adjacent_discards)
         self.export()
 
     def read(self):
@@ -230,19 +265,19 @@ class Plugy(object):
 
         self.data = []
 
-        with open(self.infile, 'r') as fp:
+        with self.infile.open("r") as fp:
 
-            for l in fp:
+            for line in fp:
 
                 if (
-                        l[1:].strip().startswith('Time') or
-                        l.startswith('X_Value')
+                        line[1:].strip().startswith('Time') or
+                        line.startswith('X_Value')
                 ):
                     break
 
-            for l in fp:
-                l = l.replace(',', '.').strip().split('\t')
-                self.data.append([float(i) for i in l])
+            for line in fp:
+                line = line.replace(',', '.').strip().split('\t')
+                self.data.append([float(i) for i in line])
 
         self.data = np.array(self.data)
 
@@ -498,9 +533,7 @@ class Plugy(object):
             # first barcode plug after sample
             if not bc_peaks and bc:
                 # mark first and last sample peaks as discarded
-                discard[
-                -sm_peaks: -sm_peaks + self.discard[0]
-                ] = [False] * self.discard[0]
+                discard[-sm_peaks: -sm_peaks + self.discard[0]] = [False] * self.discard[0]
                 discard[-self.discard[1]:] = [False] * self.discard[1]
                 # resetting sample peak counter
                 sm_peaks = 0
@@ -546,120 +579,120 @@ class Plugy(object):
 
         self.sample_cnt = self.peakdf.groupby('cycle').sampl.max()
 
-    def samples_df(self):
-        """
-        Iterates through the `peakdf` data frame and processes
-        samples. Samples are a series of peaks (plugs) with
-        certain treatment conditions (drug combination).
-        Extends the `peakdf` data frame with the following
-        columns:
-            * `barcode`: The peak is a barcode peak.
-            * `sample`: The peak is a sample peak (should
-              be simply negation of `barcode`)
-            * `barcode_id`: The sequence number of the barcode
-              segment (segment is a series of barcode plugs);
-              0 means this plug is not a barcode
-            * `sample_id`: Same for samples; plugs with the
-              same number in this column belong to the same
-              condition, 0 means the plug is not a sample but
-              barcode
-            * `drug1`: Name of first drug
-            * `drug2`: Name of second drug
-            * `drugs`: Names of the drugs separated by `_`
-            * `runs`: Replicate number, i.e. if you repeated
-              the the sequence 3 times, it will be 0, 1, 2
-            * `discard`: Whether the plug should be discarded.
-              Usually we discard first and last plugs in each
-              sample, by default `discard` attribute is `(2, 1)`
-              which means first 2 and the last plug are to be
-              discarded.
-        """
-
-        bci = 0  # number of current barcode segment
-        smi = 0  # number of current sample segment
-        run = 0  # number of current run
-        bca = []  # vector with barcode segment ids; 0 means not barcode
-        sma = []  # vector with sample segment ids; 0 means not sample
-        bcb = False  # boolean value tells if current segment is barcode
-        smb = False  # boolean value tells if current segment is sample
-        dr1 = []  # vector with names of drug #1
-        dr2 = []  # vector with names of drug #2
-        drs = []  # vector with names of drug combinations
-        rns = []  # vector with run numbers
-        dsc = []  # vector with boolean values wether the peak should
-        # be discarded
-
-        for i in xrange(self.peakdf.shape[0]):
-
-            if inbarcode[i]:
-
-                if not bcb:
-
-                    bcb = True
-                    smb = False
-                    bci += 1
-                    bcl = 0
-
-                    if len(dsc) >= self.discard[1]:
-                        # discard last sample peaks
-                        dsc[-self.discard[1]:] = [True] * self.discard[1]
-
-                bca.append(bci)
-                bcl += 1
-                dsc.append(False)
-                rns.append(run)
-
-            else:
-
-                bca.append(0)
-
-            if insample[i]:
-
-                if not smb:
-
-                    if bcl <= self.bc_min_peaks and bcb:
-
-                        bci -= 1
-                        bca[-bcl:] = [0] * bcl
-
-                    else:
-
-                        smi += 1
-                        run = smi // (len(self.samples_drugs))
-                        sml = 0
-
-                    smb = True
-                    bcb = False
-
-                sma.append(smi)
-                # discard first sample peaks
-                dsc.append(sml < self.discard[0])
-                sml += 1
-                rns.append(run)
-                dr1.append(self.samples_drugs[
-                               smi % (len(self.samples_drugs))][0])
-                dr2.append(self.samples_drugs[
-                               smi % (len(self.samples_drugs))][1])
-                drs.append('%s_%s' % (
-                    self.samples_drugs[smi % (len(self.samples_drugs))][0],
-                    self.samples_drugs[smi % (len(self.samples_drugs))][1]
-                ))
-
-            else:
-
-                sma.append(0)
-                dr1.append('NA')
-                dr2.append('NA')
-                drs.append('NA')
-
-        self.peakdf['barcode'] = pd.Series(inbarcode)
-        self.peakdf['barcode_id'] = pd.Series(np.array(bca))
-        self.peakdf['sample_id'] = pd.Series(np.array(sma))
-        self.peakdf['drug1'] = pd.Series(np.array(dr1))
-        self.peakdf['drug2'] = pd.Series(np.array(dr2))
-        self.peakdf['drugs'] = pd.Series(np.array(drs))
-        self.peakdf['runs'] = pd.Series(np.array(rns))
-        self.peakdf['discard'] = pd.Series(np.array(dsc))
+    # def samples_df(self):
+    #     """
+    #     Iterates through the `peakdf` data frame and processes
+    #     samples. Samples are a series of peaks (plugs) with
+    #     certain treatment conditions (drug combination).
+    #     Extends the `peakdf` data frame with the following
+    #     columns:
+    #         * `barcode`: The peak is a barcode peak.
+    #         * `sample`: The peak is a sample peak (should
+    #           be simply negation of `barcode`)
+    #         * `barcode_id`: The sequence number of the barcode
+    #           segment (segment is a series of barcode plugs);
+    #           0 means this plug is not a barcode
+    #         * `sample_id`: Same for samples; plugs with the
+    #           same number in this column belong to the same
+    #           condition, 0 means the plug is not a sample but
+    #           barcode
+    #         * `drug1`: Name of first drug
+    #         * `drug2`: Name of second drug
+    #         * `drugs`: Names of the drugs separated by `_`
+    #         * `runs`: Replicate number, i.e. if you repeated
+    #           the the sequence 3 times, it will be 0, 1, 2
+    #         * `discard`: Whether the plug should be discarded.
+    #           Usually we discard first and last plugs in each
+    #           sample, by default `discard` attribute is `(2, 1)`
+    #           which means first 2 and the last plug are to be
+    #           discarded.
+    #     """
+    #
+    #     bci = 0  # number of current barcode segment
+    #     smi = 0  # number of current sample segment
+    #     run = 0  # number of current run
+    #     bca = []  # vector with barcode segment ids; 0 means not barcode
+    #     sma = []  # vector with sample segment ids; 0 means not sample
+    #     bcb = False  # boolean value tells if current segment is barcode
+    #     smb = False  # boolean value tells if current segment is sample
+    #     dr1 = []  # vector with names of drug #1
+    #     dr2 = []  # vector with names of drug #2
+    #     drs = []  # vector with names of drug combinations
+    #     rns = []  # vector with run numbers
+    #     dsc = []  # vector with boolean values wether the peak should
+    #     # be discarded
+    #
+    #     for i in xrange(self.peakdf.shape[0]):
+    #
+    #         if inbarcode[i]:
+    #
+    #             if not bcb:
+    #
+    #                 bcb = True
+    #                 smb = False
+    #                 bci += 1
+    #                 bcl = 0
+    #
+    #                 if len(dsc) >= self.discard[1]:
+    #                     # discard last sample peaks
+    #                     dsc[-self.discard[1]:] = [True] * self.discard[1]
+    #
+    #             bca.append(bci)
+    #             bcl += 1
+    #             dsc.append(False)
+    #             rns.append(run)
+    #
+    #         else:
+    #
+    #             bca.append(0)
+    #
+    #         if insample[i]:
+    #
+    #             if not smb:
+    #
+    #                 if bcl <= self.bc_min_peaks and bcb:
+    #
+    #                     bci -= 1
+    #                     bca[-bcl:] = [0] * bcl
+    #
+    #                 else:
+    #
+    #                     smi += 1
+    #                     run = smi // (len(self.samples_drugs))
+    #                     sml = 0
+    #
+    #                 smb = True
+    #                 bcb = False
+    #
+    #             sma.append(smi)
+    #             # discard first sample peaks
+    #             dsc.append(sml < self.discard[0])
+    #             sml += 1
+    #             rns.append(run)
+    #             dr1.append(self.samples_drugs[
+    #                            smi % (len(self.samples_drugs))][0])
+    #             dr2.append(self.samples_drugs[
+    #                            smi % (len(self.samples_drugs))][1])
+    #             drs.append('%s_%s' % (
+    #                 self.samples_drugs[smi % (len(self.samples_drugs))][0],
+    #                 self.samples_drugs[smi % (len(self.samples_drugs))][1]
+    #             ))
+    #
+    #         else:
+    #
+    #             sma.append(0)
+    #             dr1.append('NA')
+    #             dr2.append('NA')
+    #             drs.append('NA')
+    #
+    #     self.peakdf['barcode'] = pd.Series(inbarcode)
+    #     self.peakdf['barcode_id'] = pd.Series(np.array(bca))
+    #     self.peakdf['sample_id'] = pd.Series(np.array(sma))
+    #     self.peakdf['drug1'] = pd.Series(np.array(dr1))
+    #     self.peakdf['drug2'] = pd.Series(np.array(dr2))
+    #     self.peakdf['drugs'] = pd.Series(np.array(drs))
+    #     self.peakdf['runs'] = pd.Series(np.array(rns))
+    #     self.peakdf['discard'] = pd.Series(np.array(dsc))
 
     def plot_peaks(self, fname=None, pdf_png='pdf', raw=False):
         """
@@ -673,7 +706,7 @@ class Plugy(object):
         pdf_png = 'png' if pdf_png == 'png' or raw else 'pdf'
 
         fname = fname or '%s.raw.%s' % (self.name, pdf_png)
-        fname = os.path.join(self.results_dir, fname)
+        fname = self.results_dir.joinpath(fname)
 
         sys.stdout.write(
             '\t:: Plotting median intensities into `%s`.\n' % fname
@@ -683,7 +716,7 @@ class Plugy(object):
 
         if pdf_png == 'pdf':
 
-            pdf = mpl.backends.backend_pdf.PdfPages(fname)
+            pdf = mpl.backends.backend_pdf.PdfPages(str(fname))
             cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
 
         else:
@@ -711,9 +744,7 @@ class Plugy(object):
 
             ymax = np.max(
                 self.data[:,
-                min([x[1] for x in self.channels.values()]):
-                max([x[1] for x in self.channels.values()]) + 1
-                ]
+                min([x[1] for x in self.channels.values()]): max([x[1] for x in self.channels.values()]) + 1]
             )
 
             # highlighting plugs
@@ -792,6 +823,7 @@ class Plugy(object):
 
         if pdf_png == 'pdf':
 
+            # noinspection PyUnboundLocalVariable
             cvs.print_figure(pdf)
             pdf.close()
 
@@ -829,9 +861,9 @@ class Plugy(object):
 
         names = []
 
-        for i in xrange(1, len(self.drugs)):
+        for i in range(1, len(self.drugs)):
 
-            for j in xrange(1, i):
+            for j in range(1, i):
 
                 if not len(names) or (len(names) + 1) % 11 == 0:
                     names.append((self.drugs[0], self.drugs[1]))
@@ -848,7 +880,7 @@ class Plugy(object):
         """
 
         outfile = outfile or '%s.peaks.tsv' % self.name
-        outfile = os.path.join(self.results_dir, outfile)
+        outfile = self.results_dir.joinpath(outfile)
 
         sys.stdout.write(
             '\t:: Exporting peaks data into\n\t   `%s`\n' % outfile
@@ -868,7 +900,10 @@ class Plugy(object):
         # barcodes = self.peakdf.barcodes
         for idx in range(len(self.peakdf.barcode)):
             try:
-                if self.peakdf.barcode[idx] or self.peakdf.barcode[idx - discard_adjacent_plugs] or self.peakdf.barcode[idx + discard_adjacent_plugs] or self.peakdf.length[idx] < plug_length_threshold:
+                if (self.peakdf.barcode[idx] or
+                        self.peakdf.barcode[idx - discard_adjacent_plugs] or
+                        self.peakdf.barcode[idx + discard_adjacent_plugs] or
+                        self.peakdf.length[idx] < plug_length_threshold):
                     discards.append(True)
                 else:
                     discards.append(False)
