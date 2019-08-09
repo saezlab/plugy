@@ -48,8 +48,7 @@ class Plugy(object):
     peak_minwidth: float = 5
     plug_minlength: float = 0.5  # NEW
     n_bc_adjacent_discards: int = 1
-    channels: dict = field(
-        default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
+    channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     discard: tuple = (2, 1)
     x_ticks_density: float = 5
@@ -579,121 +578,6 @@ class Plugy(object):
 
         self.sample_cnt = self.peakdf.groupby('cycle').sampl.max()
 
-    # def samples_df(self):
-    #     """
-    #     Iterates through the `peakdf` data frame and processes
-    #     samples. Samples are a series of peaks (plugs) with
-    #     certain treatment conditions (drug combination).
-    #     Extends the `peakdf` data frame with the following
-    #     columns:
-    #         * `barcode`: The peak is a barcode peak.
-    #         * `sample`: The peak is a sample peak (should
-    #           be simply negation of `barcode`)
-    #         * `barcode_id`: The sequence number of the barcode
-    #           segment (segment is a series of barcode plugs);
-    #           0 means this plug is not a barcode
-    #         * `sample_id`: Same for samples; plugs with the
-    #           same number in this column belong to the same
-    #           condition, 0 means the plug is not a sample but
-    #           barcode
-    #         * `drug1`: Name of first drug
-    #         * `drug2`: Name of second drug
-    #         * `drugs`: Names of the drugs separated by `_`
-    #         * `runs`: Replicate number, i.e. if you repeated
-    #           the the sequence 3 times, it will be 0, 1, 2
-    #         * `discard`: Whether the plug should be discarded.
-    #           Usually we discard first and last plugs in each
-    #           sample, by default `discard` attribute is `(2, 1)`
-    #           which means first 2 and the last plug are to be
-    #           discarded.
-    #     """
-    #
-    #     bci = 0  # number of current barcode segment
-    #     smi = 0  # number of current sample segment
-    #     run = 0  # number of current run
-    #     bca = []  # vector with barcode segment ids; 0 means not barcode
-    #     sma = []  # vector with sample segment ids; 0 means not sample
-    #     bcb = False  # boolean value tells if current segment is barcode
-    #     smb = False  # boolean value tells if current segment is sample
-    #     dr1 = []  # vector with names of drug #1
-    #     dr2 = []  # vector with names of drug #2
-    #     drs = []  # vector with names of drug combinations
-    #     rns = []  # vector with run numbers
-    #     dsc = []  # vector with boolean values wether the peak should
-    #     # be discarded
-    #
-    #     for i in xrange(self.peakdf.shape[0]):
-    #
-    #         if inbarcode[i]:
-    #
-    #             if not bcb:
-    #
-    #                 bcb = True
-    #                 smb = False
-    #                 bci += 1
-    #                 bcl = 0
-    #
-    #                 if len(dsc) >= self.discard[1]:
-    #                     # discard last sample peaks
-    #                     dsc[-self.discard[1]:] = [True] * self.discard[1]
-    #
-    #             bca.append(bci)
-    #             bcl += 1
-    #             dsc.append(False)
-    #             rns.append(run)
-    #
-    #         else:
-    #
-    #             bca.append(0)
-    #
-    #         if insample[i]:
-    #
-    #             if not smb:
-    #
-    #                 if bcl <= self.bc_min_peaks and bcb:
-    #
-    #                     bci -= 1
-    #                     bca[-bcl:] = [0] * bcl
-    #
-    #                 else:
-    #
-    #                     smi += 1
-    #                     run = smi // (len(self.samples_drugs))
-    #                     sml = 0
-    #
-    #                 smb = True
-    #                 bcb = False
-    #
-    #             sma.append(smi)
-    #             # discard first sample peaks
-    #             dsc.append(sml < self.discard[0])
-    #             sml += 1
-    #             rns.append(run)
-    #             dr1.append(self.samples_drugs[
-    #                            smi % (len(self.samples_drugs))][0])
-    #             dr2.append(self.samples_drugs[
-    #                            smi % (len(self.samples_drugs))][1])
-    #             drs.append('%s_%s' % (
-    #                 self.samples_drugs[smi % (len(self.samples_drugs))][0],
-    #                 self.samples_drugs[smi % (len(self.samples_drugs))][1]
-    #             ))
-    #
-    #         else:
-    #
-    #             sma.append(0)
-    #             dr1.append('NA')
-    #             dr2.append('NA')
-    #             drs.append('NA')
-    #
-    #     self.peakdf['barcode'] = pd.Series(inbarcode)
-    #     self.peakdf['barcode_id'] = pd.Series(np.array(bca))
-    #     self.peakdf['sample_id'] = pd.Series(np.array(sma))
-    #     self.peakdf['drug1'] = pd.Series(np.array(dr1))
-    #     self.peakdf['drug2'] = pd.Series(np.array(dr2))
-    #     self.peakdf['drugs'] = pd.Series(np.array(drs))
-    #     self.peakdf['runs'] = pd.Series(np.array(rns))
-    #     self.peakdf['discard'] = pd.Series(np.array(dsc))
-
     def plot_peaks(self, fname=None, pdf_png='pdf', raw=False):
         """
         Creates a plot with median intensities of each channel
@@ -742,10 +626,7 @@ class Plugy(object):
                 # zorder = 1,
                 # )
 
-            ymax = np.max(
-                self.data[:,
-                min([x[1] for x in self.channels.values()]): max([x[1] for x in self.channels.values()]) + 1]
-            )
+            ymax = np.max(self.data[:, min([x[1] for x in self.channels.values()]): max([x[1] for x in self.channels.values()]) + 1])
 
             # highlighting plugs
             bc_sample = (
