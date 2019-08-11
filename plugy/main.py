@@ -16,6 +16,16 @@
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
 
+# TODO:
+# -- split Plugy into at least 3 classes inheriting from each other:
+#   -- reading data
+#   -- detecting plugs
+#   -- processing barcodes and samples
+# -- move these classes in dedicated modules
+# -- add some higher level workflow classes to `main`
+# -- more log messages
+# -- move settings to the `settings` module
+
 from __future__ import print_function
 from future.utils import iteritems
 from past.builtins import xrange, range, reduce
