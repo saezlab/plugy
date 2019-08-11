@@ -711,8 +711,8 @@ class Plugy(session.Logger):
         fname = fname or '%s.raw.%s' % (self.name, pdf_png)
         fname = os.path.join(self.results_dir, fname)
         
-        sys.stdout.write(
-            '\t:: Plotting median intensities into `%s`.\n' % fname
+        self._log(
+            'Plotting median intensities into `%s`.' % fname
         )
         
         fig = mpl.figure.Figure(figsize = (300, 3))
@@ -861,10 +861,10 @@ class Plugy(session.Logger):
             self.samples_drugs = self.drugs
             return
         
-        sys.stdout.write(
-            '\t:: Assuming sample (valve pair opening) sequence '
-            'used by Fede.\n\t   Please override the `sample_names` '
-            'method if you used different sequence.\n'
+        self._log(
+            'Assuming sample (valve pair opening) sequence '
+            'used by Fede. Please override the `sample_names` '
+            'method if you used different sequence.'
         )
         
         names = []
@@ -892,8 +892,8 @@ class Plugy(session.Logger):
         outfile = outfile or '%s.peaks.tsv' % self.name
         outfile = os.path.join(self.results_dir, outfile)
         
-        sys.stdout.write(
-            '\t:: Exporting peaks data into\n\t   `%s`\n' % outfile
+        self._log(
+            'Exporting peaks data into `%s`.' % outfile
         )
         
         self.peakdf.to_csv(outfile, sep = '\t', index = False)
