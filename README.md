@@ -1,8 +1,10 @@
 Python module for plug based microfluidics data preprocessing
 =============================================================
 
-*  Tested in Python 3.6
-*  Questions, issues: turei.denes@gmail.com
+*  Tested in Python 3.7
+*  Authors: Dénes Türei & Nicolas Peschke
+*  Questions, issues: github.com/saezlab/plugy/issues
+*  Contact: turei.denes@gmail.com
 
 Usage:
 -----
