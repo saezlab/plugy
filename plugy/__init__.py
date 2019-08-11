@@ -6,15 +6,15 @@
 #
 #  Copyright
 #  2018-2019
-#  EMBL, Uniklinik RWTH Aachen, Heidelberg University
+#  EMBL, Heidelberg University
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
+#                  Nicolas Peschke
 #
 #  Distributed under the GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://denes.omnipathdb.org/
-#
 
-# from plugy.main import *
+import plugy._version as _version_mod
+import plugy.session as _session_mod

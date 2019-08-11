@@ -6,15 +6,14 @@
 #
 #  Copyright
 #  2018-2019
-#  EMBL, Uniklinik RWTH Aachen, Heidelberg University
+#  EMBL, Heidelberg University
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
+#                  Nicolas Peschke
 #
 #  Distributed under the GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
-#
-#  Website: http://denes.omnipathdb.org/
 #
 
 from __future__ import print_function
@@ -35,8 +34,11 @@ import skimage.filters
 import skimage.morphology
 from scipy import ndimage as ndi
 
+# from this module
+import plugy.session as session
 
-class Plugy(object):
+
+class Plugy(session.Logger):
     
     _colors = {
         'green':  '#5D9731',
@@ -158,6 +160,11 @@ class Plugy(object):
         >>> p.main()
         """
         
+        # later the class working on the level of samples and
+        # drug combinations will be separated
+        # hence here the label of log messages is `plugs`
+        session.Logger.__init__(self, name = 'plugs')
+        
         self.infile = infile
         self.name = os.path.split(self.infile)[-1]
         self.channels = channels or self._channels
@@ -181,7 +188,7 @@ class Plugy(object):
         """
         
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
