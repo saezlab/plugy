@@ -33,6 +33,8 @@ from past.builtins import xrange, range, reduce
 import os
 import sys
 import imp
+import collections
+
 import numpy as np
 import pandas as pd
 
@@ -46,6 +48,22 @@ from scipy import ndimage as ndi
 
 # from this module
 import plugy.session as session
+import plugy.sequence as sequence
+
+
+Peak = collections.namedtuple(
+    'Peak',
+    [
+        'start_i',
+        'end_i',
+        'start_t',
+        'end_t',
+        'length',
+        'channel0',
+        'channel1',
+        'channel2',
+    ],
+)
 
 
 class Plugy(session.Logger):
@@ -66,9 +84,11 @@ class Plugy(session.Logger):
     def __init__(
             self,
             infile,
+            drug_file = None,
+            seq_file = None,
             results_dir = 'results',
             cut = (None, None),
-            drugs = [],
+            drugs = None,
             signal_threshold = .02,
             adaptive_signal_threshold = True,
             peak_minwidth = 5,
@@ -94,6 +114,12 @@ class Plugy(session.Logger):
         ----------
         infile : str
             Name of the file containing the acquired data.
+        drug_file : str
+            Name of the file containing the drug-valve pairs. Passed to
+            ``plugy.sequence.Sequence``.
+        seq_file : str
+            Name of the file containing the sample sequence. Passed to
+            ``plugy.sequence.Sequence``.
         results_dir : str
             Directory to save the plots and output tables into.
         cut : tuple
@@ -228,6 +254,7 @@ class Plugy(session.Logger):
         detect cycles. Calling `main()` runs both this part and the
         second part (see `samples()`).
         """
+        
         self.read()
         self.strip()
         self.find_peaks()
@@ -257,6 +284,10 @@ class Plugy(session.Logger):
         """
         
         self.data = []
+        
+        self._log(
+            'Reading fluorecence acquisition data from `%s`.' % self.infile
+        )
         
         with open(self.infile, 'r') as fp:
             
@@ -310,6 +341,13 @@ class Plugy(session.Logger):
             
             data = self.data
             
+            self._log(
+                'Selecting segment between %s and %s.' % (
+                    ('%.01f s' % float(cut[0])) if cut[0] else 'beginning',
+                    ('%.01f s' % float(cut[1])) if cut[1] else 'end',
+                )
+            )
+            
             if cut[0] is not None:
                 
                 data = data[np.where(data[:,0] > cut[0])[0],:]
@@ -343,10 +381,17 @@ class Plugy(session.Logger):
         """
         
         # peak segmentation first by fix threshold
+        self._log(
+            'Selecting peaks by fix threshold %.08f.' % (
+                float(self.signal_threshold)
+            )
+        )
         self.peaksa = np.any(self.data[:,1:4] > self.signal_threshold, 1)
         
         # then optionally by adaptive threshold
         if self.adaptive_signal_threshold:
+            
+            self._log('Selecting peaks by adaptive threshold.')
             
             at_channels = []
             sm_channels = []
@@ -395,6 +440,12 @@ class Plugy(session.Logger):
         
         if self.merge_close_peaks:
             
+            self._log(
+                'Merging peaks closer to each other than %u.' % (
+                    int(self.merge_close_peaks)
+                )
+            )
+            
             # same with skimage, but this is much slower:
             #
             #self.peaksa = skimage.morphology.binary_closing(
@@ -439,18 +490,22 @@ class Plugy(session.Logger):
         
         for se in startend:
             
-            peakval.append([
-                se[0], # start index
-                se[1], # end index
-                np.min(self.data[se[0]:se[1],0]), # the start time
-                np.max(self.data[se[0]:se[1],0]), # the end time
-                np.max(self.data[se[0]:se[1],0]) -
-                np.min(self.data[se[0]:se[1],0])  # length
-                ] + [
-                np.median(self.data[se[0]:se[1],i])
-                for i in range(1, 4)
-            ])
-            
+            peakval.append(
+                Peak(
+                    start_i = se[0],
+                    end_i = se[1],
+                    start_t = np.min(self.data[se[0]:se[1],0]),
+                    end_t = np.max(self.data[se[0]:se[1],0]),
+                    length = (
+                        np.max(self.data[se[0]:se[1],0]) -
+                        np.min(self.data[se[0]:se[1],0])
+                    ),
+                    channel0 = np.median(self.data[se[0]:se[1],1]),
+                    channel1 = np.median(self.data[se[0]:se[1],2]),
+                    channel2 = np.median(self.data[se[0]:se[1],3]),
+                )
+            )
+        
         self.peakval = np.array(peakval)
         self.startend = startend
     
