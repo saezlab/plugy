@@ -119,7 +119,8 @@ class Plugy(session.Logger):
             A dict of channels with channel names as keys and tuples of
             color and column index as values.
         bc_between_cycles : int
-            Number of barcodes between cycles to automatically determine cycle borders.
+            Number of barcodes between cycles to automatically determine
+            cycle borders.
         gaussian_smoothing_sigma : int
             Sigma parameter for the gaussian curve used for smoothing before
             adaptive thresholding.
@@ -174,6 +175,7 @@ class Plugy(session.Logger):
         # drug combinations will be separated
         # hence here the label of log messages is `plugs`
         session.Logger.__init__(self, name = 'plugs')
+        self._log('plugy.main.Plugy instance created.')
         
         self.infile = infile
         self.name = os.path.split(self.infile)[-1]
@@ -498,9 +500,16 @@ class Plugy(session.Logger):
                 return None, None, None
 
             try:
+                
                 drs = self.samples_drugs[row.sampl]
+                
             except IndexError:
-                raise IndexError(f"More samples (>= {row.sampl}) than drug combinations ({len(self.samples_drugs)}) for the current cycle ({row.cycle})")
+                
+                raise IndexError(
+                    f"More samples (>= {row.sampl}) than drug combinations"
+                    f" ({len(self.samples_drugs)}) for the current cycle"
+                    f" ({row.cycle})"
+                )
             # drs_t = drs.split(self.drug_sep)
             # dr1, dr2 = (
             #     (drs_t[0].strip(), drs_t[1].strip())

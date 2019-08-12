@@ -48,7 +48,9 @@ class Sample(SampleBase):
         return (
             'Barcode'
                 if self.is_barcode else
-            ' - '.join(drug for drug in self.drugs if drug != 'Empty')
+            'Control'
+                if self.is_control else
+            ' & '.join(drug for drug in drugs if drug != 'Empty')
         )
     
     
@@ -59,6 +61,11 @@ class Sample(SampleBase):
             self.drug1.startswith('Barcode') or
             self.drug2.startswith('Barcode')
         )
+    
+    @property
+    def is_control(self):
+        
+        return self.drug1 == 'Empty' and self.drug2 == 'Empty'
 
 
 class Sequence(session.Logger):
@@ -70,8 +77,12 @@ class Sequence(session.Logger):
             drug_file,
         ):
         
+        session.Logger.__init__(self, name = 'sequence')
+        
         self.seq_file = seq_file
         self.drug_file = drug_file
+        
+        self.main()
     
     
     def main(self):
@@ -114,6 +125,8 @@ class Sequence(session.Logger):
                 
                 valve1 = int(line[5])
                 valve2 = int(line[6])
+                drug1 = self.valve_to_drug(valve1)
+                drug2 = self.valve_to_drug(valve2)
                 
                 self.sequence.append(
                     Sample(
@@ -127,6 +140,15 @@ class Sequence(session.Logger):
                         original_label = line[2],
                     )
                 )
+    
+    
+    def valve_to_drug(self, valve):
+        
+        if valve not in self.drugs:
+            
+            self._log('Valve %u missing from drugs list!' % valve)
+        
+        return self.drugs[valve] if valve in self.drugs else 'Unknown'
     
     
     def __iter__(self):
