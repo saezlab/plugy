@@ -256,6 +256,7 @@ class Plugy(session.Logger):
         """
         
         self.read()
+        self.correct_times()
         self.strip()
         self.find_peaks()
         self.peaks_df()
@@ -306,6 +307,26 @@ class Plugy(session.Logger):
                 self.data.append([float(i) for i in l])
         
         self.data = np.array(self.data)
+    
+    
+    def correct_times(self):
+        
+        self._log('Correcting time ranges.')
+        
+        i0 = 0
+        t0 = .0
+        
+        for i, row in enumerate(self.data):
+            
+            t = row[0]
+            
+            if t > t0:
+                
+                self.data[np.arange(i0, i), 0] = (
+                    np.arange(t0, t, (t - t0) / (i - i0) + 0.00000001)
+                )
+                t0 = t
+                i0 = i
     
     
     def set_channels(self, channels):
@@ -508,6 +529,12 @@ class Plugy(session.Logger):
         
         self.peakval = np.array(peakval)
         self.startend = startend
+        
+        self._log(
+            'Peak detection finished, found %u peaks.' % (
+                self.peakval.shape[0]
+            )
+        )
     
     
     def peaks_df(self):
@@ -517,6 +544,8 @@ class Plugy(session.Logger):
         Then it creates a long format data frame, find it
         under the `peakdf_n` attribute.
         """
+        
+        self._log('Creating peaks data frames.')
         
         self.peakdf = pd.DataFrame(
             self.peakval,
@@ -550,20 +579,32 @@ class Plugy(session.Logger):
             # the sequence number of a sample in the cycle
             # will correspond to the drug combination
             
-            if self.sample_cnt[row.cycle] + 1 < len(self.samples_drugs):
+            if self.sample_cnt[row.cycle] < len(self.samples_drugs) - 3:
                 
                 return None, None, None
 
             try:
                 
-                drs = self.samples_drugs[row.sampl]
+                drugs = self.samples_drugs[row.sampl]
+                
+                if isinstance(drugs, sequence.Sample):
+                    
+                    drugs = (drugs.drug1, drugs.drug2)
+                    
+                else:
+                    
+                    drugs = self.samples_drugs[row.sampl]
                 
             except IndexError:
                 
-                raise IndexError(
+                drugs = ('Unknown', 'Unknown')
+                
+                self._log(
                     f"More samples (>= {row.sampl}) than drug combinations"
                     f" ({len(self.samples_drugs)}) for the current cycle"
-                    f" ({row.cycle})"
+                    f" ({row.cycle}). This is a critical error and should "
+                    f"be addressed otherwise you can't be sure your samples "
+                    f"are correctly labeled."
                 )
             # drs_t = drs.split(self.drug_sep)
             # dr1, dr2 = (
@@ -572,13 +613,13 @@ class Plugy(session.Logger):
             #     (drs_t[0].strip(), 'Medium')
             # )
 
-            return drs, drs[0], drs[1]
+            return drugs, drugs[0], drugs[1]
 
         self.peakdf['barcode'] = pd.Series(
             np.logical_not(
                 np.logical_or(
-                    self.peakdf.orange > self.peakdf.blue,
-                    self.peakdf.green  > self.peakdf.blue
+                    self.peakdf.orange > self.peakdf.blue * 2,
+                    self.peakdf.green  > self.peakdf.blue * 2,
                 )
             )
         )
@@ -595,21 +636,21 @@ class Plugy(session.Logger):
         
         for i, bc in enumerate(self.peakdf.barcode):
             
-            # counting barcode peaks
-            bc_peaks += bc
-            # counting sample peaks
-            sm_peaks += not bc
-            
             # first barcode plug after sample
             if not bc_peaks and bc:
                 
                 # mark first and last sample peaks as discarded
                 discard[
                     -sm_peaks : -sm_peaks + self.discard[0]
-                ] = [False] * self.discard[0]
-                discard[-self.discard[1]:] = [False] * self.discard[1]
+                ] = [True] * self.discard[0]
+                discard[-self.discard[1]:] = [True] * self.discard[1]
                 # resetting sample peak counter
                 sm_peaks = 0
+            
+            # counting barcode peaks
+            bc_peaks += bc
+            # counting sample peaks
+            sm_peaks += not bc
             
             # first sample plug after barcode
             if bc_peaks and not bc:
@@ -652,7 +693,7 @@ class Plugy(session.Logger):
         attribute.
         """
         
-        self.sample_cnt = self.peakdf.groupby('cycle').sampl.max()
+        self.sample_cnt = self.peakdf.groupby('cycle').sampl.max() + 1
     
     
     def samples_df(self):
@@ -869,6 +910,54 @@ class Plugy(session.Logger):
                 zorder = 0
             )
         
+        if 'sampl' in self.peakdf.columns:
+            
+            for cycle_id in set(self.peakdf.cycle):
+                
+                for sample_id in set(self.peakdf.sampl):
+                    
+                    this_sample = self.peakdf[
+                        np.logical_and(
+                            np.logical_and(
+                                self.peakdf.cycle == cycle_id,
+                                self.peakdf.sampl == sample_id,
+                            ),
+                            np.logical_not(
+                                np.logical_or(
+                                    self.peakdf.discard,
+                                    self.peakdf.barcode,
+                                ),
+                            ),
+                        )
+                    ]
+                    
+                    if not this_sample.shape[0]:
+                        
+                        continue
+                    
+                    ax.hlines(
+                        y = ymax * .9 - sample_id % 2 * .05,
+                        xmin = min(this_sample.t0),
+                        xmax = max(this_sample.t1),
+                        colors = '#333333' if sample_id % 2 else '#666666',
+                    )
+                    ax.text(
+                        y = ymax * .92 - sample_id % 2 * .05,
+                        x = min(this_sample.t0),
+                        s = (
+                            '%u/%u [ %s ]' % (
+                                cycle_id,
+                                sample_id,
+                                ' & '.join(this_sample.drugs.iloc[0])
+                                    if this_sample.drugs.iloc[0] else
+                                '?',
+                            )
+                        ),
+                        fontdict = {'size': 5},
+                        ha = 'left',
+                        va = 'bottom',
+                    )
+        
         # scatterplots for the peak medians of each channel
         for color, i in self.channels.values():
             
@@ -933,6 +1022,19 @@ class Plugy(session.Logger):
         if self.direct_drug_combinations:
             
             self.samples_drugs = self.drugs
+            return
+        
+        if self.drug_file and self.seq_file:
+            
+            self.samples_drugs = [
+                sample
+                for sample in
+                sequence.Sequence(
+                    seq_file = self.seq_file,
+                    drug_file = self.drug_file,
+                )
+                if not sample.is_barcode
+            ]
             return
         
         self._log(
