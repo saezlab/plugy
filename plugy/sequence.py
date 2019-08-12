@@ -40,18 +40,33 @@ SampleBase = collections.namedtuple(
 
 class Sample(SampleBase):
     
-    @property
-    def label(self):
+    
+    def _label(self, short = False):
         
         drugs = sorted([self.drug1, self.drug2])
         
         return (
-            'Barcode'
+            ('BC' if short else 'Barcode')
                 if self.is_barcode else
-            'Control'
+            ('CTRL' if short else 'Control')
                 if self.is_control else
-            ' & '.join(drug for drug in drugs if drug != 'Empty')
+            ' & '.join(
+                drug[:2].upper() if short else drug
+                for drug in drugs if drug != 'Empty'
+            )
         )
+    
+    
+    @property
+    def label(self):
+        
+        return self._label()
+    
+    
+    @property
+    def short_label(self):
+        
+        return self._label(short = True)
     
     
     @property
