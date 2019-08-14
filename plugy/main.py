@@ -28,6 +28,8 @@ import matplotlib as mpl
 import matplotlib.figure
 import matplotlib.backends.backend_pdf
 import matplotlib.backends.backend_agg
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import skimage.filters
 import skimage.morphology
@@ -831,3 +833,13 @@ class Plugy(object):
         # noinspection PyAttributeOutsideInit
         self.filtered_peaks = self.peakdf.loc[lambda df: df.discard == False, :]
         return self.filtered_peaks
+
+    # QC Plots
+    def plot_orange_regression(self, ax: plt.Axes):
+        ax = sns.regplot(x="t0", y="orange", data=self.filtered_peaks, ax=ax)
+        return ax
+
+    def plot_orange_cycle_dist(self, ax: plt.Axes):
+        ax = sns.violinplot(x="cycle", y="orange", data=self.filtered_peaks, ax=ax)
+        return ax
+
