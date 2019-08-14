@@ -839,19 +839,32 @@ class Plugy(object):
         return self.filtered_peaks
 
     # QC Plots
-    def plot_orange_regression(self, ax: plt.Axes) -> plt.Axes:
-        ax = sns.regplot(x="t0", y="orange", data=self.filtered_peaks, ax=ax)
-        return ax
+    def plot_orange_regression(self, axes: plt.Axes) -> plt.Axes:
+        axes = sns.regplot(x="t0", y="orange", data=self.filtered_peaks, ax=axes)
+        axes.set_title("Orange Time Bias")
+        axes.set_ylabel("Fluorescence Intensity [AU]")
+        axes.set_xlabel("Experiment Time [s]")
 
-    def plot_orange_cycle_dist(self, ax: plt.Axes) -> plt.Axes:
-        ax = sns.violinplot(x="cycle", y="orange", data=self.filtered_peaks, ax=ax)
-        return ax
+        return axes
 
-    def plot_cycle_plug_length_dist(self, ax: plt.Axes, by_cycle: bool = False) -> plt.Axes:
+    def plot_orange_cycle_dist(self, axes: plt.Axes) -> plt.Axes:
+        axes = sns.violinplot(x="cycle", y="orange", data=self.filtered_peaks, ax=axes)
+        axes.set_title("Orange intensity")
+        axes.set_ylabel("Fluorescence Intensity [AU]")
+        axes.set_xlabel("Cycle")
+        return axes
+
+    def plot_cycle_plug_length_dist(self, axes: plt.Axes, by_cycle: bool = False) -> plt.Axes:
         if by_cycle:
-            ax = sns.violinplot(x="cycle", y="length", data=self.filtered_peaks, ax=ax)
-            return ax
+            axes = sns.violinplot(x="cycle", y="length", data=self.filtered_peaks, ax=axes)
+            axes.set_title("Plug length distribution")
+            axes.set_ylabel("Length [s]")
+            axes.set_xlabel("Cycle")
 
         else:
-            ax = sns.distplot(self.filtered_peaks.length, rug=True, ax=ax)
-            return ax
+            axes = sns.distplot(self.filtered_peaks.length, rug=True, ax=axes)
+            axes.set_title("Plug length distribution")
+            axes.set_ylabel("Occurences")
+            axes.set_xlabel("Length [s]")
+
+        return axes
