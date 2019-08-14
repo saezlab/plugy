@@ -88,36 +88,6 @@ class EvalPlugy(Plugy):
 
         self.save_plugy(self.name)
 
-    def set_channel_values(self, correct_time: bool = True, ignore_green: bool = False, ignore_orange: bool = False, ignore_uv: bool = False):
-        """
-        Sets & corrects values in the multichannel acquisition data.
-        :param correct_time: If the time should be corrected from having 100 measurements at a single
-                             timepoint to evenly spaced measurements using the acquisition rate.
-        :param ignore_green: If all values of the green channel should be set to 0
-        :param ignore_orange: If all values of the orange channel should be set to 0
-        :param ignore_uv: If all values of the uv channel should be set to 0
-        """
-        time_between_samplings = 1 / self.acquisition_rate
-
-        # Iterate through self.data and overwrite if iteration successful
-        with np.nditer(self.data, op_flags=["readwrite"]) as data:
-            for idx, value in enumerate(data):
-                # Get the column index
-                col = idx % 4
-
-                # Change column values depending on parameters
-                if correct_time and (col == 0):
-                    value[...] = (idx / 4) * time_between_samplings
-
-                if ignore_green and (col == 1):
-                    value[...] = 0
-
-                if ignore_orange and (col == 2):
-                    value[...] = 0
-
-                if ignore_uv and (col == 3):
-                    value[...] = 0
-
     def strip(self):
         """
         Cuts away data acquired outside of the time interval specified with cut.
