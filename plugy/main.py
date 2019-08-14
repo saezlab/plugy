@@ -49,6 +49,7 @@ class Plugy(object):
     adaptive_signal_threshold: bool = True
     peak_minwidth: float = 5
     plug_minlength: float = 0.5  # NEW
+    plug_maxlength: float = 2
     n_bc_adjacent_discards: int = 1
     channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
@@ -802,11 +803,12 @@ class Plugy(object):
                 if ignore_uv and (col == 3):
                     value[...] = 0
 
-    def get_filtered_peakdf(self, discard_adjacent_plugs: int = 1, plug_length_threshold: float = 0.5) -> pd.DataFrame:
+    def get_filtered_peakdf(self, discard_adjacent_plugs: int = 1, plug_min_length_threshold: float = 0.5, plug_max_length_threshold: float = 2) -> pd.DataFrame:
         """
         Filters peakdf to remove barcodes, too short plugs and plugs that are adjacent to barcodes
         :param discard_adjacent_plugs: The number of plugs adjacent on both sides of the barcode to discard
-        :param plug_length_threshold: The minimum length of a plug to keep in seconds
+        :param plug_min_length_threshold: The minimum length of a plug to keep in seconds
+        :param plug_max_length_threshold: The minimum length of a plug to keep in seconds
         :return: The filtered DataFrame, also sets self.filtered_peaks
         """
         discards = list()
@@ -817,13 +819,15 @@ class Plugy(object):
                 if (self.peakdf.barcode[idx] or
                         self.peakdf.barcode[idx - discard_adjacent_plugs] or
                         self.peakdf.barcode[idx + discard_adjacent_plugs] or
-                        self.peakdf.length[idx] < plug_length_threshold):
+                        self.peakdf.length[idx] < plug_min_length_threshold or
+                        self.peakdf.length[idx] > plug_max_length_threshold):
                     discards.append(True)
                 else:
                     discards.append(False)
 
             except KeyError:
-                if self.peakdf.length[idx] < plug_length_threshold:
+                if (self.peakdf.length[idx] < plug_min_length_threshold or
+                        self.peakdf.length[idx] > plug_max_length_threshold):
                     discards.append(True)
                 else:
                     discards.append(False)
