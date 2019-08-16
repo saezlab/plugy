@@ -34,6 +34,7 @@ import os
 import sys
 import imp
 import collections
+import gzip
 
 import numpy as np
 import pandas as pd
@@ -290,9 +291,13 @@ class Plugy(session.Logger):
             'Reading fluorecence acquisition data from `%s`.' % self.infile
         )
         
-        with open(self.infile, 'r') as fp:
+        op = gzip.open if self.infile.endswith('gz') else open
+        
+        with op(self.infile, 'r') as fp:
             
             for l in fp:
+                
+                l = l.decode('utf8') if hasattr(l, 'decode') else l
                 
                 if (
                     l[1:].strip().startswith('Time') or
