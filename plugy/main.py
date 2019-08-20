@@ -29,6 +29,8 @@ import matplotlib.figure
 import matplotlib.backends.backend_pdf
 import matplotlib.backends.backend_agg
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patch
+import matplotlib.collections as mpl_coll
 import seaborn as sns
 
 import skimage.filters
@@ -866,5 +868,42 @@ class Plugy(object):
             axes.set_title("Plug length distribution")
             axes.set_ylabel("Occurences")
             axes.set_xlabel("Length [s]")
+
+        return axes
+
+    # Data Plots
+    def plot_raw_drug_cycle(self, drug: str, cycle: int, axes: plt.Axes, offset: int = 10) -> plt.Axes:
+        """
+        Plots the PMT traces for a particular drug and cycle and
+        :param drug: Name of the drug combination/valve as listed in the peakdf drugs column
+        :param cycle: Number of the cycle
+        :param axes: The plt.Axes object to draw on
+        :param offset: How many seconds to plot left and right of the plugs
+        :return: The plt.Axes object with the plot
+        """
+        peak_data = self.filtered_peaks[(self.filtered_peaks.cycle == cycle) & (self.filtered_peaks.drugs == drug)]
+        if len(peak_data) is 0:
+            axes.text(0.5, 0.5, "No Data")
+            return axes
+
+        start_time = peak_data.iloc[0].t0 - offset
+        end_time = peak_data.iloc[-1].t1 + offset
+
+        plotting_data = pd.DataFrame(self.data)
+        plotting_data = plotting_data[(plotting_data[0] > start_time) & (plotting_data[0] < end_time)]
+
+        sns.lineplot(x=plotting_data[0], y=plotting_data[1], estimator=None, ci=None, sort=False, color=self.colors["green"], ax=axes)
+        sns.lineplot(x=plotting_data[0], y=plotting_data[2], estimator=None, ci=None, sort=False, color=self.colors["orange"], ax=axes)
+        sns.lineplot(x=plotting_data[0], y=plotting_data[3], estimator=None, ci=None, sort=False, color=self.colors["blue"], ax=axes)
+
+        # Plotting light green rectangles that indicate the used plug length and plug height
+        patches = list()
+        for plug in peak_data.itertuples():
+            patches.append(mpl_patch.Rectangle(xy=(plug.t0, 0), width=plug.length, height=plug.green))
+        axes.add_collection(mpl_coll.PatchCollection(patches, facecolors=self.colors["green"], alpha=0.4))
+
+        axes.set_xlabel("Time [s]")
+        axes.set_ylabel("Fluorescence [AU]")
+        axes.set_title(f"{drug} Cycle {cycle}")
 
         return axes
