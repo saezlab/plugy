@@ -48,6 +48,9 @@ class Plugy(object):
     cut: tuple = (None, None)
     drugs: list = field(default_factory=list)
     signal_threshold: float = .02
+    digital_gain_blue: float = 1.0
+    digital_gain_green: float = 1.0
+    digital_gain_orange: float = 1.0
     adaptive_signal_threshold: bool = True
     peak_minwidth: float = 5
     plug_minlength: float = 0.5  # NEW
@@ -242,6 +245,7 @@ class Plugy(object):
         """
         self.read()
         self.set_channel_values(correct_time=self.correct_acquisition_time)
+        self.digital_gain(blue=self.digital_gain_blue, green=self.digital_gain_green, orange=self.digital_gain_orange)
         self.strip()
         self.find_peaks()
         self.peaks_df()
@@ -907,3 +911,12 @@ class Plugy(object):
         axes.set_title(f"{drug} Cycle {cycle}")
 
         return axes
+
+    def digital_gain(self, blue: float = 1.0, green: float = 1.0, orange: float = 1.0):
+        """
+        Multiplies the corresponding channels PMT output by the given float
+        :param blue: Gain for the blue channel
+        :param green: Gain for the green channel
+        :param orange: Gain for the orange channel
+        """
+        self.data = np.array((self.data[:, 0], self.data[:, 1] * green, self.data[:, 2] * orange, self.data[:, 3] * blue)).transpose()
