@@ -36,24 +36,25 @@ X_Value	Untitled	Untitled 1	Untitled 2	Untitled 3	Comment
 
 class TestPmtData(unittest.TestCase):
     def setUp(self):
-        with tempfile.NamedTemporaryFile(mode="wt", suffix=".txt") as txt_file:
-            txt_file.write(CONTENT)
-            self.txt_file = txt_file
-            print(self.txt_file.name)
-            self.txt_file_path = pl.Path(self.txt_file.name)
+        self.txt_file = tempfile.NamedTemporaryFile(mode="wt", suffix=".txt", delete=True)
+        self.txt_file.write(CONTENT)
+        # print(self.txt_file.name)
+        self.txt_file_path = pl.Path(self.txt_file.name)
 
-            # with tempfile.NamedTemporaryFile(suffix=".txt.gz") as gz_file:
-            #     self.gz_file_path = pl.Path(gz_file.name)
-            #     self.gz_file = gzip.GzipFile(mode="wb", fileobj=txt_file)
+        self.gz_file = tempfile.NamedTemporaryFile(mode="w+b", suffix=".txt.gz", delete=True)
+        self.gz_file.write(CONTENT.encode())
+        gzip.GzipFile(mode="wb", fileobj=self.gz_file).close()
+        self.gz_file_path = pl.Path(self.gz_file.name)
+        # print(self.gz_file_path)
 
-    # def tearDown(self) -> None:
-    #
+    def tearDown(self) -> None:
+        self.txt_file.close()
+        self.gz_file.close()
 
-    # def test_temp_gz_file(self):
-    #     self.assertTrue(self.gz_file_path.exists())
+    def test_temp_gz_file(self):
+        self.assertTrue(self.gz_file_path.exists())
 
     def test_temp_txt_file(self):
-        # self.assertTrue(self.txt_file_path.exists())
         self.assertTrue(pl.Path(self.txt_file.name).exists())
 
     # def test_true(self):
