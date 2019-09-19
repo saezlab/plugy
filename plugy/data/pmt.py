@@ -40,9 +40,3 @@ class PmtData(object):
             data_frame = pd.read_csv(f, sep="\t", decimal=",", skiprows=idx).values[:, 1:]
 
         return data_frame
-
-
-class TestPmtData(unittest.TestCase):
-    def test_read_txt(self):
-        path = pl.Path("../brailleExperiments/validation_fede/aspc1/030919/data/record_1.txt.gz")
-        self.assertEqual(PmtData(path).read_txt(), "test")
