@@ -74,6 +74,32 @@ class TestPmtData(unittest.TestCase):
 
         pd_test.assert_frame_equal(self.test_df, data)
 
+    def test_find_data(self):
+        """
+        Checks error handling in find_data
+        """
+        # Checking exception raise with empty file
+        with tempfile.TemporaryFile() as self.empty_file:
+            with self.assertRaises(AssertionError) as cm:
+                pmt.PmtData.find_data(self.empty_file)
+
+            self.assertEqual(cm.exception.args[0], "No lines detected in input_file! Check the contents of the file!")
+
+        # Checking error raised with too long header
+        with tempfile.TemporaryFile(mode="w+t") as self.wrong_header_file:
+            self.wrong_header_file.writelines(["test\n" for _ in range(100)])
+            self.wrong_header_file.seek(0)
+
+            with self.assertRaises(AssertionError) as cm:
+                pmt.PmtData.find_data(self.wrong_header_file)
+
+        # Checking with real header
+        with tempfile.TemporaryFile(mode="w+t") as self.right_file:
+            self.right_file.write(FILE_CONTENT)
+            self.right_file.seek(0)
+
+            self.assertEqual(pmt.PmtData.find_data(self.right_file), 22)
+
 
 if __name__ == '__main__':
     unittest.main()
