@@ -1,7 +1,29 @@
+"""
+Author      Nicolas Peschke
+Date        19.09.2019
+
+This file is part of the `plugy` python module
+
+Copyright
+2018-2019
+EMBL, Heidelberg University
+File author(s): Dénes Türei (turei.denes@gmail.com)
+                Nicolas Peschke
+Distributed under the GPLv3 License.
+See accompanying file LICENSE.txt or copy at
+    http://www.gnu.org/licenses/gpl-3.0.html
+
+"""
+
 import unittest
+import unittest.mock as mock
 import tempfile
+
 import gzip
 import pathlib as pl
+
+import numpy as np
+
 import pandas as pd
 import pandas.util.testing as pd_test
 
@@ -113,6 +135,49 @@ class TestPmtData(unittest.TestCase):
             self.right_file.seek(0)
 
             self.assertEqual(pmt.PmtData.find_data(self.right_file), 22)
+
+    # noinspection PyArgumentList
+    def test_set_channel_value_ignore(self):
+        """
+        Tests ignoring individual channels
+        """
+        PmtDataTest = pmt.PmtData
+        PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+
+        test_df_zero_green = self.test_df.assign(green=0.0)
+        test_df_zero_uv = self.test_df.assign(uv=0.0)
+        test_df_zero_orange = self.test_df.assign(orange=0.0)
+
+        with self.subTest():
+            data = PmtDataTest(pl.Path(), ignore_green_channel=True).data
+            pd_test.assert_frame_equal(data, test_df_zero_green)
+
+            data = PmtDataTest(pl.Path(), ignore_orange_channel=True).data
+            pd_test.assert_frame_equal(data, test_df_zero_orange)
+
+            data = PmtDataTest(pl.Path(), ignore_uv_channel=True).data
+            pd_test.assert_frame_equal(data, test_df_zero_uv)
+
+    # noinspection PyArgumentList
+    def test_set_channel_value_time(self):
+        """
+        Tests correcting the time values
+        """
+        PmtDataTest = pmt.PmtData
+        PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+
+        for acq in range(100, 500, 100):
+            with self.subTest(acq=acq):
+                test_df_time = self.test_df.assign(time=np.linspace(0, (1/acq) * (len(self.test_df) - 1), len(self.test_df)))
+                data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=acq).data
+                pd_test.assert_frame_equal(data, test_df_time)
+
+        test_df_time = self.test_df.assign(time=np.linspace(0, len(self.test_df) - 1, len(self.test_df)))
+        data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=1).data
+        pd_test.assert_frame_equal(data, test_df_time)
+
+        data = PmtDataTest(pl.Path(), correct_acquisition_time=False).data
+        pd_test.assert_frame_equal(data, self.test_df)
 
 
 if __name__ == '__main__':

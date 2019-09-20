@@ -20,13 +20,28 @@ import gzip
 import pathlib as pl
 
 import pandas as pd
+import numpy as np
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class PmtData(object):
     input_file: pl.Path
+    acquisition_rate: int = 300
+    cut: tuple = (None, None)
+    channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
+    correct_acquisition_time: bool = False
+    ignore_orange_channel: bool = False
+    ignore_green_channel: bool = False
+    ignore_uv_channel: bool = False
+
+    def __post_init__(self):
+        self.data = self.read_txt()
+        self.data = self.set_channel_values()
+
+        # print(self.data)
+        # self.data = self.cut_data()
 
     def read_txt(self) -> pd.DataFrame:
         """
@@ -70,3 +85,25 @@ class PmtData(object):
         assert idx < 50, f"Automatically detected header length exceeds 50 lines ({idx})"
 
         return idx
+
+    def set_channel_values(self):
+        """
+        Sets & corrects values in the multichannel acquisition data.
+        :return: DataFrame with the corrected data
+        """
+        time_between_samplings = 1 / self.acquisition_rate
+
+        df = self.data.copy()
+        if self.ignore_green_channel:
+            df = df.assign(green=0.0)
+
+        if self.ignore_uv_channel:
+            df = df.assign(uv=0.0)
+
+        if self.ignore_orange_channel:
+            df = df.assign(orange=0.0)
+
+        if self.correct_acquisition_time:
+            df = df.assign(time=np.linspace(0, time_between_samplings * (len(df) - 1), len(df)))
+
+        return df
