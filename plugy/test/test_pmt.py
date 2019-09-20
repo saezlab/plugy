@@ -74,6 +74,18 @@ class TestPmtData(unittest.TestCase):
 
         pd_test.assert_frame_equal(self.test_df, data)
 
+    def test_other_file_open(self):
+        """
+        Checks error handling in read_txt
+        """
+        suffix = ".any"
+        with tempfile.NamedTemporaryFile(suffix=suffix) as self.any_file:
+            self.any_file_path = pl.Path(self.any_file.name)
+            with self.assertRaises(NotImplementedError) as cm:
+                pmt.PmtData(self.any_file_path).read_txt()
+
+            self.assertEqual(cm.exception.args[0], f"Input file has to be either .txt or .txt.gz, {self.any_file_path.suffix} files are not implemented!")
+
     def test_find_data(self):
         """
         Checks error handling in find_data

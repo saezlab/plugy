@@ -42,6 +42,9 @@ class PmtData(object):
                 with self.input_file.open("rt") as f:
                     end_of_header = self.find_data(f)
 
+            else:
+                raise NotImplementedError(f"Input file has to be either .txt or .txt.gz, {self.input_file.suffix} files are not implemented!")
+
             data_frame = pd.read_csv(self.input_file, sep="\t", decimal=",", skiprows=end_of_header, header=None).iloc[:, 1:]
             data_frame.columns = ["time", "green", "orange", "uv"]
 
