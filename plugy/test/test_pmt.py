@@ -70,10 +70,9 @@ class TestPmtData(unittest.TestCase):
             self.txt_file.seek(0)
             self.txt_file_path = pl.Path(self.txt_file.name)
 
-            with self.assertRaises(OSError) as gz_error:
-                data = pmt.PmtData(self.txt_file_path).read_txt()
+            data = pmt.PmtData(self.txt_file_path).read_txt()
 
-            self.assertTrue(str(gz_error.exception).startswith("Not a gzipped file"))
+        pd_test.assert_frame_equal(self.test_df, data)
 
 
 if __name__ == '__main__':
