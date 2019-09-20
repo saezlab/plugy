@@ -4,7 +4,9 @@ import gzip
 import pathlib as pl
 import pandas as pd
 import pandas.util.testing as pd_test
-import lib.plugy.plugy.data.pmt as pmt
+
+from ..data import pmt
+
 
 FILE_CONTENT = """LabVIEW Measurement
 Writer_Version\t2
