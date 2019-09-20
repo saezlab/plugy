@@ -37,6 +37,8 @@ class PmtData(object):
                     break
 
             # data = np.genfromtxt(f, delimiter="\t", skip_header=idx)
-            data_frame = pd.read_csv(f, sep="\t", decimal=",", skiprows=idx).values[:, 1:]
+            f.seek(0)
+            data_frame = pd.read_csv(f, sep="\t", decimal=",", skiprows=idx, header=None).iloc[:, 1:]
+            data_frame.columns = ["time", "green", "orange", "uv"]
 
         return data_frame
