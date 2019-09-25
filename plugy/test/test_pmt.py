@@ -18,9 +18,11 @@ See accompanying file LICENSE.txt or copy at
 import unittest
 import unittest.mock as mock
 import tempfile
+import copy
 
 import gzip
 import pathlib as pl
+import itertools
 
 import numpy as np
 
@@ -28,7 +30,6 @@ import pandas as pd
 import pandas.util.testing as pd_test
 
 from ..data import pmt
-
 
 FILE_CONTENT = """LabVIEW Measurement
 Writer_Version\t2
@@ -81,9 +82,9 @@ class TestPmtData(unittest.TestCase):
             self.gz_file.seek(0)
             self.gz_file_path = pl.Path(self.gz_file.name)
 
-            data = pmt.PmtData(self.gz_file_path).read_txt()
+            self.data = pmt.PmtData(self.gz_file_path).read_txt()
 
-        pd_test.assert_frame_equal(self.test_df, data)
+        pd_test.assert_frame_equal(self.test_df, self.data)
 
     def test_txt_file_open(self):
         """
@@ -94,19 +95,19 @@ class TestPmtData(unittest.TestCase):
             self.txt_file.seek(0)
             self.txt_file_path = pl.Path(self.txt_file.name)
 
-            data = pmt.PmtData(self.txt_file_path).read_txt()
+            self.data = pmt.PmtData(self.txt_file_path).read_txt()
 
-        pd_test.assert_frame_equal(self.test_df, data)
+        pd_test.assert_frame_equal(self.test_df, self.data)
 
-    def test_other_file_open(self):
+    def test_z_other_file_open(self):
         """
         Checks error handling in read_txt
         """
-        suffix = ".any"
-        with tempfile.NamedTemporaryFile(suffix=suffix) as self.any_file:
+        self.suffix = ".any"
+        with tempfile.NamedTemporaryFile(suffix=self.suffix) as self.any_file:
             self.any_file_path = pl.Path(self.any_file.name)
             with self.assertRaises(NotImplementedError) as cm:
-                pmt.PmtData(self.any_file_path).read_txt()
+                data = pmt.PmtData(self.any_file_path).read_txt()
 
             self.assertEqual(cm.exception.args[0], f"Input file has to be either .txt or .txt.gz, {self.any_file_path.suffix} files are not implemented!")
 
@@ -141,7 +142,7 @@ class TestPmtData(unittest.TestCase):
         """
         Tests ignoring individual channels
         """
-        PmtDataTest = pmt.PmtData
+        PmtDataTest = copy.deepcopy(pmt.PmtData)
         PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
 
         test_df_zero_green = self.test_df.assign(green=0.0)
@@ -163,12 +164,12 @@ class TestPmtData(unittest.TestCase):
         """
         Tests correcting the time values
         """
-        PmtDataTest = pmt.PmtData
+        PmtDataTest = copy.deepcopy(pmt.PmtData)
         PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
 
         for acq in range(100, 500, 100):
             with self.subTest(acq=acq):
-                test_df_time = self.test_df.assign(time=np.linspace(0, (1/acq) * (len(self.test_df) - 1), len(self.test_df)))
+                test_df_time = self.test_df.assign(time=np.linspace(0, (1 / acq) * (len(self.test_df) - 1), len(self.test_df)))
                 data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=acq).data
                 pd_test.assert_frame_equal(data, test_df_time)
 
@@ -178,6 +179,22 @@ class TestPmtData(unittest.TestCase):
 
         data = PmtDataTest(pl.Path(), correct_acquisition_time=False).data
         pd_test.assert_frame_equal(data, self.test_df)
+
+    # noinspection PyArgumentList
+    def test_cut_data(self):
+        PmtDataTest = copy.deepcopy(pmt.PmtData)
+        # PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df.assign(time=np.linspace(0, len(self.test_df)-1, len(self.test_df))))
+        PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+
+        # for cut in itertools.combinations_with_replacement([None, -1, 0, 1, 2, 2.5, len(self.test_df) + 1], r=2):
+        for cut in itertools.combinations_with_replacement([0, 1, 2], r=2):
+            with self.subTest(cut=cut):
+                data = PmtDataTest(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True).data
+                try:
+                    self.assertTrue(min(data.time) <= cut[0])
+                    self.assertTrue(max(data.time) >= cut[1])
+                except IOError:
+                    pass
 
 
 if __name__ == '__main__':
