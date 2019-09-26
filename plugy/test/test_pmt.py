@@ -14,11 +14,11 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
-
 import unittest
 import unittest.mock as mock
 import tempfile
 
+import logging
 import gzip
 import pathlib as pl
 
@@ -58,6 +58,10 @@ X_Value\tUntitled\tUntitled 1\tUntitled 2\tUntitled 3\tComment
 \t0,000000\t0,055544\t0,032655\t0,048830
 \t0,000000\t0,055849\t0,033265\t0,050356
 """
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%d.%m.%y %H:%M:%S')
 
 
 class TestPmtData(unittest.TestCase):
