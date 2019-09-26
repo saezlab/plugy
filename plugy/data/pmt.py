@@ -14,7 +14,7 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
-
+import logging
 import re
 import gzip
 import pathlib as pl
@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from dataclasses import dataclass, field
+
+module_logger = logging.getLogger("plugy.data.pmt")
 
 
 @dataclass
@@ -44,6 +46,11 @@ class PmtData(object):
     digital_gain_orange: float = 1.0
 
     def __post_init__(self):
+        module_logger.info(f"Creating PmtData object from file {self.input_file.absolute()}")
+        module_logger.debug(f"Configuration:")
+        for k, v in self.__dict__.items():
+            module_logger.debug(f"{k}: {v}")
+
         self.data = self.read_txt()
         self.data = self.set_channel_values()
         self.data = self.cut_data()
@@ -54,12 +61,15 @@ class PmtData(object):
         Reads input_file
         :return: pd.DataFrame containing the PMT data of all channels
         """
+        module_logger.info("Reading input file")
         if self.input_file.exists():
             if self.input_file.suffix == ".gz":
+                module_logger.info("Detected gzipped file")
                 with gzip.open(self.input_file, "rt") as f:
                     end_of_header = self.find_data(f)
 
             elif self.input_file.suffix == ".txt":
+                module_logger.info("Detected uncompressed txt file")
                 with self.input_file.open("rt") as f:
                     end_of_header = self.find_data(f)
 
@@ -87,6 +97,7 @@ class PmtData(object):
             if re.match(pattern=r"\t\d", string=line) is not None:
                 break
 
+        module_logger.debug(f"Detected end of header in line {idx}")
         assert idx > -1, "No lines detected in input_file! Check the contents of the file!"
         assert idx < 50, f"Automatically detected header length exceeds 50 lines ({idx})"
 
@@ -106,9 +117,11 @@ class PmtData(object):
 
         df = self.data
         if self.cut[0] is not None:
+            module_logger.debug(f"Cutting data before t={self.cut[0]}")
             df = df.loc[df.time >= self.cut[0]]
 
         if self.cut[1] is not None:
+            module_logger.debug(f"Cutting data after t={self.cut[1]}")
             df = df.loc[df.time <= self.cut[1]]
 
         return df
@@ -122,15 +135,19 @@ class PmtData(object):
 
         df = self.data.copy()
         if self.ignore_green_channel:
+            module_logger.info("Setting green channel to 0.0")
             df = df.assign(green=0.0)
 
         if self.ignore_uv_channel:
+            module_logger.info("Setting uv channel to 0.0")
             df = df.assign(uv=0.0)
 
         if self.ignore_orange_channel:
+            module_logger.info("Setting orange channel to 0.0")
             df = df.assign(orange=0.0)
 
         if self.correct_acquisition_time:
+            module_logger.info("Correcting acquisition time")
             df = df.assign(time=np.linspace(0, time_between_samplings * (len(df) - 1), len(df)))
 
         return df
@@ -152,6 +169,7 @@ class PmtData(object):
         :param axes: plt.Axes object to draw on
         :return: The axes object with the plot
         """
+        module_logger.info("Plotting raw PMT data")
         sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.colors["green"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.colors["orange"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.colors["blue"], ax=axes)
