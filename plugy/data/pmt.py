@@ -22,6 +22,9 @@ import pathlib as pl
 import pandas as pd
 import numpy as np
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from dataclasses import dataclass, field
 
 
@@ -31,6 +34,7 @@ class PmtData(object):
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
+    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     correct_acquisition_time: bool = False
     ignore_orange_channel: bool = False
     ignore_green_channel: bool = False
@@ -128,3 +132,17 @@ class PmtData(object):
             df = df.assign(time=np.linspace(0, time_between_samplings * (len(df) - 1), len(df)))
 
         return df
+
+    def plot_raw_data(self, axes: plt.Axes):
+        """
+        Plots the raw PMT data to the specified axes object
+        :param axes: plt.Axes object to draw on
+        :return: The axes object with the plot
+        """
+        sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.colors["green"], ax=axes)
+        sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.colors["orange"], ax=axes)
+        sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.colors["blue"], ax=axes)
+        axes.set_xlabel("Time [s]")
+        axes.set_ylabel("Fluorescence [AU]")
+
+        return axes
