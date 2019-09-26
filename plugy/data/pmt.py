@@ -35,7 +35,7 @@ class PmtData(object):
     cut: tuple = (None, None)
     channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
-    correct_acquisition_time: bool = False
+    correct_acquisition_time: bool = True
     ignore_orange_channel: bool = False
     ignore_green_channel: bool = False
     ignore_uv_channel: bool = False

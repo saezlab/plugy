@@ -146,13 +146,13 @@ class TestPmtData(unittest.TestCase):
 
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
             with self.subTest():
-                data = pmt.PmtData(pl.Path(), ignore_green_channel=True).data
+                data = pmt.PmtData(pl.Path(), correct_acquisition_time=False, ignore_green_channel=True).data
                 pd_test.assert_frame_equal(data, test_df_zero_green)
 
-                data = pmt.PmtData(pl.Path(), ignore_orange_channel=True).data
+                data = pmt.PmtData(pl.Path(), correct_acquisition_time=False, ignore_orange_channel=True).data
                 pd_test.assert_frame_equal(data, test_df_zero_orange)
 
-                data = pmt.PmtData(pl.Path(), ignore_uv_channel=True).data
+                data = pmt.PmtData(pl.Path(), correct_acquisition_time=False, ignore_uv_channel=True).data
                 pd_test.assert_frame_equal(data, test_df_zero_uv)
 
     # noinspection PyArgumentList
