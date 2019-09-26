@@ -41,7 +41,7 @@ class PmtData(object):
         self.data = self.set_channel_values()
 
         # print(self.data)
-        # self.data = self.cut_data()
+        self.data = self.cut_data()
 
     def read_txt(self) -> pd.DataFrame:
         """
@@ -91,12 +91,19 @@ class PmtData(object):
         Returns data between time range specified in cut
         :return: pd.DataFrame containing the data in the time range
         """
+        try:
+            if self.cut[0] >= self.cut[1]:
+                raise AttributeError(f"Cut has to be specified like cut=(min, max) you specified {self.cut}")
+        except TypeError:
+            # in case of comparison with None
+            pass
+
         df = self.data
         if self.cut[0] is not None:
-            df = df.loc[df[0] > self.cut[0]]
+            df = df.loc[df.time >= self.cut[0]]
 
         if self.cut[1] is not None:
-            df = df.loc[df[0] < self.cut[1]]
+            df = df.loc[df.time <= self.cut[1]]
 
         return df
 

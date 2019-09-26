@@ -183,10 +183,19 @@ class TestPmtData(unittest.TestCase):
 
     def test_cut_data(self):
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
-            cut = (1, 2)
-            data = pmt.PmtData(input_file=pl.Path("."), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
+            cut = (1, 4)
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
             self.assertTrue(min(data.time) <= cut[0])
             self.assertTrue(max(data.time) >= cut[1])
+
+            cut = (None, None)
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
+            self.assertTrue(len(data.time) == len(self.test_df))
+
+            cut = (4, 1)
+            with self.assertRaises(AttributeError) as cm:
+                data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
+            self.assertEqual(cm.exception.args[0], f"Cut has to be specified like cut=(min, max) you specified {cut}")
 
     # # noinspection PyArgumentList
     # @unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", autospec=speck_df)
