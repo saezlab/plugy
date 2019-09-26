@@ -18,11 +18,9 @@ See accompanying file LICENSE.txt or copy at
 import unittest
 import unittest.mock as mock
 import tempfile
-import copy
 
 import gzip
 import pathlib as pl
-import itertools
 
 import numpy as np
 
@@ -60,11 +58,6 @@ X_Value\tUntitled\tUntitled 1\tUntitled 2\tUntitled 3\tComment
 \t0,000000\t0,055544\t0,032655\t0,048830
 \t0,000000\t0,055849\t0,033265\t0,050356
 """
-
-speck_df = pd.DataFrame({"time": [0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],
-                         "green": [0.055544, 0.054323, 0.055239, 0.053713, 0.055544, 0.055849],
-                         "orange": [0.032960, 0.032044, 0.032655, 0.031739, 0.032655, 0.033265],
-                         "uv": [0.071718, 0.049745, 0.050050, 0.049135, 0.048830, 0.050356]})
 
 
 class TestPmtData(unittest.TestCase):
@@ -196,26 +189,6 @@ class TestPmtData(unittest.TestCase):
             with self.assertRaises(AttributeError) as cm:
                 data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
             self.assertEqual(cm.exception.args[0], f"Cut has to be specified like cut=(min, max) you specified {cut}")
-
-    # # noinspection PyArgumentList
-    # @unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", autospec=speck_df)
-    # def test_cut_data(self, mock_method):
-    #     # PmtDataTest = copy.deepcopy(pmt.PmtData)
-    #     # # PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df.assign(time=np.linspace(0, len(self.test_df)-1, len(self.test_df))))
-    #     # PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
-    #
-    #     # mock_method = lambda _: self.test_df
-    #     # pmt.PmtData.read_txt = mock.MagicMock(return_value=self.test_df)
-    #
-    #     # for cut in itertools.combinations_with_replacement([None, -1, 0, 1, 2, 2.5, len(self.test_df) + 1], r=2):
-    #     for cut in itertools.combinations_with_replacement([0, 1, 2], r=2):
-    #         with self.subTest(cut=cut):
-    #             data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True).data
-    #             try:
-    #                 self.assertTrue(min(data.time) <= cut[0])
-    #                 self.assertTrue(max(data.time) >= cut[1])
-    #             except IOError:
-    #                 pass
 
 
 if __name__ == '__main__':
