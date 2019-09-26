@@ -157,9 +157,15 @@ class PmtData(object):
         Multiplies the corresponding channels PMT output by the given float (digital_gain_*)
         """
         df = self.data
-        df = df.assign(uv=lambda x: x.uv * self.digital_gain_uv,
-                       green=lambda x: x.green * self.digital_gain_green,
-                       orange=lambda x: x.orange * self.digital_gain_orange)
+        if self.digital_gain_uv != 1.0:
+            module_logger.info(f"Applying digital gain for uv channel ({self.digital_gain_uv})")
+            df = df.assign(uv=lambda x: x.uv * self.digital_gain_uv)
+        if self.digital_gain_green != 1.0:
+            module_logger.info(f"Applying digital gain for green channel ({self.digital_gain_green})")
+            df = df.assign(green=lambda x: x.green * self.digital_gain_green)
+        if self.digital_gain_orange != 1.0:
+            module_logger.info(f"Applying digital gain for orange channel ({self.digital_gain_orange})")
+            df = df.assign(orange=lambda x: x.orange * self.digital_gain_orange)
 
         return df
 
