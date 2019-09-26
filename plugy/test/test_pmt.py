@@ -164,26 +164,24 @@ class TestPmtData(unittest.TestCase):
     #         data = PmtDataTest(pl.Path(), ignore_uv_channel=True).data
     #         pd_test.assert_frame_equal(data, test_df_zero_uv)
 
-    # # noinspection PyArgumentList
-    # def test_set_channel_value_time(self):
-    #     """
-    #     Tests correcting the time values
-    #     """
-    #     PmtDataTest = copy.deepcopy(pmt.PmtData)
-    #     PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
-    #
-    #     for acq in range(100, 500, 100):
-    #         with self.subTest(acq=acq):
-    #             test_df_time = self.test_df.assign(time=np.linspace(0, (1 / acq) * (len(self.test_df) - 1), len(self.test_df)))
-    #             data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=acq).data
-    #             pd_test.assert_frame_equal(data, test_df_time)
-    #
-    #     test_df_time = self.test_df.assign(time=np.linspace(0, len(self.test_df) - 1, len(self.test_df)))
-    #     data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=1).data
-    #     pd_test.assert_frame_equal(data, test_df_time)
-    #
-    #     data = PmtDataTest(pl.Path(), correct_acquisition_time=False).data
-    #     pd_test.assert_frame_equal(data, self.test_df)
+    # noinspection PyArgumentList
+    def test_set_channel_value_time(self):
+        """
+        Tests correcting the time values
+        """
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
+            for acq in range(100, 500, 100):
+                with self.subTest(acq=acq):
+                    test_df_time = self.test_df.assign(time=np.linspace(0, (1 / acq) * (len(self.test_df) - 1), len(self.test_df)))
+                    data = pmt.PmtData(pl.Path(), correct_acquisition_time=True, acquisition_rate=acq).data
+                    pd_test.assert_frame_equal(data, test_df_time)
+
+            test_df_time = self.test_df.assign(time=np.linspace(0, len(self.test_df) - 1, len(self.test_df)))
+            data = pmt.PmtData(pl.Path(), correct_acquisition_time=True, acquisition_rate=1).data
+            pd_test.assert_frame_equal(data, test_df_time)
+
+            data = pmt.PmtData(pl.Path(), correct_acquisition_time=False).data
+            pd_test.assert_frame_equal(data, self.test_df)
 
     def test_cut_data(self):
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
