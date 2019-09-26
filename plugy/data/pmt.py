@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from dataclasses import dataclass, field
+from ..data.config import PlugyConfig
 
 module_logger = logging.getLogger("plugy.data.pmt")
 
@@ -35,8 +36,6 @@ class PmtData(object):
     input_file: pl.Path
     acquisition_rate: int = 300
     cut: tuple = (None, None)
-    channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
-    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     correct_acquisition_time: bool = True
     ignore_orange_channel: bool = False
     ignore_green_channel: bool = False
@@ -44,6 +43,7 @@ class PmtData(object):
     digital_gain_uv: float = 1.0
     digital_gain_green: float = 1.0
     digital_gain_orange: float = 1.0
+    config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
         module_logger.info(f"Creating PmtData object from file {self.input_file.absolute()}")
@@ -176,9 +176,9 @@ class PmtData(object):
         :return: The axes object with the plot
         """
         module_logger.info("Plotting raw PMT data")
-        sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.colors["green"], ax=axes)
-        sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.colors["orange"], ax=axes)
-        sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.colors["blue"], ax=axes)
+        sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
+        sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
+        sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
         axes.set_xlabel("Time [s]")
         axes.set_ylabel("Fluorescence [AU]")
 
