@@ -14,10 +14,22 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
+import pathlib as pl
+
+from dataclasses import dataclass
 
 
+@dataclass
 class ChannelMapping(object):
-    pass
+    input_file: pl.Path
+
+    def __post_init__(self):
+        self.mapping = self.read_input_file()
+
+    def read_input_file(self):
+        with self.input_file.open("r") as f:
+            pass
+
 
 
 class PlugSequence(object):
