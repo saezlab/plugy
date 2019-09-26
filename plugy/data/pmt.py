@@ -86,6 +86,20 @@ class PmtData(object):
 
         return idx
 
+    def cut_data(self) -> pd.DataFrame:
+        """
+        Returns data between time range specified in cut
+        :return: pd.DataFrame containing the data in the time range
+        """
+        df = self.data
+        if self.cut[0] is not None:
+            df = df.loc[df[0] > self.cut[0]]
+
+        if self.cut[1] is not None:
+            df = df.loc[df[0] < self.cut[1]]
+
+        return df
+
     def set_channel_values(self):
         """
         Sets & corrects values in the multichannel acquisition data.
