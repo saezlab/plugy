@@ -104,7 +104,7 @@ class TestPmtData(unittest.TestCase):
 
         pd_test.assert_frame_equal(self.test_df, self.data)
 
-    def test_z_other_file_open(self):
+    def test_other_file_open(self):
         """
         Checks error handling in read_txt
         """
