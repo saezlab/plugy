@@ -204,6 +204,20 @@ class TestPmtData(unittest.TestCase):
                 data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
             self.assertEqual(cm.exception.args[0], f"Cut has to be specified like cut=(min, max) you specified {cut}")
 
+    def test_digital_gain(self):
+        """
+        Tests digital gain method
+        """
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=False, digital_gain_uv=2).data
+            pd_test.assert_frame_equal(data, self.test_df.assign(uv=[0.143436, 0.09949, 0.1001, 0.09827, 0.09766, 0.100712]))
+
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=False, digital_gain_green=2).data
+            pd_test.assert_frame_equal(data, self.test_df.assign(green=[0.111088, 0.108646, 0.110478, 0.107426, 0.111088, 0.111698]))
+
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=False, digital_gain_orange=2).data
+            pd_test.assert_frame_equal(data, self.test_df.assign(orange=[0.06592, 0.064088, 0.06531, 0.063478, 0.06531, 0.06653]))
+
 
 if __name__ == '__main__':
     unittest.main()

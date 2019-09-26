@@ -39,13 +39,15 @@ class PmtData(object):
     ignore_orange_channel: bool = False
     ignore_green_channel: bool = False
     ignore_uv_channel: bool = False
+    digital_gain_uv: float = 1.0
+    digital_gain_green: float = 1.0
+    digital_gain_orange: float = 1.0
 
     def __post_init__(self):
         self.data = self.read_txt()
         self.data = self.set_channel_values()
-
-        # print(self.data)
         self.data = self.cut_data()
+        self.data = self.digital_gain()
 
     def read_txt(self) -> pd.DataFrame:
         """
@@ -130,6 +132,17 @@ class PmtData(object):
 
         if self.correct_acquisition_time:
             df = df.assign(time=np.linspace(0, time_between_samplings * (len(df) - 1), len(df)))
+
+        return df
+
+    def digital_gain(self):
+        """
+        Multiplies the corresponding channels PMT output by the given float (digital_gain_*)
+        """
+        df = self.data
+        df = df.assign(uv=lambda x: x.uv * self.digital_gain_uv,
+                       green=lambda x: x.green * self.digital_gain_green,
+                       orange=lambda x: x.orange * self.digital_gain_orange)
 
         return df
 
