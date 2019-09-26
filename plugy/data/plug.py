@@ -14,3 +14,15 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
+
+
+from ..data import pmt
+from dataclasses import dataclass
+
+
+@dataclass
+class PlugData(object):
+    pmt_data=pmt.PmtData
+
+    def __post_init__(self):
+        pass
