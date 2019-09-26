@@ -175,15 +175,29 @@ class TestPmtData(unittest.TestCase):
             pd_test.assert_frame_equal(data, self.test_df)
 
     def test_cut_data(self):
+        """
+        Tests if input is cut properly
+        """
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
             cut = (1, 4)
             data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
-            self.assertTrue(min(data.time) <= cut[0])
-            self.assertTrue(max(data.time) >= cut[1])
+            self.assertTrue(len(data.time) == 4)
+            self.assertTrue(min(data.time) >= cut[0])
+            self.assertTrue(max(data.time) <= cut[1])
 
             cut = (None, None)
             data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
             self.assertTrue(len(data.time) == len(self.test_df))
+
+            cut = (3, None)
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
+            self.assertTrue(len(data.time) == 3)
+            self.assertTrue(min(data.time) >= cut[0])
+
+            cut = (None, 3)
+            data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
+            self.assertTrue(len(data.time) == 4)
+            self.assertTrue(max(data.time) <= cut[1])
 
             cut = (4, 1)
             with self.assertRaises(AttributeError) as cm:
