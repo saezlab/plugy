@@ -61,6 +61,11 @@ X_Value\tUntitled\tUntitled 1\tUntitled 2\tUntitled 3\tComment
 \t0,000000\t0,055849\t0,033265\t0,050356
 """
 
+speck_df = pd.DataFrame({"time": [0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],
+                         "green": [0.055544, 0.054323, 0.055239, 0.053713, 0.055544, 0.055849],
+                         "orange": [0.032960, 0.032044, 0.032655, 0.031739, 0.032655, 0.033265],
+                         "uv": [0.071718, 0.049745, 0.050050, 0.049135, 0.048830, 0.050356]})
+
 
 class TestPmtData(unittest.TestCase):
     def setUp(self):
@@ -137,64 +142,75 @@ class TestPmtData(unittest.TestCase):
 
             self.assertEqual(pmt.PmtData.find_data(self.right_file), 22)
 
-    # noinspection PyArgumentList
-    def test_set_channel_value_ignore(self):
-        """
-        Tests ignoring individual channels
-        """
-        PmtDataTest = copy.deepcopy(pmt.PmtData)
-        PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+    # # noinspection PyArgumentList
+    # def test_set_channel_value_ignore(self):
+    #     """
+    #     Tests ignoring individual channels
+    #     """
+    #     PmtDataTest = copy.deepcopy(pmt.PmtData)
+    #     PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+    #
+    #     test_df_zero_green = self.test_df.assign(green=0.0)
+    #     test_df_zero_uv = self.test_df.assign(uv=0.0)
+    #     test_df_zero_orange = self.test_df.assign(orange=0.0)
+    #
+    #     with self.subTest():
+    #         data = PmtDataTest(pl.Path(), ignore_green_channel=True).data
+    #         pd_test.assert_frame_equal(data, test_df_zero_green)
+    #
+    #         data = PmtDataTest(pl.Path(), ignore_orange_channel=True).data
+    #         pd_test.assert_frame_equal(data, test_df_zero_orange)
+    #
+    #         data = PmtDataTest(pl.Path(), ignore_uv_channel=True).data
+    #         pd_test.assert_frame_equal(data, test_df_zero_uv)
 
-        test_df_zero_green = self.test_df.assign(green=0.0)
-        test_df_zero_uv = self.test_df.assign(uv=0.0)
-        test_df_zero_orange = self.test_df.assign(orange=0.0)
+    # # noinspection PyArgumentList
+    # def test_set_channel_value_time(self):
+    #     """
+    #     Tests correcting the time values
+    #     """
+    #     PmtDataTest = copy.deepcopy(pmt.PmtData)
+    #     PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+    #
+    #     for acq in range(100, 500, 100):
+    #         with self.subTest(acq=acq):
+    #             test_df_time = self.test_df.assign(time=np.linspace(0, (1 / acq) * (len(self.test_df) - 1), len(self.test_df)))
+    #             data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=acq).data
+    #             pd_test.assert_frame_equal(data, test_df_time)
+    #
+    #     test_df_time = self.test_df.assign(time=np.linspace(0, len(self.test_df) - 1, len(self.test_df)))
+    #     data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=1).data
+    #     pd_test.assert_frame_equal(data, test_df_time)
+    #
+    #     data = PmtDataTest(pl.Path(), correct_acquisition_time=False).data
+    #     pd_test.assert_frame_equal(data, self.test_df)
 
-        with self.subTest():
-            data = PmtDataTest(pl.Path(), ignore_green_channel=True).data
-            pd_test.assert_frame_equal(data, test_df_zero_green)
-
-            data = PmtDataTest(pl.Path(), ignore_orange_channel=True).data
-            pd_test.assert_frame_equal(data, test_df_zero_orange)
-
-            data = PmtDataTest(pl.Path(), ignore_uv_channel=True).data
-            pd_test.assert_frame_equal(data, test_df_zero_uv)
-
-    # noinspection PyArgumentList
-    def test_set_channel_value_time(self):
-        """
-        Tests correcting the time values
-        """
-        PmtDataTest = copy.deepcopy(pmt.PmtData)
-        PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
-
-        for acq in range(100, 500, 100):
-            with self.subTest(acq=acq):
-                test_df_time = self.test_df.assign(time=np.linspace(0, (1 / acq) * (len(self.test_df) - 1), len(self.test_df)))
-                data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=acq).data
-                pd_test.assert_frame_equal(data, test_df_time)
-
-        test_df_time = self.test_df.assign(time=np.linspace(0, len(self.test_df) - 1, len(self.test_df)))
-        data = PmtDataTest(pl.Path(), correct_acquisition_time=True, acquisition_rate=1).data
-        pd_test.assert_frame_equal(data, test_df_time)
-
-        data = PmtDataTest(pl.Path(), correct_acquisition_time=False).data
-        pd_test.assert_frame_equal(data, self.test_df)
-
-    # noinspection PyArgumentList
     def test_cut_data(self):
-        PmtDataTest = copy.deepcopy(pmt.PmtData)
-        # PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df.assign(time=np.linspace(0, len(self.test_df)-1, len(self.test_df))))
-        PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
+            cut = (1, 2)
+            data = pmt.PmtData(input_file=pl.Path("."), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
+            self.assertTrue(min(data.time) <= cut[0])
+            self.assertTrue(max(data.time) >= cut[1])
 
-        # for cut in itertools.combinations_with_replacement([None, -1, 0, 1, 2, 2.5, len(self.test_df) + 1], r=2):
-        for cut in itertools.combinations_with_replacement([0, 1, 2], r=2):
-            with self.subTest(cut=cut):
-                data = PmtDataTest(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True).data
-                try:
-                    self.assertTrue(min(data.time) <= cut[0])
-                    self.assertTrue(max(data.time) >= cut[1])
-                except IOError:
-                    pass
+    # # noinspection PyArgumentList
+    # @unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", autospec=speck_df)
+    # def test_cut_data(self, mock_method):
+    #     # PmtDataTest = copy.deepcopy(pmt.PmtData)
+    #     # # PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df.assign(time=np.linspace(0, len(self.test_df)-1, len(self.test_df))))
+    #     # PmtDataTest.read_txt = mock.MagicMock(return_value=self.test_df)
+    #
+    #     # mock_method = lambda _: self.test_df
+    #     # pmt.PmtData.read_txt = mock.MagicMock(return_value=self.test_df)
+    #
+    #     # for cut in itertools.combinations_with_replacement([None, -1, 0, 1, 2, 2.5, len(self.test_df) + 1], r=2):
+    #     for cut in itertools.combinations_with_replacement([0, 1, 2], r=2):
+    #         with self.subTest(cut=cut):
+    #             data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True).data
+    #             try:
+    #                 self.assertTrue(min(data.time) <= cut[0])
+    #                 self.assertTrue(max(data.time) >= cut[1])
+    #             except IOError:
+    #                 pass
 
 
 if __name__ == '__main__':
