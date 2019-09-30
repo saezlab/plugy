@@ -48,7 +48,7 @@ class TestChannelMapping(unittest.TestCase):
 
         self.assertEqual(self.test_mapping, mapping.map)
 
-    def test_read_broken_input_file(self):
+    def test_read_broken_input_file_channel(self):
         with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
             self.channel_file.write("1:Test")
             self.channel_file.seek(0)
@@ -58,6 +58,19 @@ class TestChannelMapping(unittest.TestCase):
                 mapping = ChannelMap(self.channel_file_path)
 
         self.assertEqual(cm.exception.args[0], f"Channel out of BD range (9-24) you specified channel 1")
+
+    def test_read_broken_input_file_channel_nan(self):
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_nan_file:
+            self.channel_nan_file.write("ABC:Test")
+            self.channel_nan_file.seek(0)
+            self.channel_nan_file_path = pl.Path(self.channel_nan_file.name)
+
+            with self.assertRaises(ValueError) as cm:
+                mapping = ChannelMap(self.channel_nan_file_path)
+
+        self.assertEqual(cm.exception.args[0], "Channel has to be an int you specified ABC")
+
+
 
 
 class TestPlugSequence(unittest.TestCase):
