@@ -197,7 +197,7 @@ class TestPlugSequenceGenerate(unittest.TestCase):
             self.channel_file.seek(0)
             self.channel_map = ChannelMap(pl.Path(self.channel_file.name))
 
-        plug_sequence = PlugSequence.from_channel_map(self.channel_map, n_replicates=12, n_control=12, n_barcode=10, generate_barcodes=True)
+        plug_sequence = PlugSequence.from_channel_map(self.channel_map, n_replicates=12, n_control=12, n_barcode=10, n_cycle_bc=15, open_duration=1, generate_barcodes=True)
         self.assertEqual(self.test_sequence, plug_sequence.sequence)
 
 

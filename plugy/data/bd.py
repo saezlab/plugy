@@ -97,7 +97,7 @@ class PlugSequence(object):
 
     # noinspection PyCallByClass
     @classmethod
-    def from_channel_map(cls, channel_map: ChannelMap, n_replicates: int = 12, n_control: int = 12, n_barcode: int = 5, open_duration: int = 1, generate_barcodes: bool = True):
+    def from_channel_map(cls, channel_map: ChannelMap, n_replicates: int = 12, n_control: int = 12, n_barcode: int = 5, n_cycle_bc: int = 15, open_duration: int = 1, generate_barcodes: bool = True):
         """
         Generates a PlugSequence object from a ChannelMap
         :param channel_map: ChannelMap to generate the PlugSequence from
@@ -121,7 +121,7 @@ class PlugSequence(object):
                 individual_drugs.append(barcode)
 
         # Generate sample list
-        samples.append(cls.Sample(open_duration=open_duration, n_replicates=15, name="Start Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
+        samples.append(cls.Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="Start Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
         samples.append(control)
         if generate_barcodes:
             samples.append(barcode)
@@ -141,7 +141,7 @@ class PlugSequence(object):
         if generate_barcodes:
             samples.append(barcode)
 
-        samples.append(cls.Sample(open_duration=open_duration, n_replicates=15, name="End Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
+        samples.append(cls.Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="End Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
         return cls(sequence=tuple(samples))
 
     def __init__(self, sequence: tuple):
