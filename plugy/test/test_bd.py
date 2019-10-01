@@ -164,7 +164,7 @@ class TestPlugSequenceRead(unittest.TestCase):
 
             plug_sequence = PlugSequence.from_csv_file(input_file=self.sequence_file_path)
 
-        self.assertEqual(plug_sequence.sequence, self.test_sequence)
+        self.assertEqual(self.test_sequence, plug_sequence.sequence)
 
 
 class TestPlugSequenceGenerate(unittest.TestCase):
@@ -195,7 +195,7 @@ class TestPlugSequenceGenerate(unittest.TestCase):
             self.channel_map = ChannelMap(pl.Path(self.channel_file.name))
 
         plug_sequence = PlugSequence.from_channel_map(self.channel_map, n_replicates=12, n_control=12, n_barcode=10, generate_barcodes=True)
-        self.assertEqual(plug_sequence.sequence, self.test_sequence)
+        self.assertEqual(self.test_sequence, plug_sequence.sequence)
 
 
 if __name__ == '__main__':
