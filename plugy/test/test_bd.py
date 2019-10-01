@@ -85,7 +85,7 @@ class TestChannelMapping(unittest.TestCase):
 
             mapping = ChannelMap(input_file=self.channel_file_path)
 
-        self.assertEqual(9, mapping.cells)
+        self.assertEqual([9], mapping.cells)
 
     def test_read_input_file_substrate(self):
         """
@@ -98,7 +98,7 @@ class TestChannelMapping(unittest.TestCase):
 
             mapping = ChannelMap(input_file=self.channel_file_path)
 
-        self.assertEqual(10, mapping.substrate)
+        self.assertEqual([10], mapping.substrate)
 
     def test_read_input_file_media(self):
         """

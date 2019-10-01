@@ -35,8 +35,8 @@ class ChannelMap(object):
         for k, v in self.__dict__.items():
             module_logger.debug(f"{k}: {v}")
 
-        self.cells = None
-        self.substrate = None
+        self.cells = list()
+        self.substrate = list()
         self.media = list()
         self.bc = list()
         self.drugs = list()
@@ -60,9 +60,9 @@ class ChannelMap(object):
                     raise ValueError(f"Channel out of BD range (9-24) you specified channel {k}")
 
                 if str(v).startswith("CELLS"):
-                    self.cells = k
+                    self.cells.append(k)
                 elif str(v).startswith("SUBSTRATE"):
-                    self.substrate = k
+                    self.substrate.append(k)
                 elif str(v).startswith("BC"):
                     self.bc.append(k)
                 elif str(v).startswith("FS"):
