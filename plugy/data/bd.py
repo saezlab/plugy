@@ -15,8 +15,10 @@ See accompanying file LICENSE.txt or copy at
 
 """
 import logging
+import csv
 
 import pathlib as pl
+import collections as coll
 
 from dataclasses import dataclass
 
@@ -56,4 +58,38 @@ class ChannelMap(object):
 
 
 class PlugSequence(object):
-    pass
+    Sample = coll.namedtuple("Sample", ["open_duration", "n_replicates", "name", "open_valves"])
+
+    def __init__(self, file_path: pl.Path, generate_csv: bool = False, ):
+        """
+        Handles the plug sequence of the braille display
+        :param file_path: Either pl.Path
+        """
+        self.file_path = file_path
+        if generate_csv:
+            module_logger.info(f"Generating Plug sequence")
+        else:
+            module_logger.info(f"Creating PlugSequence object from file {self.file_path.absolute()}")
+        module_logger.debug(f"Configuration:")
+        for k, v in self.__dict__.items():
+            module_logger.debug(f"{k}: {v}")
+
+        if generate_csv:
+            self.sequence = self.generate_sequence()
+        else:
+            self.sequence = self.read_input_file()
+
+    def generate_sequence(self):
+        pass
+
+    def read_input_file(self):
+        sequence = list()
+        with self.file_path.open("r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) == 0:
+                    continue
+                else:
+                    sequence.append(self.Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
+
+        return tuple(sequence)
