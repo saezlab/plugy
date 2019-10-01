@@ -17,8 +17,6 @@ See accompanying file LICENSE.txt or copy at
 import tempfile
 import unittest
 
-import collections as coll
-
 import pathlib as pl
 
 from ..data.bd import ChannelMap, PlugSequence
@@ -85,11 +83,10 @@ class TestPlugSequence(unittest.TestCase):
         Creates the test_file_content and a corresponding test_sequence that contains the true data
         """
         self.test_file_content = "\n1,12,Valve9,12,14,16,9\n1,12,Valve10,12,14,16,10\n1,12,Valve11,12,14,16,11"
-        self.TestSequence = coll.namedtuple("sequence", ["open_duration", "n_replicates", "name", "open_valves"])
 
-        self.test_sequence = [self.TestSequence(1, 12, "Valve9", [12, 14, 16, 9]),
-                              self.TestSequence(1, 12, "Valve10", [12, 14, 16, 10]),
-                              self.TestSequence(1, 12, "Valve11", [12, 14, 16, 11])]
+        self.test_sequence = (PlugSequence.Sample(1, 12, "Valve9", [12, 14, 16, 9]),
+                              PlugSequence.Sample(1, 12, "Valve10", [12, 14, 16, 10]),
+                              PlugSequence.Sample(1, 12, "Valve11", [12, 14, 16, 11]))
 
     def test_read_input_file(self):
         """
@@ -100,7 +97,7 @@ class TestPlugSequence(unittest.TestCase):
             self.sequence_file.seek(0)
             self.sequence_file_path = pl.Path(self.sequence_file.name)
 
-            plug_sequence = PlugSequence(input_file=self.sequence_file_path)
+            plug_sequence = PlugSequence.from_csv_file(input_file=self.sequence_file_path)
 
         self.assertEqual(plug_sequence.sequence, self.test_sequence)
 
