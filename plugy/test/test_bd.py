@@ -201,5 +201,30 @@ class TestPlugSequenceGenerate(unittest.TestCase):
         self.assertEqual(self.test_sequence, plug_sequence.sequence)
 
 
+class TestPlugSequenceCheck(unittest.TestCase):
+    """
+    Tests sanity checking of the PlugSequence input
+    """
+    def test_sequence_type(self):
+        with self.assertRaises(TypeError) as cm:
+            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), "test"))
+        self.assertEqual(cm.exception.args[0], "Samples in the plug sequence have to be of class PlugSequence.Sample, you specified <class 'str'> in sample 1")
+
+    def test_sequence_many_valves(self):
+        with self.assertRaises(ValueError) as cm:
+            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14, 15])))
+        self.assertEqual(cm.exception.args[0], "Sample 1 found with more than 4 valves open (5), THIS WILL DESTROY THE CHIP!")
+
+    def test_sequence_few_valves(self):
+        with self.assertWarns(UserWarning) as cm:
+            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), PlugSequence.Sample(1, 12, "Test", [11, 12, 13])))
+        self.assertEqual(cm.warning.args[0], "Less than 4 valves open (3) in sample 1")
+
+    def test_sequence_other_valves(self):
+        with self.assertRaises(ValueError) as cm:
+            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), PlugSequence.Sample(1, 12, "Test", [1, -12, 13, 14])))
+        self.assertEqual(cm.exception.args[0], "Sample 1 contains valves that are not used on the chip ([1, -12, 13, 14])")
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -23,6 +23,8 @@ import collections as coll
 
 from dataclasses import dataclass
 
+import warnings
+
 module_logger = logging.getLogger("plugy.data.bd")
 
 
@@ -147,32 +149,25 @@ class PlugSequence(object):
         Handles the plug sequence of the braille display
         """
         self.sequence = sequence
+        self.check_sequence()
 
-        # self.file_path = file_path
-        # if generate_csv:
-        #     module_logger.info(f"Generating Plug sequence")
-        # else:
-        #     module_logger.info(f"Creating PlugSequence object from file {self.file_path.absolute()}")
-        # module_logger.debug(f"Configuration:")
-        # for k, v in self.__dict__.items():
-        #     module_logger.debug(f"{k}: {v}")
-        #
-        # if generate_csv:
-        #     self.sequence = self.generate_sequence()
-        # else:
-        #     self.sequence = self.read_input_file()
+    def check_sequence(self):
+        """
+        Tests sanity of sequence
+        """
+        module_logger.debug("Checking plug sequence")
 
-    # def generate_sequence(self):
-    #     pass
+        for idx, sample in enumerate(self.sequence):
+            if not isinstance(sample, PlugSequence.Sample):
+                raise TypeError(f"Samples in the plug sequence have to be of class PlugSequence.Sample, you specified {type(sample)} in sample {idx}")
 
-    # def read_input_file(self):
-    #     sequence = list()
-    #     with self.file_path.open("r") as f:
-    #         reader = csv.reader(f)
-    #         for row in reader:
-    #             if len(row) == 0:
-    #                 continue
-    #             else:
-    #                 sequence.append(self.Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
-    #
-    #     return tuple(sequence)
+            if len(sample.open_valves) < 4:
+                warnings.warn(f"Less than 4 valves open ({len(sample.open_valves)}) in sample {idx}")
+
+            elif len(sample.open_valves) > 4:
+                raise ValueError(f"Sample {idx} found with more than 4 valves open ({len(sample.open_valves)}), THIS WILL DESTROY THE CHIP!")
+
+            for valve in sample.open_valves:
+                if valve not in range(9, 25):
+                    raise ValueError(f"Sample {idx} contains valves that are not used on the chip ({sample.open_valves})")
+
