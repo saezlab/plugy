@@ -77,7 +77,7 @@ class TestChannelMapping(unittest.TestCase):
         self.assertEqual(cm.exception.args[0], "Channel has to be an int you specified ABC")
 
 
-class TestPlugSequence(unittest.TestCase):
+class TestPlugSequenceRead(unittest.TestCase):
     def setUp(self) -> None:
         """
         Creates the test_file_content and a corresponding test_sequence that contains the true data
@@ -88,7 +88,7 @@ class TestPlugSequence(unittest.TestCase):
                               PlugSequence.Sample(1, 12, "Valve10", [12, 14, 16, 10]),
                               PlugSequence.Sample(1, 12, "Valve11", [12, 14, 16, 11]))
 
-    def test_read_input_file(self):
+    def test_from_csv_file(self):
         """
         Test if a csv file with the correct contents is read properly
         """

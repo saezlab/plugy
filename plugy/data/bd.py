@@ -69,6 +69,7 @@ class PlugSequence(object):
                 if len(row) == 0:
                     continue
                 else:
+                    # noinspection PyCallByClass
                     sequence.append(cls.Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
 
         return cls(sequence=tuple(sequence))
@@ -93,8 +94,8 @@ class PlugSequence(object):
         # else:
         #     self.sequence = self.read_input_file()
 
-    def generate_sequence(self):
-        pass
+    # def generate_sequence(self):
+    #     pass
 
     # def read_input_file(self):
     #     sequence = list()
