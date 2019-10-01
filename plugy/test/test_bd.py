@@ -177,7 +177,13 @@ class TestPlugSequenceGenerate(unittest.TestCase):
                               PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
                               PlugSequence.Sample(1, 12, "Drug 2", [9, 10, 11, 14]),
                               PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Drug 3", [9, 10, 11, 15]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
                               PlugSequence.Sample(1, 12, "Drug 1 + Drug 2", [9, 10, 13, 14]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Drug 1 + Drug 3", [9, 10, 13, 15]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Drug 2 + Drug 3", [9, 10, 14, 15]),
                               PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
                               PlugSequence.Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
                               PlugSequence.Sample(1, 25, "End Cycle Barcode", [11, 12, 23, 24]))
