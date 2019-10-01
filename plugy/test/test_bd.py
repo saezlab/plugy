@@ -35,7 +35,7 @@ class TestChannelMapping(unittest.TestCase):
 
         self.test_file_content = "\n".join([f"{k}:{v}" for k, v in self.test_mapping.items()])
 
-    def test_read_input_file(self):
+    def test_read_input_file_mapping(self):
         """
         Test if a file with the correct contents is read properly
         """
@@ -47,6 +47,71 @@ class TestChannelMapping(unittest.TestCase):
             mapping = ChannelMap(input_file=self.channel_file_path)
 
         self.assertEqual(self.test_mapping, mapping.map)
+
+    def test_read_input_file_bc(self):
+        """
+        Test if a file with the correct contents is read properly
+        """
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_file_content)
+            self.channel_file.seek(0)
+            self.channel_file_path = pl.Path(self.channel_file.name)
+
+            mapping = ChannelMap(input_file=self.channel_file_path)
+
+        self.assertEqual([23, 24], mapping.bc)
+
+    def test_read_input_file_drugs(self):
+        """
+        Test if a file with the correct contents is read properly
+        """
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_file_content)
+            self.channel_file.seek(0)
+            self.channel_file_path = pl.Path(self.channel_file.name)
+
+            mapping = ChannelMap(input_file=self.channel_file_path)
+
+        self.assertEqual([i for i in range(13, 23)], mapping.drugs)
+
+    def test_read_input_file_cells(self):
+        """
+        Test if a file with the correct contents is read properly
+        """
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_file_content)
+            self.channel_file.seek(0)
+            self.channel_file_path = pl.Path(self.channel_file.name)
+
+            mapping = ChannelMap(input_file=self.channel_file_path)
+
+        self.assertEqual(9, mapping.cells)
+
+    def test_read_input_file_substrate(self):
+        """
+        Test if a file with the correct contents is read properly
+        """
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_file_content)
+            self.channel_file.seek(0)
+            self.channel_file_path = pl.Path(self.channel_file.name)
+
+            mapping = ChannelMap(input_file=self.channel_file_path)
+
+        self.assertEqual(10, mapping.substrate)
+
+    def test_read_input_file_media(self):
+        """
+        Test if a file with the correct contents is read properly
+        """
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_file_content)
+            self.channel_file.seek(0)
+            self.channel_file_path = pl.Path(self.channel_file.name)
+
+            mapping = ChannelMap(input_file=self.channel_file_path)
+
+        self.assertEqual([11, 12], mapping.media)
 
     def test_read_broken_input_file_channel(self):
         """
