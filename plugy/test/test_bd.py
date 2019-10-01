@@ -102,5 +102,30 @@ class TestPlugSequenceRead(unittest.TestCase):
         self.assertEqual(plug_sequence.sequence, self.test_sequence)
 
 
+class TestPlugSequenceGenerate(unittest.TestCase):
+    def setUp(self) -> None:
+        self.test_gen_map_content = "9:CELLS\n10:SUBSTRATE\n11:FS\n12:FS\n13:Drug1\n14:Drug2\n23:BCL\n24:BCH"
+        self.test_sequence = (PlugSequence.Sample(1, 25, "Start Cycle Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Drug 1", [9, 10, 11, 13]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Drug 2", [9, 10, 11, 14]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Drug 1 + Drug 2", [9, 10, 13, 14]),
+                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              PlugSequence.Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
+                              PlugSequence.Sample(1, 25, "End Cycle Barcode", [11, 12, 23, 24]))
+
+    def test_from_channel_map(self):
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_gen_map_content)
+            self.channel_file.seek(0)
+            self.channel_map = ChannelMap(pl.Path(self.channel_file.name))
+
+        plug_sequence = PlugSequence.from_channel_map(self.channel_map, n_replicates=12, n_control=12, n_barcode=10, generate_barcodes=True)
+        self.assertEqual(plug_sequence.sequence, self.test_sequence)
+
+
 if __name__ == '__main__':
     unittest.main()
