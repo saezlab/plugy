@@ -74,6 +74,10 @@ class PlugSequence(object):
 
         return cls(sequence=tuple(sequence))
 
+    @classmethod
+    def from_channel_map(cls, channel_map: ChannelMap, n_replicates: int = 12, n_control: int = 12, n_barcodes: int = 10, generate_barcodes: bool = True):
+        raise NotImplementedError
+
     def __init__(self, sequence: tuple):
         """
         Handles the plug sequence of the braille display
