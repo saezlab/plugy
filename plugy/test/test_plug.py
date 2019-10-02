@@ -81,7 +81,8 @@ class TestPlugData(unittest.TestCase):
 
         # Generate ground truth DataFrame
         self.plug_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0],
-                                       "end_time": [2.0, 4.0, 5.0],
+                                       # "center_time": [1.5, 3.5, 5.5],
+                                       "end_time": [2.0, 4.0, 6.0],
                                        "bc_peak_max": [1.0, 0.0, 0.0],
                                        "bc_peak_median": [1.0, 0.0, 0.0],
                                        "bc_peak_mean": [1.0, 0.0, 0.0],
@@ -117,7 +118,7 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.clean_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path()), plug_sequence=None, channel_map=None)
+            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path()), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
         pd_test.assert_frame_equal(self.plug_data, plug_data.plug_df)
 
