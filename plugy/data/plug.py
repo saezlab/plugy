@@ -16,8 +16,7 @@ See accompanying file LICENSE.txt or copy at
 """
 import logging
 
-
-from ..data import pmt
+from ..data import pmt, bd
 from dataclasses import dataclass
 
 module_logger = logging.getLogger("plugy.data.plug")
@@ -25,7 +24,12 @@ module_logger = logging.getLogger("plugy.data.plug")
 
 @dataclass
 class PlugData(object):
-    pmt_data=pmt.PmtData
+    pmt_data: pmt.PmtData
+    plug_sequence: bd.PlugSequence
+    channel_map: bd.ChannelMap
 
     def __post_init__(self):
-        pass
+        raise NotImplementedError
+
+    def find_plugs(self):
+        raise NotImplementedError
