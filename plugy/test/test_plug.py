@@ -45,7 +45,7 @@ class TestPlugData(unittest.TestCase):
         self.acquisition_rate = 300
         self.filter_size = self.acquisition_rate / 6
         self.seed = 1234
-        self.noise_sigma = 0.2
+        self.noise_sigma = 0.15
 
         # Get precise simulated experiment time
         self.time = np.linspace(0, self.signal_length, self.signal_length * self.acquisition_rate)
@@ -55,7 +55,7 @@ class TestPlugData(unittest.TestCase):
 
         # Create clean square wave with period 2 pi and with its first rising edge at pi
         # self.clean_data = self.clean_data.assign(green=(sig.square(self.clean_data.time + np.pi) + 1) / 2)
-        self.clean_data = self.clean_data.assign(green=(sig.square(2 * np.pi * 0.5 * (self.clean_data.time - 1))) + 1)
+        self.clean_data = self.clean_data.assign(green=((sig.square(2 * np.pi * 0.5 * (self.clean_data.time - 1))) + 1) / 2)
         self.clean_data = self.clean_data.assign(uv=self.clean_data.green)
         self.clean_data = self.clean_data.assign(orange=self.clean_data.green)
 
@@ -80,8 +80,18 @@ class TestPlugData(unittest.TestCase):
         self.noisy_data = self.noisy_data.assign(orange=self.noisy_data.orange + np.random.normal(scale=self.noise_sigma, size=len(self.noisy_data.orange)))
 
         # Generate ground truth DataFrame
-
-        # self.plug_data = pd.DataFrame({"start_time": [np.pi *]})
+        self.plug_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0],
+                                       "end_time": [2.0, 4.0, 5.0],
+                                       "bc_peak_max": [1.0, 0.0, 0.0],
+                                       "bc_peak_median": [1.0, 0.0, 0.0],
+                                       "bc_peak_mean": [1.0, 0.0, 0.0],
+                                       "control_peak_max": [0.0, 0.8, 0.8],
+                                       "control_peak_median": [0.0, 0.8, 0.8],
+                                       "control_peak_mean": [0.0, 0.8, 0.8],
+                                       "cell_peak_max": [0.0, 0.9, 0.0],
+                                       "cell_peak_median": [0.0, 0.9, 0.0],
+                                       "cell_peak_mean": [0.0, 0.9, 0.0],
+                                       "barcode": [True, False, False]})
 
     # @unittest.skip
     def test_plot_test_data(self):
@@ -108,9 +118,8 @@ class TestPlugData(unittest.TestCase):
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.clean_data):
             # noinspection PyTypeChecker
             plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path()), plug_sequence=None, channel_map=None)
-            print(plug_data)
 
-        # pd_test.assert_frame_equal()
+        pd_test.assert_frame_equal(self.plug_data, plug_data.plug_df)
 
     def test_something(self):
         self.assertEqual(True, False)
