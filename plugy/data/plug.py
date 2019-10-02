@@ -46,14 +46,25 @@ class PlugData(object):
         self.plug_df, self.peak_data = self.find_plugs()
 
     def find_plugs(self):
-        peaks, properties = sig.find_peaks(self.pmt_data.data.orange,
-                                           height=(self.peak_min_threshold, self.peak_max_threshold),
-                                           distance=round(self.peak_min_distance * self.pmt_data.acquisition_rate),
-                                           prominence=(self.peak_min_prominence, self.peak_max_prominence),
-                                           width=(self.peak_min_width * self.pmt_data.acquisition_rate, self.peak_max_width * self.pmt_data.acquisition_rate),
-                                           wlen=round(self.prominence_rel_wlen * self.pmt_data.acquisition_rate),
-                                           rel_height=self.width_rel_height,
-                                           plateau_size=(self.peak_min_plateau_size * self.pmt_data.acquisition_rate, self.peak_max_plateau_size * self.pmt_data.acquisition_rate))
+        orange_peaks, orange_properties = sig.find_peaks(self.pmt_data.data.orange,
+                                                         height=(self.peak_min_threshold,
+                                                                 self.peak_max_threshold),
 
-        peak_df = pd.DataFrame.from_dict(properties)
+                                                         distance=round(self.peak_min_distance *
+                                                                        self.pmt_data.acquisition_rate),
+
+                                                         prominence=(self.peak_min_prominence,
+                                                                     self.peak_max_prominence),
+
+                                                         width=(self.peak_min_width * self.pmt_data.acquisition_rate,
+                                                                self.peak_max_width * self.pmt_data.acquisition_rate),
+
+                                                         wlen=round(self.prominence_rel_wlen * self.pmt_data.acquisition_rate),
+
+                                                         rel_height=self.width_rel_height,
+
+                                                         plateau_size=(self.peak_min_plateau_size * self.pmt_data.acquisition_rate,
+                                                                       self.peak_max_plateau_size * self.pmt_data.acquisition_rate))
+
+        peak_df = pd.DataFrame.from_dict(orange_properties)
         return pd.DataFrame(), peak_df

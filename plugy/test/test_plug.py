@@ -118,7 +118,7 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.clean_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path()), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
+            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
         pd_test.assert_frame_equal(self.plug_data, plug_data.plug_df)
 
