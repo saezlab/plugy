@@ -14,10 +14,13 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
+import logging
 
 
 from ..data import pmt
 from dataclasses import dataclass
+
+module_logger = logging.getLogger("plugy.data.plug")
 
 
 @dataclass
