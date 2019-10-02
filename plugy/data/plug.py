@@ -29,7 +29,7 @@ class PlugData(object):
     channel_map: bd.ChannelMap
 
     def __post_init__(self):
-        raise NotImplementedError
+        pass
 
     def find_plugs(self):
         raise NotImplementedError
