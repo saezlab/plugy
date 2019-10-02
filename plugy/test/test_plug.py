@@ -40,9 +40,11 @@ class TestPlugData(unittest.TestCase):
         self.clean_data = pd.DataFrame()
         self.noisy_data = pd.DataFrame()
 
-        self.signal_length = 21
+        self.signal_length = 20
         self.acquisition_rate = 300
         self.filter_size = self.acquisition_rate / 2
+        self.seed = 1234
+        self.noise_sigma = 0.15
 
         # Get precise simulated experiment time
         self.time = np.linspace(0, self.signal_length, self.signal_length * self.acquisition_rate)
@@ -52,22 +54,44 @@ class TestPlugData(unittest.TestCase):
 
         # Create clean square wave with period 2 pi and with its first rising edge at pi
         self.clean_data = self.clean_data.assign(green=(sig.square(self.clean_data.time + np.pi) + 1) / 2)
+        self.clean_data = self.clean_data.assign(uv=self.clean_data.green)
+        self.clean_data = self.clean_data.assign(orange=self.clean_data.green)
+
+        self.clean_data.loc[self.clean_data.time >= 3 * np.pi, "uv"] = 0
+        self.clean_data.loc[(self.clean_data.time < 3 * np.pi) | (self.clean_data.time >= 4 * np.pi), "green"] = 0
+        self.clean_data.loc[self.clean_data.time < 3 * np.pi, "orange"] = 0
+
+        self.clean_data = self.clean_data.assign(green=self.clean_data.green * 0.9)
+        self.clean_data = self.clean_data.assign(orange=self.clean_data.orange * 0.8)
 
         # Filter the clean signal with a mean filter to get slightly rounded edges
         self.noisy_data = self.noisy_data.assign(green=fil.convolve1d(input=self.clean_data.green, weights=np.array(np.repeat(1, self.filter_size))) / self.filter_size)
-        np.random.seed(1234)
+        self.noisy_data = self.noisy_data.assign(uv=fil.convolve1d(input=self.clean_data.uv, weights=np.array(np.repeat(1, self.filter_size))) / self.filter_size)
+        self.noisy_data = self.noisy_data.assign(orange=fil.convolve1d(input=self.clean_data.orange, weights=np.array(np.repeat(1, self.filter_size))) / self.filter_size)
+        
         # Add gaussian noise to the clean square wave
-        self.noisy_data = self.noisy_data.assign(green=self.noisy_data.green + np.random.normal(scale=0.25, size=len(self.noisy_data.green)))
+        np.random.seed(self.seed)
+        self.noisy_data = self.noisy_data.assign(green=self.noisy_data.green + np.random.normal(scale=self.noise_sigma, size=len(self.noisy_data.green)))
+        np.random.seed(self.seed)
+        self.noisy_data = self.noisy_data.assign(uv=self.noisy_data.uv + np.random.normal(scale=self.noise_sigma, size=len(self.noisy_data.uv)))
+        np.random.seed(self.seed)
+        self.noisy_data = self.noisy_data.assign(orange=self.noisy_data.orange + np.random.normal(scale=self.noise_sigma, size=len(self.noisy_data.orange)))
 
     # @unittest.skip
     def test_plot_test_data(self):
-        plt.plot(self.clean_data.time, self.clean_data.green)
-        plt.plot(self.noisy_data.time, self.noisy_data.green)
+        test_data_fig, test_data_ax = plt.subplots(1, 2, figsize=(20, 10))
+        test_data_ax[0].plot(self.clean_data.time, self.clean_data.green, color="green")
+        test_data_ax[0].plot(self.clean_data.time, self.clean_data.uv, color="blue")
+        test_data_ax[0].plot(self.clean_data.time, self.clean_data.orange, color="orange")
 
-        plt.xlabel('Time [s]')
-        plt.ylabel('PMT Output [V]')
-        plt.axis('tight')
-        plt.show()
+        test_data_ax[1].plot(self.noisy_data.time, self.noisy_data.green, color="green")
+        test_data_ax[1].plot(self.noisy_data.time, self.noisy_data.uv, color="blue")
+        test_data_ax[1].plot(self.noisy_data.time, self.noisy_data.orange, color="orange")
+        for i in range(2):
+            test_data_ax[i].set_xlabel("Time [s]")
+            test_data_ax[i].set_ylabel("PMT Output [V]")
+        test_data_fig.tight_layout()
+        test_data_fig.show()
         self.assertTrue(True)
 
     def test_plug_detect_simple_thresh(self):
