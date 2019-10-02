@@ -20,5 +20,5 @@ from dataclasses import dataclass, field
 
 @dataclass
 class PlugyConfig(object):
-    # channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "cells": ("orange", 2), "readout": ("green", 1)})
+    channels: dict = field(default_factory=lambda: {"barcode": ("blue", 3), "control": ("orange", 2), "readout": ("green", 1)})
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
