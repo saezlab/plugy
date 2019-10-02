@@ -35,7 +35,7 @@ logging.basicConfig(level=logging.DEBUG,
 
 class TestPlugData(unittest.TestCase):
     def setUp(self) -> None:
-        self.pure_data = pd.DataFrame()
+        self.clean_data = pd.DataFrame()
         self.noisy_data = pd.DataFrame()
 
         self.signal_length = 21
@@ -43,18 +43,18 @@ class TestPlugData(unittest.TestCase):
         self.filter_size = self.acquisition_rate / 2
         self.time = np.linspace(0, self.signal_length, self.signal_length * self.acquisition_rate)
 
-        self.pure_data = self.pure_data.assign(time=self.time)
+        self.clean_data = self.clean_data.assign(time=self.time)
         self.noisy_data = self.noisy_data.assign(time=self.time)
 
-        self.pure_data = self.pure_data.assign(green=sig.square(self.pure_data.time + np.pi) + 1)
+        self.clean_data = self.clean_data.assign(green=sig.square(self.clean_data.time + np.pi) + 1)
 
-        self.noisy_data = self.noisy_data.assign(green=fil.convolve1d(input=self.pure_data.green, weights=np.array(np.repeat(1, self.filter_size))) / self.filter_size)
+        self.noisy_data = self.noisy_data.assign(green=fil.convolve1d(input=self.clean_data.green, weights=np.array(np.repeat(1, self.filter_size))) / self.filter_size)
         np.random.seed(1234)
         self.noisy_data = self.noisy_data.assign(green=self.noisy_data.green + np.random.normal(scale=0.25, size=len(self.noisy_data.green)))
 
     # @unittest.skip
     def test_plot_test_data(self):
-        plt.plot(self.pure_data.time, self.pure_data.green)
+        plt.plot(self.clean_data.time, self.clean_data.green)
         plt.plot(self.noisy_data.time, self.noisy_data.green)
 
         plt.xlabel('Time [s]')
@@ -64,21 +64,11 @@ class TestPlugData(unittest.TestCase):
         self.assertTrue(True)
 
     def test_plug_detect_simple_thresh(self):
-        # signal_length = 21  # seconds
-        # acquisition_rate = 300
-        # filter_size = acquisition_rate / 2
-        # x = np.linspace(0, signal_length, signal_length * acquisition_rate)
-
-        # plt.plot(x, sig.square(x + np.pi) + 1)
-
-        # y = (fil.convolve1d(sig.square(x + np.pi) + 1, weights=np.array(np.repeat(1, filter_size)))) / filter_size
-        # plt.plot(x, y)
-
-        # np.random.seed(1234)
-        # y_noise = y + np.random.normal(scale=0.25, size=len(x))
-        # plt.plot(x, y_noise)
-
-        with unittest.mock.patch.object(target=pmt.PmtData, attribute="__post_init__", new=lambda _: self.pure_data):
+        """
+        Tests detecting simple plugs from clean data
+        :return:
+        """
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="__post_init__", new=lambda _: self.clean_data):
             pass
 
     def test_something(self):
