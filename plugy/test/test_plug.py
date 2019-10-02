@@ -18,6 +18,8 @@ import logging
 import unittest
 import unittest.mock
 
+import pathlib as pl
+
 import numpy as np
 import pandas as pd
 import scipy.signal as sig
@@ -41,15 +43,20 @@ class TestPlugData(unittest.TestCase):
         self.signal_length = 21
         self.acquisition_rate = 300
         self.filter_size = self.acquisition_rate / 2
+
+        # Get precise simulated experiment time
         self.time = np.linspace(0, self.signal_length, self.signal_length * self.acquisition_rate)
 
         self.clean_data = self.clean_data.assign(time=self.time)
         self.noisy_data = self.noisy_data.assign(time=self.time)
 
-        self.clean_data = self.clean_data.assign(green=sig.square(self.clean_data.time + np.pi) + 1)
+        # Create clean square wave with period 2 pi and with its first rising edge at pi
+        self.clean_data = self.clean_data.assign(green=(sig.square(self.clean_data.time + np.pi) + 1) / 2)
 
+        # Filter the clean signal with a mean filter to get slightly rounded edges
         self.noisy_data = self.noisy_data.assign(green=fil.convolve1d(input=self.clean_data.green, weights=np.array(np.repeat(1, self.filter_size))) / self.filter_size)
         np.random.seed(1234)
+        # Add gaussian noise to the clean square wave
         self.noisy_data = self.noisy_data.assign(green=self.noisy_data.green + np.random.normal(scale=0.25, size=len(self.noisy_data.green)))
 
     # @unittest.skip
@@ -68,8 +75,11 @@ class TestPlugData(unittest.TestCase):
         Tests detecting simple plugs from clean data
         :return:
         """
-        with unittest.mock.patch.object(target=pmt.PmtData, attribute="__post_init__", new=lambda _: self.clean_data):
-            pass
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.clean_data):
+            # noinspection PyTypeChecker
+            plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path()), plug_sequence=None, channel_map=None)
+
+        self.assertTrue(False)
 
     def test_something(self):
         self.assertEqual(True, False)
