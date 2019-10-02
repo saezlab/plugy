@@ -142,12 +142,12 @@ class TestChannelMapping(unittest.TestCase):
         self.assertEqual(cm.exception.args[0], "Channel has to be an int you specified ABC")
 
 
-class TestPlugSequenceRead(unittest.TestCase):
+class TestPlugSequenceReadWrite(unittest.TestCase):
     def setUp(self) -> None:
         """
         Creates the test_file_content and a corresponding test_sequence that contains the true data
         """
-        self.test_file_content = "\n1,12,Valve9,12,14,16,9\n1,12,Valve10,12,14,16,10\n1,12,Valve11,12,14,16,11"
+        self.test_file_content = "\n1,12,Valve9,12,14,16,9\n1,12,Valve10,12,14,16,10\n1,12,Valve11,12,14,16,11\n"
 
         self.test_sequence = (PlugSequence.Sample(1, 12, "Valve9", [12, 14, 16, 9]),
                               PlugSequence.Sample(1, 12, "Valve10", [12, 14, 16, 10]),
@@ -165,6 +165,16 @@ class TestPlugSequenceRead(unittest.TestCase):
             plug_sequence = PlugSequence.from_csv_file(input_file=self.sequence_file_path)
 
         self.assertEqual(self.test_sequence, plug_sequence.sequence)
+
+    def test_save_csv_file(self):
+        """
+        Tests writing sequence to a csv file
+        """
+        plug_sequence = PlugSequence(self.test_sequence)
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".csv") as self.save_file:
+            plug_sequence.save_csv(pl.Path(self.save_file.name))
+            self.save_file.seek(0)
+            self.assertEqual(self.test_file_content, self.save_file.read())
 
 
 class TestPlugSequenceGenerate(unittest.TestCase):

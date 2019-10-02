@@ -171,3 +171,14 @@ class PlugSequence(object):
                 if valve not in range(9, 25):
                     raise ValueError(f"Sample {idx} contains valves that are not used on the chip ({sample.open_valves})")
 
+    def save_csv(self, path: pl.Path):
+        """
+        Saves the PlugSequence as a csv file that is compatible to "Samples on Demand v5"
+        :param path: Path to write to
+        """
+        with path.open("w", newline="\r\n") as f:
+            f.write("\n")
+            for sample in self.sequence:
+                f.write(f"{str(sample.open_duration)},{str(sample.n_replicates)},{str(sample.name)},{','.join([str(i) for i in sample.open_valves])}")
+                f.write("\n")
+        # raise NotImplementedError
