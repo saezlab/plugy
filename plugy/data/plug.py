@@ -20,6 +20,7 @@ import pandas as pd
 import scipy.signal as sig
 
 from ..data import pmt, bd
+from ..data.config import PlugyConfig
 from dataclasses import dataclass
 
 module_logger = logging.getLogger("plugy.data.plug")
@@ -41,30 +42,31 @@ class PlugData(object):
     width_rel_height: float = 0.5
     peak_min_plateau_size: float = 0.5
     peak_max_plateau_size: float = 1.5
+    config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
         self.plug_df, self.peak_data = self.find_plugs()
 
     def find_plugs(self):
-        orange_peaks, orange_properties = sig.find_peaks(self.pmt_data.data.orange,
-                                                         height=(self.peak_min_threshold,
-                                                                 self.peak_max_threshold),
+        control_peaks, control_properties = sig.find_peaks(self.pmt_data.data[self.config.channels["control"][0]],
+                                                           height=(self.peak_min_threshold,
+                                                                   self.peak_max_threshold),
 
-                                                         distance=round(self.peak_min_distance *
-                                                                        self.pmt_data.acquisition_rate),
+                                                           distance=round(self.peak_min_distance *
+                                                                          self.pmt_data.acquisition_rate),
 
-                                                         prominence=(self.peak_min_prominence,
-                                                                     self.peak_max_prominence),
+                                                           prominence=(self.peak_min_prominence,
+                                                                       self.peak_max_prominence),
 
-                                                         width=(self.peak_min_width * self.pmt_data.acquisition_rate,
-                                                                self.peak_max_width * self.pmt_data.acquisition_rate),
+                                                           width=(self.peak_min_width * self.pmt_data.acquisition_rate,
+                                                                  self.peak_max_width * self.pmt_data.acquisition_rate),
 
-                                                         wlen=round(self.prominence_rel_wlen * self.pmt_data.acquisition_rate),
+                                                           wlen=round(self.prominence_rel_wlen * self.pmt_data.acquisition_rate),
 
-                                                         rel_height=self.width_rel_height,
+                                                           rel_height=self.width_rel_height,
 
-                                                         plateau_size=(self.peak_min_plateau_size * self.pmt_data.acquisition_rate,
-                                                                       self.peak_max_plateau_size * self.pmt_data.acquisition_rate))
+                                                           plateau_size=(self.peak_min_plateau_size * self.pmt_data.acquisition_rate,
+                                                                         self.peak_max_plateau_size * self.pmt_data.acquisition_rate))
 
         peak_df = pd.DataFrame.from_dict(orange_properties)
         return pd.DataFrame(), peak_df
