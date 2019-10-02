@@ -14,12 +14,17 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
+import logging
 import tempfile
 import unittest
 
 import pathlib as pl
 
 from ..data.bd import ChannelMap, PlugSequence
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%d.%m.%y %H:%M:%S')
 
 
 class TestChannelMapping(unittest.TestCase):

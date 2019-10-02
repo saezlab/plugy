@@ -83,6 +83,12 @@ class PlugSequence(object):
 
     @classmethod
     def from_csv_file(cls, input_file: pl.Path):
+        """
+        Reads a "Samples on Demand v5" compatible csv file and creates a PlugSequence object from it.
+        :param input_file: File path to read from
+        :return: PlugSequence object
+        """
+        module_logger.info(f"Reading PlugSequence from {input_file.absolute()}")
         sequence = list()
         with input_file.open("r") as f:
             reader = csv.reader(f)
@@ -109,6 +115,10 @@ class PlugSequence(object):
         :param generate_barcodes: If barcodes should be encoded in the Sequence. Set to False if barcodes should be generated using "Samples on Demand v5"
         :return: PlugSequence object
         """
+        module_logger.info(f"Creating PlugSequence from ChannelMap")
+        module_logger.debug("Configuration:")
+        for k, v in locals().items():
+            module_logger.debug(f"{k}: {v}")
         samples = list()
 
         # Generate templates
@@ -176,9 +186,9 @@ class PlugSequence(object):
         Saves the PlugSequence as a csv file that is compatible to "Samples on Demand v5"
         :param path: Path to write to
         """
+        module_logger.info(f"Writing sequence to file {path.absolute()}")
         with path.open("w", newline="\r\n") as f:
             f.write("\n")
             for sample in self.sequence:
                 f.write(f"{str(sample.open_duration)},{str(sample.n_replicates)},{str(sample.name)},{','.join([str(i) for i in sample.open_valves])}")
                 f.write("\n")
-        # raise NotImplementedError
