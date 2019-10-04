@@ -46,15 +46,22 @@ class PlugData(object):
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
+        module_logger.info(f"Creating PlugData object")
+        module_logger.debug(f"Configuration:")
+        for k, v in self.__dict__.items():
+            module_logger.debug(f"{k}: {v}")
+
         self.plug_df, self.peak_data = self.find_plugs()
 
     def find_plugs(self):
         """
-
-        :return:
+        Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
+        :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
         """
+        module_logger.info("Finding plugs")
         peak_df = pd.DataFrame()
         for channel, (channel_color, _) in self.config.channels.items():
+            module_logger.debug(f"Running peak detection for {channel} channel")
             peaks, properties = sig.find_peaks(self.pmt_data.data[channel_color],
                                                height=(self.peak_min_threshold,
                                                        self.peak_max_threshold),
@@ -81,11 +88,11 @@ class PlugData(object):
 
         plug_list = list()
         if self.merge_peaks_distance > 0:
+            module_logger.info(f"Merging plugs with closer centers than {self.merge_peaks_distance} seconds")
             merge_peaks_samples = self.pmt_data.acquisition_rate * self.merge_peaks_distance
             merge_df = peak_df.assign(plug_center=peak_df.right_edges - (peak_df.plateau_sizes / 2))
             merge_df = merge_df.sort_values(by="plug_center")
             merge_df = merge_df.reset_index(drop=True)
-
 
             centers = merge_df.plug_center
 
@@ -95,40 +102,38 @@ class PlugData(object):
                 # Count neighborhood
                 j = 0
                 while True:
-                    # if i + j >= len(centers):
-                    #     plug_list.append(self.get_plug_data_from_index(merge_df.left_edges[i], merge_df.right_bases[i + j - 1]))
-                    #     i += j
-                    #     break
-                    # else:
                     if (i + j >= len(centers)) or (centers[i + j] - centers[i] > merge_peaks_samples):
+                        # Merge from the left edge of the first plug (i) to the right base of the last plug to merge (i + j - 1)
                         plug_list.append(self.get_plug_data_from_index(merge_df.left_edges[i], merge_df.right_bases[i + j - 1]))
+
+                        # Skip to the next unmerged plug
                         i += j
                         break
                     else:
                         j += 1
 
-
-
-            # for idx, center in enumerate(centers):
-            #     i = 0
-            #     while True:
-            #         if centers[idx + i] - center > merge_peaks_samples:
-            #
-            #         break
-
         else:
+            module_logger.info("Creating plug list with without merging close plugs!")
             for row in peak_df.sort_values(by="left_edges"):
                 plug_list.append(self.get_plug_data_from_index(row.left_edges, row.right_bases))
 
         # Build plug_df DataFrame
+        module_logger.debug("Building plug_df DataFrame")
         channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
         plug_df = pd.DataFrame(plug_list, columns=["start_time", "end_time"] + channels)
 
         # Call barcode plugs
+        module_logger.debug("Calling barcode plugs")
         plug_df = plug_df.assign(barcode=plug_df.barcode_peak_median > plug_df.readout_peak_median)
         return plug_df, peak_df
 
     def get_plug_data_from_index(self, start_index, end_index):
+        """
+        Calculates median for each acquired channel between two data points
+        :param start_index: Index of the first datapoint in pmt_data.data
+        :param end_index: Index of the last datapoint in pmt_data.data
+        :return: List with start_index end_index and the channels according to the order of config.channels
+        """
         return_list = list()
         return_list.append(start_index / self.pmt_data.acquisition_rate)
         return_list.append(end_index / self.pmt_data.acquisition_rate)
