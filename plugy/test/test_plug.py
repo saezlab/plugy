@@ -83,16 +83,21 @@ class TestPlugData(unittest.TestCase):
         self.plug_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0],
                                        # "center_time": [1.5, 3.5, 5.5],
                                        "end_time": [2.0, 4.0, 6.0],
-                                       "bc_peak_max": [1.0, 0.0, 0.0],
-                                       "bc_peak_median": [1.0, 0.0, 0.0],
-                                       "bc_peak_mean": [1.0, 0.0, 0.0],
-                                       "control_peak_max": [0.0, 0.8, 0.8],
+                                       # "bc_peak_max": [1.0, 0.0, 0.0],
+                                       "barcode_peak_median": [1.0, 0.0, 0.0],
+                                       # "bc_peak_mean": [1.0, 0.0, 0.0],
+                                       # "control_peak_max": [0.0, 0.8, 0.8],
                                        "control_peak_median": [0.0, 0.8, 0.8],
-                                       "control_peak_mean": [0.0, 0.8, 0.8],
-                                       "cell_peak_max": [0.0, 0.9, 0.0],
-                                       "cell_peak_median": [0.0, 0.9, 0.0],
-                                       "cell_peak_mean": [0.0, 0.9, 0.0],
+                                       # "control_peak_mean": [0.0, 0.8, 0.8],
+                                       # "cell_peak_max": [0.0, 0.9, 0.0],
+                                       "readout_peak_median": [0.0, 0.9, 0.0],
+                                       # "cell_peak_mean": [0.0, 0.9, 0.0],
                                        "barcode": [True, False, False]})
+
+        # for _ in range(10):
+        #     self.clean_data = self.clean_data.append(self.clean_data)
+        #     self.plug_data = self.plug_data.append(self.plug_data)
+        # self.plug_data = self.plug_data.reset_index(drop=True)
 
     # @unittest.skip
     def test_plot_test_data(self):
