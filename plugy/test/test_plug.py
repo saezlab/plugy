@@ -45,7 +45,7 @@ class TestPlugData(unittest.TestCase):
         self.acquisition_rate = 300
         self.filter_size = self.acquisition_rate / 6
         self.seed = 1234
-        self.noise_sigma = 0.15
+        self.noise_sigma = 0.13
 
         # Get precise simulated experiment time
         self.time = np.linspace(0, self.signal_length, self.signal_length * self.acquisition_rate)
@@ -61,7 +61,7 @@ class TestPlugData(unittest.TestCase):
 
         self.clean_data.loc[self.clean_data.time > 2, "uv"] = 0
         self.clean_data.loc[(self.clean_data.time < 3) | (self.clean_data.time > 4), "green"] = 0
-        self.clean_data.loc[(self.clean_data.time < 3) | (self.clean_data.time > 6), "orange" ] = 0
+        self.clean_data.loc[(self.clean_data.time < 3) | (self.clean_data.time > 6), "orange"] = 0
 
         self.clean_data = self.clean_data.assign(green=self.clean_data.green * 0.9)
         self.clean_data = self.clean_data.assign(orange=self.clean_data.orange * 0.8)
@@ -99,7 +99,7 @@ class TestPlugData(unittest.TestCase):
         #     self.plug_data = self.plug_data.append(self.plug_data)
         # self.plug_data = self.plug_data.reset_index(drop=True)
 
-    # @unittest.skip
+    @unittest.skip
     def test_plot_test_data(self):
         test_data_fig, test_data_ax = plt.subplots(1, 2, figsize=(20, 10))
         test_data_ax[0].plot(self.clean_data.time, self.clean_data.green, color="green")
@@ -116,19 +116,27 @@ class TestPlugData(unittest.TestCase):
         test_data_fig.show()
         self.assertTrue(True)
 
-    def test_plug_detect_simple_thresh(self):
+    # noinspection DuplicatedCode
+    def test_plug_detect_clean_data(self):
         """
         Tests detecting simple plugs from clean data
-        :return:
         """
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.clean_data):
             # noinspection PyTypeChecker
             plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
-        pd_test.assert_frame_equal(self.plug_data, plug_data.plug_df)
+        pd_test.assert_frame_equal(self.plug_data.round(), plug_data.plug_df.round())
 
-    def test_something(self):
-        self.assertEqual(True, False)
+    # noinspection DuplicatedCode
+    def test_plug_detect_noisy_data(self):
+        """
+        Tests detecting plugs with a large amount of noise
+        """
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.noisy_data):
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
+
+        pd_test.assert_frame_equal(self.plug_data.round(), plug_data.plug_df.round())
 
 
 if __name__ == '__main__':
