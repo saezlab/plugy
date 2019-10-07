@@ -54,6 +54,28 @@ class PlugData(object):
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
+        peak_df = self.detect_peaks()
+
+        plug_list = self.merge_peaks(peak_df)
+
+        # Build plug_df DataFrame
+        module_logger.debug("Building plug_df DataFrame")
+        channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
+        plug_df = pd.DataFrame(plug_list, columns=["start_time", "end_time"] + channels)
+
+        # Call barcode plugs
+        module_logger.debug("Calling barcode plugs")
+        plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
+
+        # TODO Find cycles
+
+        return plug_df, peak_df
+
+    def detect_peaks(self):
+        """
+        Detects peaks using scipy.signal.find_peaks().
+        :return: Returns a DataFrame containing information about the peaks as called by sig.find_peaks
+        """
         peak_df = pd.DataFrame()
         for channel, (channel_color, _) in self.config.channels.items():
             module_logger.debug(f"Running peak detection for {channel} channel")
@@ -79,7 +101,14 @@ class PlugData(object):
         # Converting ips values to int for indexing later on
         peak_df.assign(right_ips=round(peak_df.right_ips), left_ips=round(peak_df.left_ips))
         peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
+        return peak_df
 
+    def merge_peaks(self, peak_df):
+        """
+        Merges peaks if merge_peaks_distance is > 0.
+        :param peak_df: DataFrame with peaks as called by detect_peaks()
+        :return: List containing plug data.
+        """
         plug_list = list()
         if self.merge_peaks_distance > 0:
             module_logger.info(f"Merging plugs with closer centers than {self.merge_peaks_distance} seconds")
@@ -110,18 +139,7 @@ class PlugData(object):
             module_logger.info("Creating plug list with without merging close plugs!")
             for row in peak_df.sort_values(by="left_ips"):
                 plug_list.append(self.get_plug_data_from_index(row.left_ips, row.right_ips))
-
-        # Build plug_df DataFrame
-        module_logger.debug("Building plug_df DataFrame")
-        channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
-        plug_df = pd.DataFrame(plug_list, columns=["start_time", "end_time"] + channels)
-
-        # Call barcode plugs
-        module_logger.debug("Calling barcode plugs")
-        plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
-
-        # TODO Find cycles
-        return plug_df, peak_df
+        return plug_list
 
     def get_plug_data_from_index(self, start_index, end_index):
         """
