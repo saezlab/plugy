@@ -118,7 +118,9 @@ class PlugData(object):
 
         # Call barcode plugs
         module_logger.debug("Calling barcode plugs")
-        plug_df = plug_df.assign(barcode=plug_df.barcode_peak_median > plug_df.readout_peak_median)
+        plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
+
+        # TODO Find cycles
         return plug_df, peak_df
 
     def get_plug_data_from_index(self, start_index, end_index):
