@@ -80,24 +80,32 @@ class TestPlugData(unittest.TestCase):
         self.noisy_data = self.noisy_data.assign(orange=self.noisy_data.orange + np.random.normal(scale=self.noise_sigma, size=len(self.noisy_data.orange)))
 
         # Generate ground truth DataFrame
-        self.plug_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0],
-                                       # "center_time": [1.5, 3.5, 5.5],
-                                       "end_time": [2.0, 4.0, 6.0],
-                                       # "bc_peak_max": [1.0, 0.0, 0.0],
-                                       "barcode_peak_median": [1.0, 0.0, 0.0],
-                                       # "bc_peak_mean": [1.0, 0.0, 0.0],
-                                       # "control_peak_max": [0.0, 0.8, 0.8],
-                                       "control_peak_median": [0.0, 0.8, 0.8],
-                                       # "control_peak_mean": [0.0, 0.8, 0.8],
-                                       # "cell_peak_max": [0.0, 0.9, 0.0],
-                                       "readout_peak_median": [0.0, 0.9, 0.0],
-                                       # "cell_peak_mean": [0.0, 0.9, 0.0],
-                                       "barcode": [True, False, False]})
+        self.single_plug_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0],
+                                              # "center_time": [1.5, 3.5, 5.5],
+                                              "end_time": [2.0, 4.0, 6.0],
+                                              # "bc_peak_max": [1.0, 0.0, 0.0],
+                                              "barcode_peak_median": [1.0, 0.0, 0.0],
+                                              # "bc_peak_mean": [1.0, 0.0, 0.0],
+                                              # "control_peak_max": [0.0, 0.8, 0.8],
+                                              "control_peak_median": [0.0, 0.8, 0.8],
+                                              # "control_peak_mean": [0.0, 0.8, 0.8],
+                                              # "cell_peak_max": [0.0, 0.9, 0.0],
+                                              "readout_peak_median": [0.0, 0.9, 0.0],
+                                              # "cell_peak_mean": [0.0, 0.9, 0.0],
+                                              "barcode": [True, False, False]})
 
         # for _ in range(10):
         #     self.clean_data = self.clean_data.append(self.clean_data)
-        #     self.plug_data = self.plug_data.append(self.plug_data)
-        # self.plug_data = self.plug_data.reset_index(drop=True)
+        #     self.single_plug_data = self.single_plug_data.append(self.single_plug_data)
+        # self.single_plug_data = self.single_plug_data.reset_index(drop=True)
+
+        self.cycle_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0, 17.0, 19.0, 21.0, 23.0, 25.0, 27.0, 29.0],
+                                        "end_time": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0],
+                                        "barcode_peak_median": [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+                                        "control_peak_median": [0.8, 0.8, 0.0, 0.8, 0.8, 0.0, 0.0, 0.0, 0.0, 0.8, 0.8, 0.0, 0.8, 0.8, 0.0],
+                                        "readout_peak_median": [0.0, 0.9, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.9, 0.0],
+                                        "barcode": [False, False, True, False, False, True, True, True, True, False, False, True, False, False, True]})
+        self.sample_data = self.cycle_data.assign(cycle=[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], sample=[0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
 
     @unittest.skip
     def test_plot_test_data(self):
@@ -125,7 +133,7 @@ class TestPlugData(unittest.TestCase):
             # noinspection PyTypeChecker
             plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
-        pd_test.assert_frame_equal(self.plug_data.round(), plug_data.plug_df.round())
+        pd_test.assert_frame_equal(self.single_plug_data.round(), plug_data.plug_df.round())
 
     # noinspection DuplicatedCode
     def test_plug_detect_noisy_data(self):
@@ -136,7 +144,7 @@ class TestPlugData(unittest.TestCase):
             # noinspection PyTypeChecker
             plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
-        pd_test.assert_frame_equal(self.plug_data.round(), plug_data.plug_df.round())
+        pd_test.assert_frame_equal(self.single_plug_data.round(), plug_data.plug_df.round())
 
 
 if __name__ == '__main__':
