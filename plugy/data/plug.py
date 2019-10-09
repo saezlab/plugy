@@ -40,6 +40,7 @@ class PlugData(object):
     peak_max_width: float = 1.5
     width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
+    n_bc_adjacent_discards: int = 1
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
@@ -47,6 +48,7 @@ class PlugData(object):
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
         self.plug_df, self.peak_data = self.find_plugs()
+        # self.samples_df = self.find_sample_cycles()p
 
     def find_plugs(self):
         """
@@ -66,8 +68,6 @@ class PlugData(object):
         # Call barcode plugs
         module_logger.debug("Calling barcode plugs")
         plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
-
-        # TODO Find cycles
 
         return plug_df, peak_df
 
@@ -155,3 +155,33 @@ class PlugData(object):
             return_list.append(self.pmt_data.data[channel_color][start_index:end_index].median())
 
         return return_list
+
+    def find_sample_cycles(self):
+        """
+        Finds cycles and labels individual samples
+        :return: DataFrame containing sample data
+        """
+        samples_df = self.plug_df
+
+        # counters
+        current_cycle = 0
+        bc_peaks = 0
+        sm_peaks = 0
+        sample_in_cycle = 0
+        # new vectors
+        cycle   = []
+        sample  = []
+        discard = []
+
+        for idx, bc in enumerate(samples_df.barcode):
+            if bc:
+                discard.append(True)
+                cycle.append()
+                bc_peaks += 1
+            elif samples_df.barcode[idx - self.n_bc_adjacent_discards] or samples_df[idx + self.n_bc_adjacent_discards]:
+                discard.append(True)
+
+            else:
+                pass
+
+        return samples_df
