@@ -126,7 +126,7 @@ class PmtData(object):
 
         return df
 
-    def set_channel_values(self):
+    def set_channel_values(self) -> pd.DataFrame:
         """
         Sets & corrects values in the multichannel acquisition data.
         :return: DataFrame with the corrected data
@@ -152,7 +152,7 @@ class PmtData(object):
 
         return df
 
-    def digital_gain(self):
+    def digital_gain(self) -> pd.DataFrame:
         """
         Multiplies the corresponding channels PMT output by the given float (digital_gain_*)
         """
@@ -179,6 +179,9 @@ class PmtData(object):
         sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
+        axes.set_xticks(range(int(round(self.data.time.min())), int(round(self.data.time.max())), 10))
+        for tick in axes.get_xticklabels():
+            tick.set_rotation(45)
         axes.set_xlabel("Time [s]")
         axes.set_ylabel("Fluorescence [AU]")
 
