@@ -142,6 +142,23 @@ class TestPlugData(unittest.TestCase):
         test_data_fig.show()
         self.assertTrue(True)
 
+    @unittest.skip
+    def test_plot_detected_data(self):
+        """
+        Tests plotting of the plug data together with the pmt data
+        """
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.noisy_data):
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
+
+        plug_data_fig, plug_data_ax = plt.subplots(figsize=(40, 10))
+        plug_data_ax = plug_data.plot_plug_pmt_data(axes=plug_data_ax)
+
+        plug_data_fig.tight_layout()
+        plug_data_fig.show()
+
+        self.assertTrue(True)
+
     # noinspection DuplicatedCode
     def test_plug_detect_clean_data(self):
         """

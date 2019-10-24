@@ -169,7 +169,7 @@ class PmtData(object):
 
         return df
 
-    def plot_raw_data(self, axes: plt.Axes):
+    def plot_raw_data(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots the raw PMT data to the specified axes object
         :param axes: plt.Axes object to draw on

@@ -19,6 +19,11 @@ import logging
 import pandas as pd
 import scipy.signal as sig
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patch
+import matplotlib.collections as mpl_coll
+
+
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
 from dataclasses import dataclass
@@ -169,8 +174,8 @@ class PlugData(object):
         sm_peaks = 0
         sample_in_cycle = 0
         # new vectors
-        cycle   = []
-        sample  = []
+        cycle = []
+        sample = []
         discard = []
 
         for idx, bc in enumerate(samples_df.barcode):
@@ -185,3 +190,24 @@ class PlugData(object):
                 pass
 
         return samples_df
+
+    def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = None) -> plt.Axes:
+        """
+        Plots pmt data and superimposes rectangles with the called plugs upon the plot
+        :param axes: plt.Axes object to plot to
+        :param cut: tuple with (start_time, end_time) to subset the plot to a certain time range
+        :return: plt.Axes object with the plot
+        """
+        axes = self.pmt_data.plot_raw_data(axes)
+        module_logger.info("Plotting detected peaks")
+
+        if cut is not None:
+            raise NotImplementedError("Plotting specific ranges is not yet implemented!")
+
+        # Plotting light green rectangles that indicate the used plug length and plug height
+        patches = list()
+        for plug in self.plug_df.itertuples():
+            patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.readout_peak_median))
+        axes.add_collection(mpl_coll.PatchCollection(patches, facecolors=self.config.colors["green"], alpha=0.4))
+
+        return axes
