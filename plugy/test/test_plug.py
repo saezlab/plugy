@@ -44,7 +44,7 @@ class TestPlugData(unittest.TestCase):
         self.signal_length = 7
         self.acquisition_rate = 300
         self.filter_size = self.acquisition_rate / 6
-        self.seed = 1337
+        self.seed = 13371337
         self.noise_sigma = 0.13
 
         # Get precise simulated experiment time
@@ -142,7 +142,7 @@ class TestPlugData(unittest.TestCase):
         test_data_fig.show()
         self.assertTrue(True)
 
-    @unittest.skip
+    # @unittest.skip
     def test_plot_detected_data(self):
         """
         Tests plotting of the plug data together with the pmt data
