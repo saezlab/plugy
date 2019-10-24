@@ -154,8 +154,8 @@ class PlugData(object):
         :return: List with start_index end_index and the channels according to the order of config.channels
         """
         return_list = list()
-        return_list.append(start_index / self.pmt_data.acquisition_rate)
-        return_list.append(end_index / self.pmt_data.acquisition_rate)
+        return_list.append(start_index / self.pmt_data.acquisition_rate + self.pmt_data.data.time.iloc[0])
+        return_list.append(end_index / self.pmt_data.acquisition_rate + self.pmt_data.data.time.iloc[0])
         for _, (channel_color, _) in self.config.channels.items():
             return_list.append(self.pmt_data.data[channel_color][start_index:end_index].median())
 
