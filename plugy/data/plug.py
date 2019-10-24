@@ -205,9 +205,16 @@ class PlugData(object):
             raise NotImplementedError("Plotting specific ranges is not yet implemented!")
 
         # Plotting light green rectangles that indicate the used plug length and plug height
-        patches = list()
+        bc_patches = list()
+        readout_patches = list()
+
         for plug in self.plug_df.itertuples():
-            patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.readout_peak_median))
-        axes.add_collection(mpl_coll.PatchCollection(patches, facecolors=self.config.colors["green"], alpha=0.4))
+            if plug.barcode:
+                bc_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.barcode_peak_median))
+            else:
+                readout_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.readout_peak_median))
+
+        axes.add_collection(mpl_coll.PatchCollection(bc_patches, facecolors=self.config.colors["blue"], alpha=0.4))
+        axes.add_collection(mpl_coll.PatchCollection(readout_patches, facecolors=self.config.colors["green"], alpha=0.4))
 
         return axes
