@@ -44,7 +44,7 @@ class TestPlugData(unittest.TestCase):
         self.signal_length = 7
         self.acquisition_rate = 300
         self.filter_size = self.acquisition_rate / 6
-        self.seed = 13371337
+        self.seed = 0
         self.noise_sigma = 0.13
 
         # Get precise simulated experiment time
