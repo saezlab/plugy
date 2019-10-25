@@ -23,7 +23,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
 
-
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
 from dataclasses import dataclass
@@ -46,6 +45,7 @@ class PlugData(object):
     width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
+    min_end_cycle_barcodes: int = 12
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
@@ -53,7 +53,10 @@ class PlugData(object):
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
         self.plug_df, self.peak_data = self.find_plugs()
-        # self.samples_df = self.find_sample_cycles()p
+        # cycle_nr, sample_nr = self.find_sample_cycles()
+        # self.plug_df.assign(cycle_nr=cycle_nr, sample_nr=sample_nr)
+
+        self.sample_df = self.find_sample_cycles()
 
     def find_plugs(self):
         """
@@ -161,7 +164,7 @@ class PlugData(object):
 
         return return_list
 
-    def find_sample_cycles(self):
+    def find_sample_cycles(self) -> pd.DataFrame:
         """
         Finds cycles and labels individual samples
         :return: DataFrame containing sample data
@@ -181,13 +184,34 @@ class PlugData(object):
         for idx, bc in enumerate(samples_df.barcode):
             if bc:
                 discard.append(True)
-                cycle.append()
+                cycle.append(current_cycle)
+                sample.append(sample_in_cycle)
                 bc_peaks += 1
-            elif samples_df.barcode[idx - self.n_bc_adjacent_discards] or samples_df[idx + self.n_bc_adjacent_discards]:
-                discard.append(True)
 
             else:
-                pass
+                # Checking cycle
+                if bc_peaks > 0:
+                    sample_in_cycle += 1
+                    if bc_peaks >= self.min_end_cycle_barcodes:
+                        current_cycle += 1
+                        sample_in_cycle = 0
+                    bc_peaks = 0
+
+                sample.append(sample_in_cycle)
+                cycle.append(current_cycle)
+
+                # Discarding barcode-adjacent plugs
+                try:
+                    if samples_df.barcode[idx - self.n_bc_adjacent_discards] or samples_df.barcode[idx + self.n_bc_adjacent_discards]:
+                        discard.append(True)
+                    else:
+                        discard.append(False)
+                except KeyError:
+                    discard.append(False)
+
+        samples_df = samples_df.assign(cycle_nr=cycle, sample_nr=sample, discard=discard)
+        samples_df = samples_df.loc[samples_df.discard == False]
+        samples_df = samples_df.drop(columns=["discard", "barcode"])
 
         return samples_df
 

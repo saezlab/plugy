@@ -126,6 +126,7 @@ class TestPlugData(unittest.TestCase):
 
         self.sample_data = self.cycle_data.assign(cycle_nr=[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], sample_nr=[0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
         self.sample_data = self.sample_data.loc[self.sample_data.barcode == False]
+        self.sample_data = self.sample_data.drop(columns="barcode")
 
     # @unittest.skip
     def test_plot_test_data(self):
@@ -190,7 +191,7 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.noisy_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
+            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03, min_end_cycle_barcodes=3, n_bc_adjacent_discards=0)
 
         pd_test.assert_frame_equal(self.sample_data.round(), plug_data.sample_df.round())
 
