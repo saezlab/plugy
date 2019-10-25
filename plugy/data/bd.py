@@ -77,6 +77,26 @@ class ChannelMap(object):
 
         return mapping
 
+    def get_compounds(self, open_valves):
+        compounds = list()
+
+        for open_valve in open_valves:
+            if open_valve in self.drugs:
+                compounds.append(self.map[open_valve])
+
+            # if open_valves in self.cells:
+            #     cells = True
+            # if open_valves in self.substrate:
+            #     substrate = True
+            # if open_valves in self.media:
+            #     media = True
+            # if open_valves in self.bc:
+            #     bc = True
+            #
+            #     drugs = True
+
+        return compounds
+
 
 class PlugSequence(object):
     Sample = coll.namedtuple("Sample", ["open_duration", "n_replicates", "name", "open_valves"])
@@ -152,14 +172,20 @@ class PlugSequence(object):
             samples.append(barcode)
 
         samples.append(cls.Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="End Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
-        return cls(sequence=tuple(samples))
+        return cls(sequence=tuple(samples), channel_map=channel_map)
 
-    def __init__(self, sequence: tuple):
+    def __init__(self, sequence: tuple, **kwargs):
         """
         Handles the plug sequence of the braille display
         """
         self.sequence = sequence
         self.check_sequence()
+
+        try:
+            if isinstance(kwargs["channel_map"], ChannelMap):
+                self.channel_map = kwargs["channel_map"]
+        except KeyError:
+            pass
 
     def check_sequence(self):
         """
@@ -192,3 +218,52 @@ class PlugSequence(object):
             for sample in self.sequence:
                 f.write(f"{str(sample.open_duration)},{str(sample.n_replicates)},{str(sample.name)},{','.join([str(i) for i in sample.open_valves])}")
                 f.write("\n")
+
+    def get_samples(self, **kwargs):
+        """
+        Filters barcodes out of the plug sequence and returns a PlugSequence object without barcodes
+        :param kwargs: channel_map: optionally overrides the ChannelMap object that might be already present in the PlugSequence object
+        :return: tuple containing Samples filtered
+        """
+
+        if "channel_map" in kwargs.keys():
+            if isinstance(kwargs["channel_map"], ChannelMap):
+                c_map = kwargs["channel_map"]
+            else:
+                raise TypeError(f"channel_map of type {type(kwargs['channel_map'])} but has to be type ChannelMap")
+        else:
+            try:
+                c_map = self.channel_map
+            except AttributeError:
+                raise AttributeError("No ChannelMap object specified or found to get sample information from! You can specify one with the channel_map keyword argument.")
+
+        filtered_samples = list()
+
+        for sample in self.sequence:
+            bc = False
+            # if c_map.cells in sample.open_valves:
+            #     cells.append(True)
+            # else:
+            #     cells.append(False)
+            #
+            # if c_map.substrate in sample.open_valves:
+            #     substrate.append(True)
+            # else:
+            #     substrate.append(False)
+
+            # for valve in sample.open_valves:
+            #     if valve in c_map.drugs:
+            #         filtered_samples.append(sample)
+            #         continue
+
+            for bc_valve in c_map.bc:
+                if bc_valve in sample.open_valves:
+                    bc = True
+                    break
+
+            if not bc:
+                filtered_samples.append(sample)
+
+        return PlugSequence(tuple(filtered_samples))
+
+

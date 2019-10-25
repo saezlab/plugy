@@ -249,7 +249,16 @@ class PlugData(object):
         return axes
 
     def label_samples(self, samples_df) -> pd.DataFrame:
+        """
+        Labelles samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
+        :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
+        :return: pd.DataFrame with the added name, compound_a and b columns
+        """
         labelled_df = samples_df
-        self.plug_sequence
+        sample_sequence = self.plug_sequence.get_samples()
+        # labelled_df.assign(sample_name=lambda row: sample_sequence.sequence[row.sample_nr].name)
+        labelled_df["name"] = labelled_df.sample_nr.apply(lambda nr: sample_sequence.sequence[nr].name)
+        labelled_df["compound_a"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
+        labelled_df["compound_b"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
 
         return labelled_df
