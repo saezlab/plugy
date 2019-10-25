@@ -52,13 +52,9 @@ class PlugData(object):
         module_logger.info(f"Creating PlugData object")
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
-        self.plug_df, self.peak_data = self.find_plugs()
-        # cycle_nr, sample_nr = self.find_sample_cycles()
-        # self.plug_df.assign(cycle_nr=cycle_nr, sample_nr=sample_nr)
+        self.plug_df, self.peak_data, self.sample_df = self.call_plugs()
 
-        self.sample_df = self.find_sample_cycles()
-
-    def find_plugs(self):
+    def call_plugs(self):
         """
         Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
@@ -77,7 +73,8 @@ class PlugData(object):
         module_logger.debug("Calling barcode plugs")
         plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
 
-        return plug_df, peak_df
+        sample_df = self.find_sample_cycles(plug_df)
+        return plug_df, peak_df, sample_df
 
     def detect_peaks(self):
         """
@@ -164,12 +161,12 @@ class PlugData(object):
 
         return return_list
 
-    def find_sample_cycles(self) -> pd.DataFrame:
+    def find_sample_cycles(self, plug_df: pd.DataFrame) -> pd.DataFrame:
         """
         Finds cycles and labels individual samples
         :return: DataFrame containing sample data
         """
-        samples_df = self.plug_df
+        samples_df = plug_df
 
         # counters
         current_cycle = 0

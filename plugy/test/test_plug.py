@@ -128,7 +128,7 @@ class TestPlugData(unittest.TestCase):
         self.sample_data = self.sample_data.loc[self.sample_data.barcode == False]
         self.sample_data = self.sample_data.drop(columns="barcode")
 
-    # @unittest.skip
+    @unittest.skip
     def test_plot_test_data(self):
         test_data_fig, test_data_ax = plt.subplots(1, 2, figsize=(40, 10))
         test_data_ax[0].plot(self.clean_data.time, self.clean_data.green, color="green")
@@ -145,7 +145,7 @@ class TestPlugData(unittest.TestCase):
         test_data_fig.show()
         self.assertTrue(True)
 
-    # @unittest.skip
+    @unittest.skip
     def test_plot_detected_data(self):
         """
         Tests plotting of the plug data together with the pmt data
@@ -195,6 +195,14 @@ class TestPlugData(unittest.TestCase):
 
         pd_test.assert_frame_equal(self.sample_data.round(), plug_data.sample_df.round())
 
+    def test_plug_sample_labelling(self):
+        """
+        Tests if samples are properly labelled with the help of a bd.PlugSequence object
+        """
+        with unittest.mock.patch.object(target=plug.PlugData, attribute="call_plugs", new=lambda _: (self.sample_data, self.sample_data, self.sample_data)):
+            pass
+
+        self.assertTrue(False)
 
 if __name__ == '__main__':
     unittest.main()
