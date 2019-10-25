@@ -15,6 +15,7 @@ See accompanying file LICENSE.txt or copy at
 
 """
 import logging
+import tempfile
 import unittest
 import unittest.mock
 
@@ -28,6 +29,7 @@ import scipy.ndimage.filters as fil
 
 from ..data import plug
 from ..data import pmt
+from ..data import bd
 
 import matplotlib.pyplot as plt
 
@@ -128,7 +130,18 @@ class TestPlugData(unittest.TestCase):
         self.sample_data = self.sample_data.loc[self.sample_data.barcode == False]
         self.sample_data = self.sample_data.drop(columns="barcode")
 
-    @unittest.skip
+        self.plug_sequence = bd.PlugSequence((bd.PlugSequence.Sample(1, 2, "Drug 1 + Drug 2", [9, 10, 13, 14]),
+                                              bd.PlugSequence.Sample(1, 1, "Barcode", [11, 12, 23, 24]),
+                                              bd.PlugSequence.Sample(1, 2, "Drug 1 + Drug 3", [9, 10, 13, 15]),
+                                              bd.PlugSequence.Sample(1, 3, "End Cycle Barcode", [11, 12, 23, 24])))
+
+        self.test_gen_map_content = "9:CELLS\n10:SUBSTRATE\n11:FS\n12:FS\n13:Drug 1\n14:Drug 2\n15:Drug 3\n23:BCM\n24:BCM"
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+            self.channel_file.write(self.test_gen_map_content)
+            self.channel_file.seek(0)
+            self.channel_map = bd.ChannelMap(pl.Path(self.channel_file.name))
+
+    # @unittest.skip
     def test_plot_test_data(self):
         test_data_fig, test_data_ax = plt.subplots(1, 2, figsize=(40, 10))
         test_data_ax[0].plot(self.clean_data.time, self.clean_data.green, color="green")
@@ -145,7 +158,7 @@ class TestPlugData(unittest.TestCase):
         test_data_fig.show()
         self.assertTrue(True)
 
-    @unittest.skip
+    # @unittest.skip
     def test_plot_detected_data(self):
         """
         Tests plotting of the plug data together with the pmt data
@@ -199,10 +212,17 @@ class TestPlugData(unittest.TestCase):
         """
         Tests if samples are properly labelled with the help of a bd.PlugSequence object
         """
-        with unittest.mock.patch.object(target=plug.PlugData, attribute="call_plugs", new=lambda _: (self.sample_data, self.sample_data, self.sample_data)):
-            pass
+        # with unittest.mock.patch.object(target=plug.PlugData, attribute="call_plugs", new=lambda _: (self.sample_data, self.sample_data, self.sample_data)):
+        #     # noinspection PyTypeChecker
+        #     plug_data = plug.PlugData(pmt_data=None, plug_sequence=self.plug_sequence, channel_map=self.channel_map)
+
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.noisy_data):
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=self.plug_sequence, channel_map=self.channel_map, peak_min_distance=0.03, min_end_cycle_barcodes=3, n_bc_adjacent_discards=0)
 
         self.assertTrue(False)
+        # pd_test.assert_frame_equal(self.)
+
 
 if __name__ == '__main__':
     unittest.main()

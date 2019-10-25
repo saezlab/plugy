@@ -73,7 +73,8 @@ class PlugData(object):
         module_logger.debug("Calling barcode plugs")
         plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
 
-        sample_df = self.find_sample_cycles(plug_df)
+        sample_df = self.call_sample_cycles(plug_df)
+
         return plug_df, peak_df, sample_df
 
     def detect_peaks(self):
@@ -161,7 +162,7 @@ class PlugData(object):
 
         return return_list
 
-    def find_sample_cycles(self, plug_df: pd.DataFrame) -> pd.DataFrame:
+    def call_sample_cycles(self, plug_df: pd.DataFrame) -> pd.DataFrame:
         """
         Finds cycles and labels individual samples
         :return: DataFrame containing sample data
@@ -207,6 +208,13 @@ class PlugData(object):
                     discard.append(False)
 
         samples_df = samples_df.assign(cycle_nr=cycle, sample_nr=sample, discard=discard)
+
+        # Label samples in case channel map and plug sequence are provided
+        if isinstance(self.channel_map, bd.ChannelMap) and isinstance(self.plug_sequence, bd.PlugSequence):
+            samples_df = self.label_samples(samples_df)
+        else:
+            module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labelling of samples!")
+
         samples_df = samples_df.loc[samples_df.discard == False]
         samples_df = samples_df.drop(columns=["discard", "barcode"])
 
@@ -239,3 +247,9 @@ class PlugData(object):
         axes.add_collection(mpl_coll.PatchCollection(readout_patches, facecolors=self.config.colors["green"], alpha=0.4))
 
         return axes
+
+    def label_samples(self, samples_df) -> pd.DataFrame:
+        labelled_df = samples_df
+        self.plug_sequence
+
+        return labelled_df
