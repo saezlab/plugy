@@ -179,7 +179,9 @@ class PmtData(object):
         sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
-        axes.set_xticks(range(int(round(self.data.time.min())), int(round(self.data.time.max())), 10))
+        axes.set_xticks(range(int(round(self.data.time.min())), int(round(self.data.time.max())), 10), minor=False)
+        # axes.set_xticks(range(int(round(self.data.time.min())), int(round(self.data.time.max())), 1), minor=True)
+        axes.set_xlim(left=int(round(self.data.time.min())), right=int(round(self.data.time.max())))
         for tick in axes.get_xticklabels():
             tick.set_rotation(45)
         axes.set_xlabel("Time [s]")
