@@ -23,6 +23,7 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import seaborn as sns
 
 from dataclasses import dataclass, field
@@ -187,15 +188,28 @@ class PmtData(object):
         """
         module_logger.debug(f"Plotting PMT data")
         df = self.cut_data(cut=cut)
-        sns.lineplot(x=df.time, y=df.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
-        sns.lineplot(x=df.time, y=df.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
-        sns.lineplot(x=df.time, y=df.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
-        axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 10), minor=False)
-        # axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 1), minor=True)
-        axes.set_xlim(left=int(round(df.time.min())), right=int(round(df.time.max())))
-        for tick in axes.get_xticklabels():
-            tick.set_rotation(45)
-        axes.set_xlabel("Time [s]")
-        axes.set_ylabel("Fluorescence [AU]")
+
+        with sns.axes_style("darkgrid", {"xtick.bottom": True,
+                                         'xtick.major.size': 1.0,
+                                         'xtick.minor.size': 0.5}):
+            sns.lineplot(x=df.time, y=df.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
+            sns.lineplot(x=df.time, y=df.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
+            sns.lineplot(x=df.time, y=df.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
+            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 10), minor=False)
+            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 1), minor=True)
+            # axes.get_yaxis().set_major_locator(ticker.MultipleLocator(0.1))
+            # axes.get_yaxis().set_minor_locator(ticker.MultipleLocator(0.05))
+            #
+            # axes.get_xaxis().set_major_locator(ticker.MultipleLocator(10))
+            # axes.get_xaxis().set_minor_locator(ticker.MultipleLocator(1))
+            axes.set_xlim(left=int(round(df.time.min())), right=int(round(df.time.max())))
+            for tick in axes.get_xticklabels():
+                tick.set_rotation(45)
+
+            axes.grid(b=True, which='major', color='w', linewidth=1.0)
+            axes.grid(b=True, which='minor', color='w', linewidth=0.5)
+
+            axes.set_xlabel("Time [s]")
+            axes.set_ylabel("Fluorescence [AU]")
 
         return axes
