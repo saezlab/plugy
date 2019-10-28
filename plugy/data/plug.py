@@ -213,7 +213,7 @@ class PlugData(object):
         if isinstance(self.channel_map, bd.ChannelMap) and isinstance(self.plug_sequence, bd.PlugSequence):
             samples_df = self.label_samples(samples_df)
         else:
-            module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labelling of samples!")
+            module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labeling of samples!")
 
         samples_df = samples_df.loc[samples_df.discard == False]
         samples_df = samples_df.drop(columns=["discard", "barcode"])
@@ -250,7 +250,7 @@ class PlugData(object):
 
     def label_samples(self, samples_df) -> pd.DataFrame:
         """
-        Labelles samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
+        Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
         :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
