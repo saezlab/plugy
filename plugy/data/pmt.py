@@ -106,16 +106,17 @@ class PmtData(object):
     def cut_data(self, **kwargs) -> pd.DataFrame:
         """
         Returns data between time range specified in cut
+        :param kwargs: "cut": specify an upper and lower limit (upper, lower) other than the one in the object already
         :return: pd.DataFrame containing the data in the time range
         """
         module_logger.debug(f"Cutting {self.__repr__()}")
 
-        if "cut" in kwargs.keys() and "df" in kwargs.keys():
+        if "cut" in kwargs.keys():
             cut = kwargs["cut"]
-            df = kwargs["df"]
         else:
             cut = self.cut
-            df = self.data
+
+        df = self.data
 
         try:
             if cut[0] >= cut[1]:
