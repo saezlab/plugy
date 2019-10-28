@@ -233,10 +233,10 @@ class PlugData(object):
         plug_df = self.plug_df
         
         if cut[0] is not None:
-            plug_df = plug_df.loc[plug_df.time >= cut[0]]
+            plug_df = plug_df.loc[plug_df.start_time >= cut[0]]
 
         if cut[1] is not None:
-            plug_df = plug_df.loc[plug_df.time <= cut[1]]
+            plug_df = plug_df.loc[plug_df.end_time <= cut[1]]
 
         # Plotting light green rectangles that indicate the used plug length and plug height
         bc_patches = list()
@@ -267,3 +267,50 @@ class PlugData(object):
         labelled_df["compound_b"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
 
         return labelled_df
+
+    def plot_sample_cycles(self):
+        """
+        Creates a plot with pmt data for the individual samples and cycles.
+        :return: plt.Figure and plt.Axes object with the plot
+        """
+        pass
+
+    def plot_sample(self, name: str, cycle_nr: int, axes: plt.Axes, offset: int = 10) -> plt.Axes:
+        """
+        Plots the PMT traces for a particular drug and cycle and
+        :param name: Name of the drug combination/valve as listed in the PlugSequence
+        :param cycle_nr: Number of the cycle
+        :param axes: The plt.Axes object to draw on
+        :param offset: How many seconds to plot left and right of the plugs
+        :return: The plt.Axes object with the plot
+        """
+        peak_data = self.sample_df[(self.sample_df.cycle_nr == cycle_nr) & (self.sample_df.name == name)]
+        if len(peak_data) is 0:
+            axes.text(0.5, 0.5, "No Data")
+        else:
+            axes = self.plot_plug_pmt_data(axes=axes, cut=(peak_data.start_time.min() - offset, peak_data.end_time.max() + offset))
+
+        axes.set_title(f"{name} | Cycle {cycle_nr}")
+        return axes
+
+        # start_time = peak_data.iloc[0].t0 - offset
+        # end_time = peak_data.iloc[-1].t1 + offset
+        #
+        # plotting_data = pd.DataFrame(self.data)
+        # plotting_data = plotting_data[(plotting_data[0] > start_time) & (plotting_data[0] < end_time)]
+        #
+        # sns.lineplot(x=plotting_data[0], y=plotting_data[1], estimator=None, ci=None, sort=False, color=self.colors["green"], ax=axes)
+        # sns.lineplot(x=plotting_data[0], y=plotting_data[2], estimator=None, ci=None, sort=False, color=self.colors["orange"], ax=axes)
+        # sns.lineplot(x=plotting_data[0], y=plotting_data[3], estimator=None, ci=None, sort=False, color=self.colors["blue"], ax=axes)
+        #
+        # # Plotting light green rectangles that indicate the used plug length and plug height
+        # patches = list()
+        # for plug in peak_data.itertuples():
+        #     patches.append(mpl_patch.Rectangle(xy=(plug.t0, 0), width=plug.length, height=plug.green))
+        # axes.add_collection(mpl_coll.PatchCollection(patches, facecolors=self.colors["green"], alpha=0.4))
+        #
+        # axes.set_xlabel("Time [s]")
+        # axes.set_ylabel("Fluorescence [AU]")
+        # axes.set_title(f"{drug} Cycle {cycle}")
+
+        # return axes
