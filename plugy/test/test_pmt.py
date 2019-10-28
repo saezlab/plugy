@@ -208,6 +208,39 @@ class TestPmtData(unittest.TestCase):
                 data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=cut).data
             self.assertEqual(cm.exception.args[0], f"Cut has to be specified like cut=(min, max) you specified {cut}")
 
+    # noinspection DuplicatedCode
+    def test_cut_additional_data(self):
+        """
+        Tests if cutting of supplied df works opposed to using the df in the PmtData object
+        """
+        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
+            raw_data = pmt.PmtData(input_file=pl.Path(), acquisition_rate=1, correct_acquisition_time=True, cut=(None, None))
+
+        cut = (1, 4)
+        data = raw_data.cut_data(df=raw_data.data, cut=cut)
+        self.assertTrue(len(data.time) == 4)
+        self.assertTrue(min(data.time) >= cut[0])
+        self.assertTrue(max(data.time) <= cut[1])
+
+        cut = (None, None)
+        data = raw_data.cut_data(df=raw_data.data, cut=cut)
+        self.assertTrue(len(data.time) == len(self.test_df))
+
+        cut = (3, None)
+        data = raw_data.cut_data(df=raw_data.data, cut=cut)
+        self.assertTrue(len(data.time) == 3)
+        self.assertTrue(min(data.time) >= cut[0])
+
+        cut = (None, 3)
+        data = raw_data.cut_data(df=raw_data.data, cut=cut)
+        self.assertTrue(len(data.time) == 4)
+        self.assertTrue(max(data.time) <= cut[1])
+
+        cut = (4, 1)
+        with self.assertRaises(AttributeError) as cm:
+            data = raw_data.cut_data(df=raw_data.data, cut=cut)
+        self.assertEqual(cm.exception.args[0], f"Cut has to be specified like cut=(min, max) you specified {cut}")
+
     def test_digital_gain(self):
         """
         Tests digital gain method

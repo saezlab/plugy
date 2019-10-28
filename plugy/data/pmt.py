@@ -103,26 +103,34 @@ class PmtData(object):
 
         return idx
 
-    def cut_data(self) -> pd.DataFrame:
+    def cut_data(self, **kwargs) -> pd.DataFrame:
         """
         Returns data between time range specified in cut
         :return: pd.DataFrame containing the data in the time range
         """
+        module_logger.debug(f"Cutting {self.__repr__()}")
+
+        if "cut" in kwargs.keys() and "df" in kwargs.keys():
+            cut = kwargs["cut"]
+            df = kwargs["df"]
+        else:
+            cut = self.cut
+            df = self.data
+
         try:
-            if self.cut[0] >= self.cut[1]:
-                raise AttributeError(f"Cut has to be specified like cut=(min, max) you specified {self.cut}")
+            if cut[0] >= cut[1]:
+                raise AttributeError(f"Cut has to be specified like cut=(min, max) you specified {cut}")
         except TypeError:
             # in case of comparison with None
             pass
 
-        df = self.data
-        if self.cut[0] is not None:
-            module_logger.debug(f"Cutting data before t={self.cut[0]}")
-            df = df.loc[df.time >= self.cut[0]]
+        if cut[0] is not None:
+            module_logger.debug(f"Cutting data before t={cut[0]}")
+            df = df.loc[df.time >= cut[0]]
 
-        if self.cut[1] is not None:
-            module_logger.debug(f"Cutting data after t={self.cut[1]}")
-            df = df.loc[df.time <= self.cut[1]]
+        if cut[1] is not None:
+            module_logger.debug(f"Cutting data after t={cut[1]}")
+            df = df.loc[df.time <= cut[1]]
 
         return df
 
@@ -176,6 +184,7 @@ class PmtData(object):
         :return: The axes object with the plot
         """
         module_logger.info("Plotting raw PMT data")
+        # TODO add cut functionality
         sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
         sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
