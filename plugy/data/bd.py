@@ -81,7 +81,7 @@ class ChannelMap(object):
         compounds = list()
 
         for open_valve in open_valves:
-            if open_valve in self.drugs:
+            if (open_valve in self.drugs) or (open_valve in self.media):
                 compounds.append(self.map[open_valve])
 
             # if open_valves in self.cells:
