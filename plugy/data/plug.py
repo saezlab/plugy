@@ -220,24 +220,29 @@ class PlugData(object):
 
         return samples_df
 
-    def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = None) -> plt.Axes:
+    def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
         Plots pmt data and superimposes rectangles with the called plugs upon the plot
         :param axes: plt.Axes object to plot to
         :param cut: tuple with (start_time, end_time) to subset the plot to a certain time range
         :return: plt.Axes object with the plot
         """
-        axes = self.pmt_data.plot_pmt_data(axes)
         module_logger.info("Plotting detected peaks")
+        axes = self.pmt_data.plot_pmt_data(axes, cut=cut)
+        
+        plug_df = self.plug_df
+        
+        if cut[0] is not None:
+            plug_df = plug_df.loc[plug_df.time >= cut[0]]
 
-        if cut is not None:
-            raise NotImplementedError("Plotting specific ranges is not yet implemented!")
+        if cut[1] is not None:
+            plug_df = plug_df.loc[plug_df.time <= cut[1]]
 
         # Plotting light green rectangles that indicate the used plug length and plug height
         bc_patches = list()
         readout_patches = list()
 
-        for plug in self.plug_df.itertuples():
+        for plug in plug_df.itertuples():
             if plug.barcode:
                 bc_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.barcode_peak_median))
             else:
