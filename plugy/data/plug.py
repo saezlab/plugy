@@ -227,7 +227,7 @@ class PlugData(object):
         :param cut: tuple with (start_time, end_time) to subset the plot to a certain time range
         :return: plt.Axes object with the plot
         """
-        axes = self.pmt_data.plot_raw_data(axes)
+        axes = self.pmt_data.plot_pmt_data(axes)
         module_logger.info("Plotting detected peaks")
 
         if cut is not None:

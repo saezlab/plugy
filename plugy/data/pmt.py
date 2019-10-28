@@ -178,7 +178,7 @@ class PmtData(object):
 
         return df
 
-    def plot_raw_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
+    def plot_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
         Plots the raw PMT data to the specified axes object
         :param axes: plt.Axes object to draw on
