@@ -106,7 +106,7 @@ class PmtData(object):
     def cut_data(self, **kwargs) -> pd.DataFrame:
         """
         Returns data between time range specified in cut
-        :param kwargs: "cut": specify an upper and lower limit (upper, lower) other than the one in the object already
+        :param kwargs: "cut": specify an upper and lower limit (lower, upper) other than the one in the object already
         :return: pd.DataFrame containing the data in the time range
         """
         module_logger.debug(f"Cutting {self.__repr__()}")
@@ -178,20 +178,21 @@ class PmtData(object):
 
         return df
 
-    def plot_raw_data(self, axes: plt.Axes) -> plt.Axes:
+    def plot_raw_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
         Plots the raw PMT data to the specified axes object
         :param axes: plt.Axes object to draw on
+        :param cut: Tuple to specify upper and lower time bounds for the pmt data to be plotted (lower, upper) 
         :return: The axes object with the plot
         """
-        module_logger.info("Plotting raw PMT data")
-        # TODO add cut functionality
-        sns.lineplot(x=self.data.time, y=self.data.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
-        sns.lineplot(x=self.data.time, y=self.data.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
-        sns.lineplot(x=self.data.time, y=self.data.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
-        axes.set_xticks(range(int(round(self.data.time.min())), int(round(self.data.time.max())), 10), minor=False)
-        # axes.set_xticks(range(int(round(self.data.time.min())), int(round(self.data.time.max())), 1), minor=True)
-        axes.set_xlim(left=int(round(self.data.time.min())), right=int(round(self.data.time.max())))
+        module_logger.debug(f"Plotting PMT data")
+        df = self.cut_data(cut=cut)
+        sns.lineplot(x=df.time, y=df.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
+        sns.lineplot(x=df.time, y=df.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
+        sns.lineplot(x=df.time, y=df.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
+        axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 10), minor=False)
+        # axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 1), minor=True)
+        axes.set_xlim(left=int(round(df.time.min())), right=int(round(df.time.max())))
         for tick in axes.get_xticklabels():
             tick.set_rotation(45)
         axes.set_xlabel("Time [s]")
