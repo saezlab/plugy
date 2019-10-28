@@ -255,7 +255,7 @@ class PlugData(object):
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
         labelled_df = samples_df
-        sample_sequence = self.plug_sequence.get_samples()
+        sample_sequence = self.plug_sequence.get_samples(channel_map=self.channel_map)
         # labelled_df.assign(sample_name=lambda row: sample_sequence.sequence[row.sample_nr].name)
         labelled_df["name"] = labelled_df.sample_nr.apply(lambda nr: sample_sequence.sequence[nr].name)
         labelled_df["compound_a"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
