@@ -20,7 +20,7 @@ import unittest
 
 import pathlib as pl
 
-from ..data.bd import ChannelMap, PlugSequence
+from ..data.bd import ChannelMap, PlugSequence, Sample
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -154,9 +154,9 @@ class TestPlugSequenceReadWrite(unittest.TestCase):
         """
         self.test_file_content = "\n1,12,Valve9,12,14,16,9\n1,12,Valve10,12,14,16,10\n1,12,Valve11,12,14,16,11\n"
 
-        self.test_sequence = (PlugSequence.Sample(1, 12, "Valve9", [12, 14, 16, 9]),
-                              PlugSequence.Sample(1, 12, "Valve10", [12, 14, 16, 10]),
-                              PlugSequence.Sample(1, 12, "Valve11", [12, 14, 16, 11]))
+        self.test_sequence = (Sample(1, 12, "Valve9", [12, 14, 16, 9]),
+                              Sample(1, 12, "Valve10", [12, 14, 16, 10]),
+                              Sample(1, 12, "Valve11", [12, 14, 16, 11]))
 
     def test_from_csv_file(self):
         """
@@ -185,26 +185,26 @@ class TestPlugSequenceReadWrite(unittest.TestCase):
 class TestPlugSequenceGenerate(unittest.TestCase):
     def setUp(self) -> None:
         self.test_gen_map_content = "9:CELLS\n10:SUBSTRATE\n11:FS\n12:FS\n13:Drug 1\n14:Drug 2\n15:Drug 3\n23:BCL\n24:BCH"
-        self.test_sequence = (PlugSequence.Sample(1, 15, "Start Cycle Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Drug 1", [9, 10, 11, 13]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Drug 2", [9, 10, 11, 14]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Drug 3", [9, 10, 11, 15]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Drug 1 + Drug 2", [9, 10, 13, 14]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Drug 1 + Drug 3", [9, 10, 13, 15]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Drug 2 + Drug 3", [9, 10, 14, 15]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
-                              PlugSequence.Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              PlugSequence.Sample(1, 15, "End Cycle Barcode", [11, 12, 23, 24]))
+        self.test_sequence = (Sample(1, 15, "Start Cycle Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Drug 1", [9, 10, 11, 13]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Drug 2", [9, 10, 11, 14]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Drug 3", [9, 10, 11, 15]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Drug 1 + Drug 2", [9, 10, 13, 14]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Drug 1 + Drug 3", [9, 10, 13, 15]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Drug 2 + Drug 3", [9, 10, 14, 15]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
+                              Sample(1, 10, "Barcode", [11, 12, 23, 24]),
+                              Sample(1, 15, "End Cycle Barcode", [11, 12, 23, 24]))
 
     def test_from_channel_map(self):
         with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
@@ -222,22 +222,22 @@ class TestPlugSequenceCheck(unittest.TestCase):
     """
     def test_sequence_type(self):
         with self.assertRaises(TypeError) as cm:
-            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), "test"))
-        self.assertEqual(cm.exception.args[0], "Samples in the plug sequence have to be of class PlugSequence.Sample, you specified <class 'str'> in sample 1")
+            PlugSequence((Sample(1, 12, "Test", [11, 12, 13, 14]), "test"))
+        self.assertEqual(cm.exception.args[0], "Samples in the plug sequence have to be of class Sample, you specified <class 'str'> in sample 1")
 
     def test_sequence_many_valves(self):
         with self.assertRaises(ValueError) as cm:
-            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14, 15])))
+            PlugSequence((Sample(1, 12, "Test", [11, 12, 13, 14]), Sample(1, 12, "Test", [11, 12, 13, 14, 15])))
         self.assertEqual(cm.exception.args[0], "Sample 1 found with more than 4 valves open (5), THIS WILL DESTROY THE CHIP!")
 
     def test_sequence_few_valves(self):
         with self.assertWarns(UserWarning) as cm:
-            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), PlugSequence.Sample(1, 12, "Test", [11, 12, 13])))
+            PlugSequence((Sample(1, 12, "Test", [11, 12, 13, 14]), Sample(1, 12, "Test", [11, 12, 13])))
         self.assertEqual(cm.warning.args[0], "Less than 4 valves open (3) in sample 1")
 
     def test_sequence_other_valves(self):
         with self.assertRaises(ValueError) as cm:
-            PlugSequence((PlugSequence.Sample(1, 12, "Test", [11, 12, 13, 14]), PlugSequence.Sample(1, 12, "Test", [1, -12, 13, 14])))
+            PlugSequence((Sample(1, 12, "Test", [11, 12, 13, 14]), Sample(1, 12, "Test", [1, -12, 13, 14])))
         self.assertEqual(cm.exception.args[0], "Sample 1 contains valves that are not used on the chip ([1, -12, 13, 14])")
 
 

@@ -27,6 +27,8 @@ import warnings
 
 module_logger = logging.getLogger("plugy.data.bd")
 
+Sample = coll.namedtuple("Sample", ["open_duration", "n_replicates", "name", "open_valves"])
+
 
 @dataclass
 class ChannelMap(object):
@@ -99,8 +101,6 @@ class ChannelMap(object):
 
 
 class PlugSequence(object):
-    Sample = coll.namedtuple("Sample", ["open_duration", "n_replicates", "name", "open_valves"])
-
     @classmethod
     def from_csv_file(cls, input_file: pl.Path):
         """
@@ -117,7 +117,7 @@ class PlugSequence(object):
                     continue
                 else:
                     # noinspection PyCallByClass
-                    sequence.append(cls.Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
+                    sequence.append(Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
 
         return cls(sequence=tuple(sequence))
 
@@ -142,16 +142,16 @@ class PlugSequence(object):
         samples = list()
 
         # Generate templates
-        control = cls.Sample(open_duration=open_duration, n_replicates=n_control, name="Cell Control", open_valves=channel_map.cells + channel_map.substrate + channel_map.media)
-        barcode = cls.Sample(open_duration=open_duration, n_replicates=n_barcode, name="Barcode", open_valves=channel_map.media + channel_map.bc)
+        control = Sample(open_duration=open_duration, n_replicates=n_control, name="Cell Control", open_valves=channel_map.cells + channel_map.substrate + channel_map.media)
+        barcode = Sample(open_duration=open_duration, n_replicates=n_barcode, name="Barcode", open_valves=channel_map.media + channel_map.bc)
         individual_drugs = list()
         for drug in channel_map.drugs:
-            individual_drugs.append(cls.Sample(open_duration=open_duration, n_replicates=n_replicates, name=channel_map.map[drug], open_valves=channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
+            individual_drugs.append(Sample(open_duration=open_duration, n_replicates=n_replicates, name=channel_map.map[drug], open_valves=channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
             if generate_barcodes:
                 individual_drugs.append(barcode)
 
         # Generate sample list
-        samples.append(cls.Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="Start Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
+        samples.append(Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="Start Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
         samples.append(control)
         if generate_barcodes:
             samples.append(barcode)
@@ -163,7 +163,7 @@ class PlugSequence(object):
                 samples.append(barcode)
 
             samples.append(
-                cls.Sample(open_duration=open_duration, n_replicates=n_replicates, name=f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}", open_valves=channel_map.cells + channel_map.substrate + list(combination)))
+                Sample(open_duration=open_duration, n_replicates=n_replicates, name=f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}", open_valves=channel_map.cells + channel_map.substrate + list(combination)))
             if generate_barcodes:
                 samples.append(barcode)
 
@@ -171,7 +171,7 @@ class PlugSequence(object):
         if generate_barcodes:
             samples.append(barcode)
 
-        samples.append(cls.Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="End Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
+        samples.append(Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="End Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
         return cls(sequence=tuple(samples), channel_map=channel_map)
 
     def __init__(self, sequence: tuple, **kwargs):
@@ -194,8 +194,8 @@ class PlugSequence(object):
         module_logger.debug("Checking plug sequence")
 
         for idx, sample in enumerate(self.sequence):
-            if not isinstance(sample, PlugSequence.Sample):
-                raise TypeError(f"Samples in the plug sequence have to be of class PlugSequence.Sample, you specified {type(sample)} in sample {idx}")
+            if not isinstance(sample, Sample):
+                raise TypeError(f"Samples in the plug sequence have to be of class Sample, you specified {type(sample)} in sample {idx}")
 
             if len(sample.open_valves) < 4:
                 warnings.warn(f"Less than 4 valves open ({len(sample.open_valves)}) in sample {idx}")

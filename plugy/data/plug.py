@@ -15,6 +15,9 @@ See accompanying file LICENSE.txt or copy at
 
 """
 import logging
+import pickle
+
+import pathlib as pl
 
 import pandas as pd
 import scipy.signal as sig
@@ -326,3 +329,11 @@ class PlugData(object):
         # axes.set_title(f"{drug} Cycle {cycle}")
 
         # return axes
+
+    def save(self, file_path: pl.Path):
+        """
+        Saves this PlugData object as pickle
+        :param file_path: Path to the file to write to
+        """
+        with file_path.open("wb") as f:
+            pickle.dump(self, f)
