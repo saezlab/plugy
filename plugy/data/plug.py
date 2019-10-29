@@ -273,7 +273,19 @@ class PlugData(object):
         Creates a plot with pmt data for the individual samples and cycles.
         :return: plt.Figure and plt.Axes object with the plot
         """
-        pass
+        names = self.sample_df.name.unique()
+        cycles = sorted(self.sample_df.cycle_nr.unique())
+
+        sample_cycle_fig, sample_cycle_ax = plt.subplots(nrows=len(names), ncols=len(cycles), figsize=(7 * len(cycles), 5 * len(names)))
+
+        for idx_y, name in enumerate(names):
+            for idx_x, cycle in enumerate(cycles):
+                module_logger.debug(f"Plotting sample {idx_y + 1} of {len(names)}, cycle {idx_x + 1} of {len(cycles)}")
+                sample_cycle_ax[idx_y][idx_x] = self.plot_sample(name=name, cycle_nr=cycle, axes=sample_cycle_ax[idx_y][idx_x])
+                sample_cycle_ax[idx_y][idx_x].set_ylim((0, 0.5))
+
+        sample_cycle_fig.tight_layout()
+        return sample_cycle_fig, sample_cycle_ax
 
     def plot_sample(self, name: str, cycle_nr: int, axes: plt.Axes, offset: int = 10) -> plt.Axes:
         """
