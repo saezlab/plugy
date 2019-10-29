@@ -195,16 +195,17 @@ class PmtData(object):
             sns.lineplot(x=df.time, y=df.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
             sns.lineplot(x=df.time, y=df.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
             sns.lineplot(x=df.time, y=df.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
-            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 10), minor=False)
-            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), 1), minor=True)
-            # axes.get_yaxis().set_major_locator(ticker.MultipleLocator(0.1))
-            # axes.get_yaxis().set_minor_locator(ticker.MultipleLocator(0.05))
-            #
-            # axes.get_xaxis().set_major_locator(ticker.MultipleLocator(10))
-            # axes.get_xaxis().set_minor_locator(ticker.MultipleLocator(1))
+
+            if df.time.max() - df.time.min() > 1000:
+                major_tick_freq = 100
+                minor_tick_freq = 25
+            else:
+                major_tick_freq = 10
+                minor_tick_freq = 1
+
+            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), major_tick_freq), minor=False)
+            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), minor_tick_freq), minor=True)
             axes.set_xlim(left=int(round(df.time.min())), right=int(round(df.time.max())))
-            for tick in axes.get_xticklabels():
-                tick.set_rotation(45)
 
             axes.grid(b=True, which='major', color='w', linewidth=1.0)
             axes.grid(b=True, which='minor', color='w', linewidth=0.5)
