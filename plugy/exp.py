@@ -69,6 +69,9 @@ class PlugExperiment(object):
                                   config=self.config)
 
     def check_config(self):
+        """
+        Checks if pmt_file, seq_file and config_file exist as specified in the PlugyConfig
+        """
         files_to_check = {"pmt_file": self.config.pmt_file, "seq_file": self.config.seq_file, "config_file": self.config.channel_file}
         errors = list()
 
