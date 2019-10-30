@@ -31,6 +31,7 @@ module_logger = logging.getLogger("plugy.data.exp")
 @dataclass
 class PlugExperiment(object):
     config: PlugyConfig = PlugyConfig()
+    ignore_qc_result = False
 
     def __post_init__(self):
         module_logger.info(f"Initializing PlugExperiment using the following configuration")
@@ -68,6 +69,9 @@ class PlugExperiment(object):
                                   min_end_cycle_barcodes=self.config.min_end_cycle_barcodes,
                                   config=self.config)
 
+        self.qc()
+        self.drug_combination_analysis()
+
     def check_config(self):
         """
         Checks if pmt_file, seq_file and config_file exist as specified in the PlugyConfig
@@ -94,3 +98,25 @@ class PlugExperiment(object):
                 module_logger.critical(error.args[0])
 
             raise AssertionError("One or more file paths are not properly specified, see the log for more information!")
+
+    def qc(self):
+        """
+        Produces multiple QC plots and metrics to evaluate the technical quality of the PlugExperiment
+        :return: True if quality is sufficient, False otherwise
+        """
+        qc_successful = True
+
+        if qc_successful:
+            module_logger.critical("Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True")
+        else:
+            module_logger.info("Quality control successful")
+
+        if not self.ignore_qc_result:
+            assert qc_successful, "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
+        return qc_successful
+
+    def drug_combination_analysis(self):
+        """
+        Analyzes drug combinations and
+        """
+        pass
