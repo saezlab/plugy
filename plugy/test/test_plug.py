@@ -136,10 +136,10 @@ class TestPlugData(unittest.TestCase):
             self.channel_file.seek(0)
             self.channel_map = bd.ChannelMap(pl.Path(self.channel_file.name))
 
-        self.plug_sequence = bd.PlugSequence((bd.PlugSequence.Sample(1, 2, "Drug 1 + Drug 2", [9, 10, 13, 14]),
-                                              bd.PlugSequence.Sample(1, 1, "Barcode", [11, 12, 23, 24]),
-                                              bd.PlugSequence.Sample(1, 2, "Drug 1 + Drug 3", [9, 10, 13, 15]),
-                                              bd.PlugSequence.Sample(1, 3, "End Cycle Barcode", [11, 12, 23, 24])), channel_map=self.channel_map)
+        self.plug_sequence = bd.PlugSequence((bd.Sample(1, 2, "Drug 1 + Drug 2", [9, 10, 13, 14]),
+                                              bd.Sample(1, 1, "Barcode", [11, 12, 23, 24]),
+                                              bd.Sample(1, 2, "Drug 1 + Drug 3", [9, 10, 13, 15]),
+                                              bd.Sample(1, 3, "End Cycle Barcode", [11, 12, 23, 24])), channel_map=self.channel_map)
 
         self.labelled_sample_data = self.sample_data.assign(name=["Drug 1 + Drug 2",
                                                                   "Drug 1 + Drug 2",
