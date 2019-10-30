@@ -15,10 +15,44 @@ See accompanying file LICENSE.txt or copy at
 
 """
 
+import pathlib as pl
+
 from dataclasses import dataclass, field
 
 
 @dataclass
 class PlugyConfig(object):
-    channels: dict = field(default_factory=lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    # File Paths
+    pmt_file: pl.Path = None
+    seq_file: pl.Path = None
+    channel_file: pl.Path = None
+    result_dir: pl.Path = pl.Path.cwd().joinpath("results")
+
+    # General config
+    figure_export_file_type: str = "svg"
     colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+
+    # PMT configuration
+    channels: dict = field(default_factory=lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    acquisition_rate: int = 300
+    cut: tuple = (None, None)
+    correct_acquisition_time: bool = True
+    ignore_orange_channel: bool = False
+    ignore_green_channel: bool = False
+    ignore_uv_channel: bool = False
+    digital_gain_uv: float = 1.0
+    digital_gain_green: float = 1.0
+    digital_gain_orange: float = 1.0
+
+    # Plug Calling
+    peak_min_threshold: float = 0.05
+    peak_max_threshold: float = 2.0
+    peak_min_distance: float = 0.03
+    peak_min_prominence: float = 0
+    peak_max_prominence: float = 10
+    peak_min_width: float = 0.5
+    peak_max_width: float = 1.5
+    width_rel_height: float = 0.5
+    merge_peaks_distance: float = 0.2
+    n_bc_adjacent_discards: int = 1
+    min_end_cycle_barcodes: int = 12
