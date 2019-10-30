@@ -15,6 +15,42 @@ See accompanying file LICENSE.txt or copy at
 
 """
 
+import logging
+import pathlib as pl
 
+from .data.config import PlugyConfig
+from dataclasses import dataclass
+
+module_logger = logging.getLogger("plugy.data.exp")
+
+
+@dataclass
 class PlugExperiment(object):
-    pass
+    config: PlugyConfig = PlugyConfig()
+    
+    def __post_init__(self):
+        self.check_config()
+
+    def check_config(self):
+        files_to_check = {"pmt_file": self.config.pmt_file, "seq_file": self.config.seq_file, "config_file": self.config.channel_file}
+        errors = list()
+
+        for name, file in files_to_check.items():
+            try:
+                # If file is per default None
+                assert isinstance(file, pl.Path), f"{name} was not specified as pathlib.Path object (is of {type(file)}) in PlugyConfig but is mandatory for PlugExperiment"
+
+                # If file exists
+                try:
+                    file.exists(), f"{name} specified in PlugyConfig {file.absolute()} does not exist but is mandatory for PlugExperiment"
+                except AssertionError as error:
+                    errors.append(error)
+
+            except AssertionError as error:
+                errors.append(error)
+
+        if len(errors) > 0:
+            for error in errors:
+                module_logger.critical(error.args[0])
+
+            raise AssertionError("One or more file paths are not properly specified, see the log for more information!")
