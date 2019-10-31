@@ -359,10 +359,22 @@ class PlugData(object):
         :param hue: Name of the column in plug_df that is used to color the dots
         :return: plt.Axes object with the plot
         """
+
         if filtered:
-            contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.sample_df, ax=axes)
+            norm_df = self.sample_df
         else:
-            contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.plug_df, ax=axes)
+            norm_df = self.plug_df
+
+        norm_df = norm_df.assign(norm_x=norm_df[channel_x] / norm_df[channel_x].mean(), norm_y=norm_df[channel_y] / norm_df[channel_y].mean())
+
+        contamination_plot = sns.scatterplot(x="norm_x", y="norm_y", hue=hue, data=norm_df, ax=axes)
+        axes.set_xlabel(channel_x)
+        axes.set_ylabel(channel_y)
+
+        # if filtered:
+        #     contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.sample_df, ax=axes)
+        # else:
+        #     contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.plug_df, ax=axes)
         return contamination_plot
 
     def save(self, file_path: pl.Path):
