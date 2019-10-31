@@ -56,3 +56,8 @@ class PlugyConfig(object):
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
+
+    # Plotting config
+    seaborn_context = "notebook"
+    seaborn_style = "darkgrid"
+    plot_git_caption = True

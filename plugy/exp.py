@@ -69,6 +69,9 @@ class PlugExperiment(object):
                                   min_end_cycle_barcodes=self.config.min_end_cycle_barcodes,
                                   config=self.config)
 
+        sns.set_context(self.config.seaborn_context)
+        sns.set_style(self.config.seaborn_style)
+
         self.qc()
         self.drug_combination_analysis()
 
