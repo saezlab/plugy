@@ -117,11 +117,28 @@ class PlugExperiment(object):
         if not qc_dir.exists():
             qc_dir.mkdir()
 
+        # Plotting length bias
         length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(length_bias_plot.fig)
         length_bias_plot.fig.tight_layout()
         length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
+
+        # Plotting contamination
+        contamination_fig, contamination_ax = plt.subplots(2, 2, sharex="all", sharey="all", figsize=(20, 20))
+        for idx_y, channel in enumerate(["readout_peak_median", "control_peak_median"]):
+            for idx_x, hue in enumerate(["start_time", "barcode"]):
+                contamination_ax[idx_y][idx_x] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y=channel, hue=hue, axes=contamination_ax[idx_y][idx_x])
+
+        # contamination_ax[0] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y="readout_peak_median", hue="start_time", axes=contamination_ax[0])
+        # contamination_ax[0].set_title("Contamination of readout")
+        # contamination_ax[1] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y="control_peak_median", hue="start_time", axes=contamination_ax[1])
+        # contamination_ax[1].set_title("Contamination of control")
+
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(contamination_fig)
+        contamination_fig.tight_layout()
+        contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
 
         if qc_successful:
             module_logger.info("Quality control successful")
