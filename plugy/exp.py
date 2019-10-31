@@ -141,6 +141,8 @@ class PlugExperiment(object):
         contamination_fig.tight_layout()
         contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
 
+        qc_successful = qc_successful and self.quantify_contamination()
+
         # # Plotting PMT overview
         # sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
         # if self.config.plot_git_caption:
@@ -156,6 +158,19 @@ class PlugExperiment(object):
             assert qc_successful, "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
 
         return qc_successful
+
+    def quantify_contamination(self):
+        """
+        Normalizes filtered plug data to the means of the unfiltered data and calculates an average relative contamination.
+        :return: True if average contamination is below contamination_threshold, False otherwise
+        """
+        barcode_mean = self.plug_data.plug_df.loc[self.plug_data.plug_df.barcode].barcode_peak_median.mean()
+        control_mean = self.plug_data.sample_df.control_peak_median.mean()
+        norm_df = self.plug_data.sample_df.assign(norm_barcode=self.plug_data.sample_df.barcode_peak_median / barcode_mean,
+                                                  ctrl_barcode=self.plug_data.sample_df.control_peak_median / control_mean)
+
+        raise NotImplementedError("TODO")
+        # avg_contamination =
 
     def drug_combination_analysis(self):
         """

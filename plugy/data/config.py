@@ -61,3 +61,6 @@ class PlugyConfig(object):
     seaborn_context = "notebook"
     seaborn_style = "darkgrid"
     plot_git_caption = True
+
+    # QC
+    contamination_threshold: float = 0.03
