@@ -141,11 +141,11 @@ class PlugExperiment(object):
         contamination_fig.tight_layout()
         contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
 
-        # Plotting PMT overview
-        sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
-        if self.config.plot_git_caption:
-            helpers.addGitHashCaption(sample_cycle_fig)
-        sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
+        # # Plotting PMT overview
+        # sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
+        # if self.config.plot_git_caption:
+        #     helpers.addGitHashCaption(sample_cycle_fig)
+        # sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
 
         if qc_successful:
             module_logger.info("Quality control successful")

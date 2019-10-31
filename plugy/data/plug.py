@@ -349,7 +349,7 @@ class PlugData(object):
 
         return length_bias_plot
 
-    def plot_contamination(self, channel_x: str, channel_y: str, axes: plt.Axes, filtered: bool = False, hue: str = "start_time") -> plt.Axes:
+    def plot_contamination(self, channel_x: str, channel_y: str, axes: plt.Axes, filtered: bool = False, hue: str = "start_time", normalize: bool = False) -> plt.Axes:
         """
         Plots contamination as a scatter plot
         :param channel_x: Name of the channel to be plotted on the x axis (e.g. readout_peak_median, bc_peak_median, control_peak_median)
@@ -357,6 +357,7 @@ class PlugData(object):
         :param filtered: True if sample_df should be used, False if raw plug_df should be used
         :param axes: plt.Axes object to draw on
         :param hue: Name of the column in plug_df that is used to color the dots
+        :param normalize: True plug data should be scaled by its mean
         :return: plt.Axes object with the plot
         """
 
@@ -365,11 +366,17 @@ class PlugData(object):
         else:
             norm_df = self.plug_df
 
-        norm_df = norm_df.assign(norm_x=norm_df[channel_x] / norm_df[channel_x].mean(), norm_y=norm_df[channel_y] / norm_df[channel_y].mean())
+        if normalize:
+            norm_df = norm_df.assign(norm_x=norm_df[channel_x] / norm_df[channel_x].mean(), norm_y=norm_df[channel_y] / norm_df[channel_y].mean())
+            contamination_plot = sns.scatterplot(x="norm_x", y="norm_y", hue=hue, data=norm_df, ax=axes)
+            axes.set_xlabel(channel_x + " [% of mean]")
+            axes.set_ylabel(channel_y + " [% of mean]")
 
-        contamination_plot = sns.scatterplot(x="norm_x", y="norm_y", hue=hue, data=norm_df, ax=axes)
-        axes.set_xlabel(channel_x)
-        axes.set_ylabel(channel_y)
+        else:
+            contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=norm_df, ax=axes)
+            axes.set_xlabel(channel_x + " [AU]")
+            axes.set_ylabel(channel_y + " [AU]")
+
 
         # if filtered:
         #     contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.sample_df, ax=axes)
