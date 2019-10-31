@@ -76,6 +76,9 @@ class PlugExperiment(object):
         sns.set_context(self.config.seaborn_context)
         sns.set_style(self.config.seaborn_style)
 
+        if not self.config.result_dir.exists():
+            self.config.result_dir.mkdir()
+
         self.qc()
         self.drug_combination_analysis()
 
@@ -133,15 +136,16 @@ class PlugExperiment(object):
                 contamination_ax[idx_y][idx_x] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y=channel, hue=hue, filtered=False, axes=contamination_ax[idx_y][idx_x])
                 contamination_ax[idx_y][idx_x].set_title("Unfiltered")
 
-        # contamination_ax[0] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y="readout_peak_median", hue="start_time", axes=contamination_ax[0])
-        # contamination_ax[0].set_title("Contamination of readout")
-        # contamination_ax[1] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y="control_peak_median", hue="start_time", axes=contamination_ax[1])
-        # contamination_ax[1].set_title("Contamination of control")
-
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(contamination_fig)
         contamination_fig.tight_layout()
         contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
+
+        # Plotting PMT overview
+        sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(sample_cycle_fig)
+        sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
 
         if qc_successful:
             module_logger.info("Quality control successful")
