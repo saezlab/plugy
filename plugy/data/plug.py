@@ -349,16 +349,20 @@ class PlugData(object):
 
         return length_bias_plot
 
-    def plot_contamination(self, channel_x: str, channel_y: str, axes: plt.Axes, hue: str = "start_time") -> plt.Axes:
+    def plot_contamination(self, channel_x: str, channel_y: str, axes: plt.Axes, filtered: bool = False, hue: str = "start_time") -> plt.Axes:
         """
         Plots contamination as a scatter plot
         :param channel_x: Name of the channel to be plotted on the x axis (e.g. readout_peak_median, bc_peak_median, control_peak_median)
         :param channel_y: Name of the channel to be plotted on the y axis (e.g. readout_peak_median, bc_peak_median, control_peak_median)
+        :param filtered: True if sample_df should be used, False if raw plug_df should be used
         :param axes: plt.Axes object to draw on
         :param hue: Name of the column in plug_df that is used to color the dots
         :return: plt.Axes object with the plot
         """
-        contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.plug_df, ax=axes)
+        if filtered:
+            contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.sample_df, ax=axes)
+        else:
+            contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.plug_df, ax=axes)
         return contamination_plot
 
     def save(self, file_path: pl.Path):

@@ -125,10 +125,13 @@ class PlugExperiment(object):
         length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
 
         # Plotting contamination
-        contamination_fig, contamination_ax = plt.subplots(2, 2, sharex="all", sharey="all", figsize=(20, 20))
+        contamination_fig, contamination_ax = plt.subplots(2, 3, sharex="all", sharey="all", figsize=(30, 20))
         for idx_y, channel in enumerate(["readout_peak_median", "control_peak_median"]):
+            contamination_ax[idx_y][2] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y=channel, hue="start_time", filtered=True, axes=contamination_ax[idx_y][2])
+            contamination_ax[idx_y][2].set_title("Filtered")
             for idx_x, hue in enumerate(["start_time", "barcode"]):
-                contamination_ax[idx_y][idx_x] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y=channel, hue=hue, axes=contamination_ax[idx_y][idx_x])
+                contamination_ax[idx_y][idx_x] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y=channel, hue=hue, filtered=False, axes=contamination_ax[idx_y][idx_x])
+                contamination_ax[idx_y][idx_x].set_title("Unfiltered")
 
         # contamination_ax[0] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y="readout_peak_median", hue="start_time", axes=contamination_ax[0])
         # contamination_ax[0].set_title("Contamination of readout")
