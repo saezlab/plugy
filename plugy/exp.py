@@ -18,10 +18,14 @@ See accompanying file LICENSE.txt or copy at
 import logging
 import pathlib as pl
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from .data.config import PlugyConfig
 from .data.bd import ChannelMap, PlugSequence
 from .data.pmt import PmtData
 from .data.plug import PlugData
+import lib.helpers.helpers as helpers
 
 from dataclasses import dataclass
 
@@ -108,14 +112,25 @@ class PlugExperiment(object):
         :return: True if quality is sufficient, False otherwise
         """
         qc_successful = True
+        qc_dir = self.config.result_dir.joinpath("qc")
+
+        if not qc_dir.exists():
+            qc_dir.mkdir()
+
+        length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(length_bias_plot.fig)
+        length_bias_plot.fig.tight_layout()
+        length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
 
         if qc_successful:
-            module_logger.critical("Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True")
-        else:
             module_logger.info("Quality control successful")
+        else:
+            module_logger.critical("Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True")
 
         if not self.ignore_qc_result:
             assert qc_successful, "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
+
         return qc_successful
 
     def drug_combination_analysis(self):

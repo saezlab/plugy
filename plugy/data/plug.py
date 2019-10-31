@@ -25,6 +25,7 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
+import seaborn as sns
 
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
@@ -329,6 +330,24 @@ class PlugData(object):
         # axes.set_title(f"{drug} Cycle {cycle}")
 
         # return axes
+
+    # QC Plots
+    def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
+        """
+        Plots each plugs fluorescence over its length grouped by valve. Also fits a linear regression to show if there
+        is a correlation between the readout and the plug length indicating non ideal mixing.
+        :param col_wrap: After how many subplots the column should be wrapped.
+        :return: sns.FacetGrid object with the subplots
+        """
+        df = self.sample_df.assign(length=self.sample_df.end_time - self.sample_df.start_time)
+        length_bias_plot = sns.lmplot(x="length", y="readout_peak_median", col="name", data=df, col_wrap=col_wrap)
+        length_bias_plot.set_xlabels("Length")
+        length_bias_plot.set_ylabels("Fluorescence [AU]")
+
+        length_bias_plot.set(ylim=(0, df.readout_peak_median.max()),
+                             xlim=(df.length.min(), df.length.max()))
+
+        return length_bias_plot
 
     def save(self, file_path: pl.Path):
         """
