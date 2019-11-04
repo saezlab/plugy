@@ -19,6 +19,7 @@ import logging
 import pathlib as pl
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 
 from .data.config import PlugyConfig
@@ -128,6 +129,19 @@ class PlugExperiment(object):
         length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
 
         # Plotting contamination
+        contamination = self.get_contamination()
+        if contamination.mean() > self.config.contamination_threshold:
+            qc_successful = False
+
+        contamination_hist_fig, contamination_hist_ax = plt.subplots()
+        sns.distplot(contamination, kde=True, ax=contamination_hist_ax)
+        contamination_hist_ax.set_title("Relative barcode contamination")
+        contamination_hist_ax.set_xlabel(r"Relative contamination $\left[\frac{\overline{barcode_{median}}}{\overline{control_{median}}}\right]$")
+        contamination_hist_ax.set_ylabel("Counts")
+        helpers.addGitHashCaption(contamination_hist_fig)
+        contamination_hist_fig.tight_layout()
+        contamination_hist_fig.savefig(qc_dir.joinpath(f"contamination_hist.{self.config.figure_export_file_type}"))
+
         contamination_fig, contamination_ax = plt.subplots(2, 3, sharex="all", sharey="all", figsize=(30, 20))
         for idx_y, channel in enumerate(["readout_peak_median", "control_peak_median"]):
             contamination_ax[idx_y][2] = self.plug_data.plot_contamination(channel_x="barcode_peak_median", channel_y=channel, hue="start_time", filtered=True, axes=contamination_ax[idx_y][2])
@@ -141,7 +155,6 @@ class PlugExperiment(object):
         contamination_fig.tight_layout()
         contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
 
-        qc_successful = qc_successful and self.quantify_contamination()
 
         # # Plotting PMT overview
         # sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
@@ -159,18 +172,17 @@ class PlugExperiment(object):
 
         return qc_successful
 
-    def quantify_contamination(self):
+    def get_contamination(self) -> pd.Series:
         """
-        Normalizes filtered plug data to the means of the unfiltered data and calculates an average relative contamination.
-        :return: True if average contamination is below contamination_threshold, False otherwise
+        Normalizes filtered plug data to the means of the unfiltered data.
+        :return: Series with the relative contamination of the plugs in sample_df
         """
         barcode_mean = self.plug_data.plug_df.loc[self.plug_data.plug_df.barcode].barcode_peak_median.mean()
         control_mean = self.plug_data.sample_df.control_peak_median.mean()
         norm_df = self.plug_data.sample_df.assign(norm_barcode=self.plug_data.sample_df.barcode_peak_median / barcode_mean,
-                                                  ctrl_barcode=self.plug_data.sample_df.control_peak_median / control_mean)
+                                                  norm_control=self.plug_data.sample_df.control_peak_median / control_mean)
 
-        raise NotImplementedError("TODO")
-        # avg_contamination =
+        return norm_df.norm_barcode / norm_df.norm_control
 
     def drug_combination_analysis(self):
         """
