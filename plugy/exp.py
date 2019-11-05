@@ -170,24 +170,10 @@ class PlugExperiment(object):
         control_ax_readout_correlation = self.plug_data.plot_control_readout_correlation(control_ax_readout_correlation)
         control_ax_control_heatmap = self.plug_data.plot_control_channel_histogram(control_ax_control_heatmap)
 
-        # control_fig, control_ax = plt.subplots(1, 5, figsize=(50, 10))
-        # control_ax[0] = self.plug_data.plot_control_regression(control_ax[0])
-        # control_ax[1] = self.plug_data.plot_control_cycle_dist(control_ax[1])
-        # control_ax[2] = self.plug_data.plot_control_sample_dist(control_ax[2])
-        # control_ax[3] = self.plug_data.plot_control_readout_correlation(control_ax[3])
-        # control_ax[4] = self.plug_data.plot_control_channel_histogram(control_ax[4])
-
-        # control_fig.suptitle("Control Channel Quality Control")
         control_fig.tight_layout()
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(control_fig)
         control_fig.savefig(qc_dir.joinpath(f"control_fluorescence.{self.config.figure_export_file_type}"))
-
-
-        # control_cluster = self.plug_data.plot_control_channel_histogram()
-        # if self.config.plot_git_caption:
-        #     helpers.addGitHashCaption(control_cluster.fig)
-        # control_cluster.savefig(f"control_clustering.{self.config.figure_export_file_type}")
 
         # # Plotting PMT overview
         # sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
