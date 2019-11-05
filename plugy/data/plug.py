@@ -424,11 +424,12 @@ class PlugData(object):
 
     def plot_control_readout_correlation(self, axes: plt.Axes) -> plt.Axes:
         """
-        Correlates control and readout peak medians and calculates a linear regression
+        Correlates control and readout peak medians
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        axes = sns.regplot(x="control_peak_median", y="readout_peak_median",  data=self.sample_df, ax=axes)
+        # axes = sns.regplot(x="control_peak_median", y="readout_peak_median",  data=self.sample_df, ax=axes)
+        axes = sns.scatterplot(x="control_peak_median", y="readout_peak_median", hue="sample_nr", style="cycle_nr", data=self.sample_df, ax=axes)
         axes.set_title("Readout - Control Correlation")
         axes.set_xlabel("Control Peak Median Fluorescence Intensity [AU]")
         axes.set_ylabel("Readout Peak Median Fluorescence Intensity [AU]")
