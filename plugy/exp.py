@@ -156,13 +156,28 @@ class PlugExperiment(object):
         contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
 
         # Plotting control
-        control_fig, control_ax = plt.subplots(1, 5, figsize=(50, 10))
-        control_ax[0] = self.plug_data.plot_control_regression(control_ax[0])
-        control_ax[1] = self.plug_data.plot_control_cycle_dist(control_ax[1])
-        control_ax[2] = self.plug_data.plot_control_sample_dist(control_ax[2])
-        control_ax[3] = self.plug_data.plot_control_readout_correlation(control_ax[3])
-        control_ax[4] = self.plug_data.plot_control_channel_histogram(control_ax[4])
+        control_fig = plt.figure(figsize=(40, 20), constrained_layout=False)
+        control_fig_gs = control_fig.add_gridspec(nrows=2, ncols=4)
+        control_ax_sample_dist = control_fig.add_subplot(control_fig_gs[0, :])
+        control_ax_control_regression = control_fig.add_subplot(control_fig_gs[1, 0])
+        control_ax_cycle_dist = control_fig.add_subplot(control_fig_gs[1, 1])
+        control_ax_readout_correlation = control_fig.add_subplot(control_fig_gs[1, 2])
+        control_ax_control_heatmap = control_fig.add_subplot(control_fig_gs[1, 3])
 
+        control_ax_control_regression = self.plug_data.plot_control_regression(control_ax_control_regression)
+        control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(control_ax_cycle_dist)
+        control_ax_sample_dist = self.plug_data.plot_control_sample_dist(control_ax_sample_dist)
+        control_ax_readout_correlation = self.plug_data.plot_control_readout_correlation(control_ax_readout_correlation)
+        control_ax_control_heatmap = self.plug_data.plot_control_channel_histogram(control_ax_control_heatmap)
+
+        # control_fig, control_ax = plt.subplots(1, 5, figsize=(50, 10))
+        # control_ax[0] = self.plug_data.plot_control_regression(control_ax[0])
+        # control_ax[1] = self.plug_data.plot_control_cycle_dist(control_ax[1])
+        # control_ax[2] = self.plug_data.plot_control_sample_dist(control_ax[2])
+        # control_ax[3] = self.plug_data.plot_control_readout_correlation(control_ax[3])
+        # control_ax[4] = self.plug_data.plot_control_channel_histogram(control_ax[4])
+
+        control_fig.suptitle("Control Channel Quality Control")
         control_fig.tight_layout()
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(control_fig)
