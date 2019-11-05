@@ -439,7 +439,7 @@ class PlugData(object):
 
         return axes
 
-    def plot_control_channel_histogram(self, axes: plt.Axes) -> plt.Axes:
+    def plot_control_channel_heatmap(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots a histogram to find influences of a certain valve on the control peak median
         :param axes:
@@ -454,7 +454,7 @@ class PlugData(object):
         heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "control_peak_median")
 
         axes = sns.heatmap(heatmap_data, ax=axes)
-        axes.set_title("Mean control peak fluorescence [AU] by combination")
+        axes.set_title("Mean control peak fluorescence by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")
 

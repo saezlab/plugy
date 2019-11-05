@@ -168,7 +168,7 @@ class PlugExperiment(object):
         control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(control_ax_cycle_dist)
         control_ax_sample_dist = self.plug_data.plot_control_sample_dist(control_ax_sample_dist)
         control_ax_readout_correlation = self.plug_data.plot_control_readout_correlation(control_ax_readout_correlation)
-        control_ax_control_heatmap = self.plug_data.plot_control_channel_histogram(control_ax_control_heatmap)
+        control_ax_control_heatmap = self.plug_data.plot_control_channel_heatmap(control_ax_control_heatmap)
 
         control_fig.tight_layout()
         if self.config.plot_git_caption:
