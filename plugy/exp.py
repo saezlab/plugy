@@ -14,7 +14,6 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
-import fastcluster
 import logging
 import pathlib as pl
 
@@ -80,7 +79,7 @@ class PlugExperiment(object):
         if not self.config.result_dir.exists():
             self.config.result_dir.mkdir()
 
-        self.qc()
+        # self.qc()
         self.drug_combination_analysis()
 
     def check_config(self):
@@ -175,11 +174,11 @@ class PlugExperiment(object):
             helpers.addGitHashCaption(control_fig)
         control_fig.savefig(qc_dir.joinpath(f"control_fluorescence.{self.config.figure_export_file_type}"))
 
-        # # Plotting PMT overview
-        # sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
-        # if self.config.plot_git_caption:
-        #     helpers.addGitHashCaption(sample_cycle_fig)
-        # sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
+        # Plotting PMT overview
+        sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(sample_cycle_fig)
+        sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
 
         if qc_successful:
             module_logger.info("Quality control successful")
