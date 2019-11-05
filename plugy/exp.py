@@ -177,7 +177,7 @@ class PlugExperiment(object):
         # control_ax[3] = self.plug_data.plot_control_readout_correlation(control_ax[3])
         # control_ax[4] = self.plug_data.plot_control_channel_histogram(control_ax[4])
 
-        control_fig.suptitle("Control Channel Quality Control")
+        # control_fig.suptitle("Control Channel Quality Control")
         control_fig.tight_layout()
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(control_fig)
