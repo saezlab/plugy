@@ -126,9 +126,15 @@ class TestPlugData(unittest.TestCase):
                                         "readout_peak_median": [0.0, 0.9, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.9, 0.0],
                                         "barcode": [False, False, True, False, False, True, True, True, True, False, False, True, False, False, True]})
 
-        self.sample_data = self.cycle_data.assign(cycle_nr=[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], sample_nr=[0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
+        self.sample_data = self.cycle_data.assign(cycle_nr=[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                                                  sample_nr=[0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
         self.sample_data = self.sample_data.loc[self.sample_data.barcode == False]
         self.sample_data = self.sample_data.drop(columns="barcode")
+
+        self.sample_data = self.sample_data.assign(readout_peak_z_score=[-1.,  1., -1.,  1., -1.,  1., -1.,  1.])
+
+        self.sample_data = self.sample_data[["start_time", "end_time", "barcode_peak_median", "control_peak_median",
+                                             "readout_peak_median", "readout_peak_z_score", "cycle_nr", "sample_nr"]]
 
         self.test_gen_map_content = "9:CELLS\n10:SUBSTRATE\n11:FS\n12:FS\n13:Drug 1\n14:Drug 2\n15:Drug 3\n23:BCM\n24:BCM"
         with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:

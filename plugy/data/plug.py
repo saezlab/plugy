@@ -21,6 +21,7 @@ import pathlib as pl
 
 import pandas as pd
 import scipy.signal as sig
+import scipy.stats as stats
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patch
@@ -222,6 +223,9 @@ class PlugData(object):
         samples_df = samples_df.loc[samples_df.discard == False]
         samples_df = samples_df.drop(columns=["discard", "barcode"])
 
+        # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
+        samples_df.insert(loc=5, column="readout_peak_z_score", value=stats.zscore(samples_df.readout_peak_median))
+
         return samples_df
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
@@ -233,9 +237,9 @@ class PlugData(object):
         """
         module_logger.info("Plotting detected peaks")
         axes = self.pmt_data.plot_pmt_data(axes, cut=cut)
-        
+
         plug_df = self.plug_df
-        
+
         if cut[0] is not None:
             plug_df = plug_df.loc[plug_df.start_time >= cut[0]]
 
@@ -376,7 +380,6 @@ class PlugData(object):
             contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=norm_df, ax=axes)
             axes.set_xlabel(channel_x + " [AU]")
             axes.set_ylabel(channel_y + " [AU]")
-
 
         # if filtered:
         #     contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.sample_df, ax=axes)
