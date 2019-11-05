@@ -384,6 +384,79 @@ class PlugData(object):
         #     contamination_plot = sns.scatterplot(x=channel_x, y=channel_y, hue=hue, data=self.plug_df, ax=axes)
         return contamination_plot
 
+    def plot_control_regression(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Plots a scatter plot of control peak medians over experiment time and applies a linear regression to it
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.regplot(x="start_time", y="control_peak_median", data=self.sample_df, ax=axes)
+        axes.set_title("Control Time Bias")
+        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+        axes.set_xlabel("Experiment Time [s]")
+        return axes
+
+    def plot_control_cycle_dist(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Gathers control peak medians by cycle and plots a violin plot
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.violinplot(x="cycle_nr", y="control_peak_median", data=self.sample_df, ax=axes)
+        axes.set_title("Control Intensity by Cycle")
+        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+        axes.set_xlabel("Cycle")
+        return axes
+
+    def plot_control_sample_dist(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Gathers control peak medians by sample and plots a violin plot
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.violinplot(x="sample_nr", y="control_peak_median", data=self.sample_df, ax=axes)
+        axes.set_title("Control Intensity by Sample")
+        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+        axes.set_xlabel("Sample")
+        return axes
+
+    def plot_control_readout_correlation(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Correlates control and readout peak medians and calculates a linear regression
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.regplot(x="control_peak_median", y="readout_peak_median",  data=self.sample_df, ax=axes)
+        axes.set_title("Readout - Control Correlation")
+        axes.set_xlabel("Control Peak Median Fluorescence Intensity [AU]")
+        axes.set_ylabel("Readout Peak Median Fluorescence Intensity [AU]")
+
+        axes.set_ylim(self.sample_df.readout_peak_median.min() * 0.95, self.sample_df.readout_peak_median.max() * 1.05)
+        axes.set_xlim(self.sample_df.control_peak_median.min() * 0.95, self.sample_df.control_peak_median.max() * 1.05)
+
+        return axes
+
+    def plot_control_channel_histogram(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Plots a histogram to find influences of a certain valve on the control peak median
+        :param axes:
+        :return:
+        """
+        heatmap_data = self.sample_df[["control_peak_median", "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
+
+        # Prepare index for pivot
+        heatmap_data = heatmap_data.reset_index()
+
+        # Pivot/reshape data into heatmap format
+        heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "control_peak_median")
+
+        axes = sns.heatmap(heatmap_data, ax=axes)
+        axes.set_title("Mean control peak fluorescence [AU] by combination")
+        axes.set_ylabel("")
+        axes.set_xlabel("")
+
+        return axes
+
     def save(self, file_path: pl.Path):
         """
         Saves this PlugData object as pickle
