@@ -414,10 +414,12 @@ class PlugData(object):
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        axes = sns.violinplot(x="sample_nr", y="control_peak_median", data=self.sample_df, ax=axes)
+        axes = sns.violinplot(x="name", y="control_peak_median", data=self.sample_df, ax=axes)
         axes.set_title("Control Intensity by Sample")
         axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
         axes.set_xlabel("Sample")
+        for tick in axes.get_xticklabels():
+            tick.set_rotation(90)
         return axes
 
     def plot_control_readout_correlation(self, axes: plt.Axes) -> plt.Axes:
