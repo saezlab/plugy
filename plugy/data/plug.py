@@ -224,7 +224,10 @@ class PlugData(object):
         samples_df = samples_df.drop(columns=["discard", "barcode"])
 
         # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
-        samples_df.insert(loc=5, column="readout_peak_z_score", value=stats.zscore(samples_df.readout_peak_median))
+        if len(samples_df) > 1:
+            samples_df.insert(loc=5, column="readout_peak_z_score", value=stats.zscore(samples_df.readout_peak_median))
+        else:
+            module_logger.warning(f"Samples DataFrame contains {len(samples_df)} line(s), omitting z-score calculation!")
 
         return samples_df
 
