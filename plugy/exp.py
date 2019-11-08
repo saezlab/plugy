@@ -204,6 +204,14 @@ class PlugExperiment(object):
 
     def drug_combination_analysis(self):
         """
-        Analyzes drug combinations and
+        Analyzes drug combinations and produces result plots
         """
-        pass
+        module_logger.info("Running drug combination analysis")
+
+        drug_z_violin_fig, drug_z_violin_ax = plt.subplots(figsize=(round(len(self.plug_data.sample_df.name.unique()) * 0.8), 10))
+        drug_z_violin_ax = self.plug_data.plot_readout_z_violins(axes=drug_z_violin_ax)
+        drug_z_violin_ax.set_title("Caspase activity z-scores")
+        drug_z_violin_fig.tight_layout()
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(drug_z_violin_fig)
+        drug_z_violin_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_violins.{self.config.figure_export_file_type}"))

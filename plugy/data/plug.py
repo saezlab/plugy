@@ -448,8 +448,8 @@ class PlugData(object):
     def plot_control_channel_heatmap(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots a histogram to find influences of a certain valve on the control peak median
-        :param axes:
-        :return:
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
         """
         heatmap_data = self.sample_df[["control_peak_median", "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
@@ -473,3 +473,15 @@ class PlugData(object):
         """
         with file_path.open("wb") as f:
             pickle.dump(self, f)
+
+    def plot_readout_z_violins(self, axes: plt.Axes):
+        """
+        Plots a violin plot of the readout z-scores per compound combination
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.violinplot(x="name", y="readout_peak_z_score", data=self.sample_df, ax=axes)
+        axes.set_ylabel("Readout z-score")
+        axes.set_xlabel("")
+        axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
+        return axes
