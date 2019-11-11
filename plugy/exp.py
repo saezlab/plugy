@@ -86,8 +86,9 @@ class PlugExperiment(object):
 
     def get_sample_data(self) -> pd.DataFrame:
         """
-
-        :return:
+        Generates sample_data df that groups plugs for each sample and cycle calculating their median
+        and how much their plug number diverges from the expected as produced by the BD using the PlugSequence
+        :return: pd.DataFrame grouped by cycle_nr and sample_nr with the medians and additional plug count divergence
         """
         sample_data = self.plug_data.sample_df.groupby(["cycle_nr", "sample_nr"], as_index=False).median()
         divergence = self.get_plug_count_divergence()
