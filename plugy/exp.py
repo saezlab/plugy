@@ -76,11 +76,24 @@ class PlugExperiment(object):
         sns.set_context(self.config.seaborn_context)
         sns.set_style(self.config.seaborn_style)
 
+        self.sample_data = self.get_sample_data()
+
         if not self.config.result_dir.exists():
             self.config.result_dir.mkdir()
 
-        # self.qc()
+        self.qc()
         self.drug_combination_analysis()
+
+    def get_sample_data(self) -> pd.DataFrame:
+        """
+
+        :return:
+        """
+        sample_data = self.plug_data.sample_df.groupby(["cycle_nr", "sample_nr"], as_index=False).median()
+        divergence = self.get_plug_count_divergence()
+
+        sample_data = sample_data.set_index(["cycle_nr", "sample_nr"]).join(divergence.set_index(["cycle_nr", "sample_nr"]))
+        return sample_data
 
     def check_config(self):
         """
@@ -119,6 +132,15 @@ class PlugExperiment(object):
 
         if not qc_dir.exists():
             qc_dir.mkdir()
+
+        # Plotting plug numbers
+        plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
+        plug_count_hist_ax = self.plot_plug_count_hist(axes=plug_count_hist_ax)
+
+        plug_count_hist_fig.tight_layout()
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(plug_count_hist_fig)
+        plug_count_hist_fig.savefig(qc_dir.joinpath(f"plug_count_hist.{self.config.figure_export_file_type}"))
 
         # Plotting length bias
         length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
@@ -215,3 +237,28 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(drug_z_violin_fig)
         drug_z_violin_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_violins.{self.config.figure_export_file_type}"))
+
+    def plot_plug_count_hist(self, axes: plt.Axes):
+        """
+        Plots the distribution of plug number divergence from the expected number by sample
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.countplot(self.sample_data.plug_count_divergence, ax=axes)
+        axes.set_ylabel("Counts")
+        axes.set_xlabel("Plug count divergence per sample")
+
+        return axes
+
+    def get_plug_count_divergence(self):
+        """
+        Compares generated and called number of plugs per sample and returns the difference
+        :return: pd.Series with the divergence per sample
+        """
+        divergences = list()
+        plug_sample_sequence = self.plug_sequence.get_samples(channel_map=self.channel_map).sequence
+        for (cycle_nr, sample_nr), group in self.plug_data.sample_df.groupby(["cycle_nr", "sample_nr"]):
+            divergence = (self.config.n_bc_adjacent_discards * 2) + len(group) - plug_sample_sequence[sample_nr].n_replicates
+            divergences.append([cycle_nr, sample_nr, divergence])
+
+        return pd.DataFrame(divergences, columns=["cycle_nr", "sample_nr", "plug_count_divergence"])
