@@ -485,3 +485,24 @@ class PlugData(object):
         axes.set_xlabel("")
         axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
         return axes
+
+    def plot_readout_z_heatmap(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Plots a heatmap to visualize readout z-scores of the different combinations
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        heatmap_data = self.sample_df[["readout_peak_z_score", "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
+
+        # Prepare index for pivot
+        heatmap_data = heatmap_data.reset_index()
+
+        # Pivot/reshape data into heatmap format
+        heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "readout_peak_z_score")
+
+        axes = sns.heatmap(heatmap_data, ax=axes)
+        axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
+        axes.set_ylabel("")
+        axes.set_xlabel("")
+
+        return axes
