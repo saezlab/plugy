@@ -96,6 +96,43 @@ class PlugExperiment(object):
         sample_data = sample_data.set_index(["cycle_nr", "sample_nr"]).join(divergence.set_index(["cycle_nr", "sample_nr"]))
         return sample_data
 
+    def get_plug_count_divergence(self):
+        """
+        Compares generated and called number of plugs per sample and returns the difference
+        :return: pd.Series with the divergence per sample
+        """
+        divergences = list()
+        plug_sample_sequence = self.plug_sequence.get_samples(channel_map=self.channel_map).sequence
+        for (cycle_nr, sample_nr), group in self.plug_data.sample_df.groupby(["cycle_nr", "sample_nr"]):
+            divergence = (self.config.n_bc_adjacent_discards * 2) + len(group) - plug_sample_sequence[sample_nr].n_replicates
+            divergences.append([cycle_nr, sample_nr, divergence])
+
+        return pd.DataFrame(divergences, columns=["cycle_nr", "sample_nr", "plug_count_divergence"])
+
+    def get_contamination(self) -> pd.Series:
+        """
+        Normalizes filtered plug data to the means of the unfiltered data.
+        :return: Series with the relative contamination of the plugs in sample_df
+        """
+        barcode_mean = self.plug_data.plug_df.loc[self.plug_data.plug_df.barcode].barcode_peak_median.mean()
+        control_mean = self.plug_data.sample_df.control_peak_median.mean()
+        norm_df = self.plug_data.sample_df.assign(norm_barcode=self.plug_data.sample_df.barcode_peak_median / barcode_mean,
+                                                  norm_control=self.plug_data.sample_df.control_peak_median / control_mean)
+
+        return norm_df.norm_barcode / norm_df.norm_control
+
+    def plot_plug_count_hist(self, axes: plt.Axes):
+        """
+        Plots the distribution of plug number divergence from the expected number by sample
+        :param axes: plt.Axes object to draw on
+        :return: plt.Axes object with the plot
+        """
+        axes = sns.countplot(self.sample_data.plug_count_divergence, ax=axes)
+        axes.set_ylabel("Counts")
+        axes.set_xlabel("Plug count divergence per sample")
+
+        return axes
+
     def check_config(self):
         """
         Checks if pmt_file, seq_file and config_file exist as specified in the PlugyConfig
@@ -213,18 +250,6 @@ class PlugExperiment(object):
 
         return qc_successful
 
-    def get_contamination(self) -> pd.Series:
-        """
-        Normalizes filtered plug data to the means of the unfiltered data.
-        :return: Series with the relative contamination of the plugs in sample_df
-        """
-        barcode_mean = self.plug_data.plug_df.loc[self.plug_data.plug_df.barcode].barcode_peak_median.mean()
-        control_mean = self.plug_data.sample_df.control_peak_median.mean()
-        norm_df = self.plug_data.sample_df.assign(norm_barcode=self.plug_data.sample_df.barcode_peak_median / barcode_mean,
-                                                  norm_control=self.plug_data.sample_df.control_peak_median / control_mean)
-
-        return norm_df.norm_barcode / norm_df.norm_control
-
     def drug_combination_analysis(self):
         """
         Analyzes drug combinations and produces result plots
@@ -238,28 +263,3 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             helpers.addGitHashCaption(drug_z_violin_fig)
         drug_z_violin_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_violins.{self.config.figure_export_file_type}"))
-
-    def plot_plug_count_hist(self, axes: plt.Axes):
-        """
-        Plots the distribution of plug number divergence from the expected number by sample
-        :param axes: plt.Axes object to draw on
-        :return: plt.Axes object with the plot
-        """
-        axes = sns.countplot(self.sample_data.plug_count_divergence, ax=axes)
-        axes.set_ylabel("Counts")
-        axes.set_xlabel("Plug count divergence per sample")
-
-        return axes
-
-    def get_plug_count_divergence(self):
-        """
-        Compares generated and called number of plugs per sample and returns the difference
-        :return: pd.Series with the divergence per sample
-        """
-        divergences = list()
-        plug_sample_sequence = self.plug_sequence.get_samples(channel_map=self.channel_map).sequence
-        for (cycle_nr, sample_nr), group in self.plug_data.sample_df.groupby(["cycle_nr", "sample_nr"]):
-            divergence = (self.config.n_bc_adjacent_discards * 2) + len(group) - plug_sample_sequence[sample_nr].n_replicates
-            divergences.append([cycle_nr, sample_nr, divergence])
-
-        return pd.DataFrame(divergences, columns=["cycle_nr", "sample_nr", "plug_count_divergence"])
