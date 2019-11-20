@@ -171,6 +171,15 @@ class PlugExperiment(object):
         if not qc_dir.exists():
             qc_dir.mkdir()
 
+        # Plotting PMT overview
+        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(150, 10))
+        pmt_overview_ax = self.pmt_data.plot_pmt_data(axes=pmt_overview_ax)
+
+        pmt_overview_fig.tight_layout()
+        if self.config.plot_git_caption:
+            helpers.addGitHashCaption(pmt_overview_fig)
+        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
+
         # Plotting plug numbers
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
         plug_count_hist_ax = self.plot_plug_count_hist(axes=plug_count_hist_ax)
