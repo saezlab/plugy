@@ -25,7 +25,7 @@ from .data.config import PlugyConfig
 from .data.bd import ChannelMap, PlugSequence
 from .data.pmt import PmtData
 from .data.plug import PlugData
-import lib.helpers.helpers as helpers
+import lib.plugy.plugy.misc as misc
 
 from dataclasses import dataclass
 
@@ -177,7 +177,7 @@ class PlugExperiment(object):
 
         pmt_overview_fig.tight_layout()
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(pmt_overview_fig)
+            misc.add_git_hash_caption(pmt_overview_fig)
         pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
 
         # Plotting plug numbers
@@ -186,13 +186,13 @@ class PlugExperiment(object):
 
         plug_count_hist_fig.tight_layout()
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(plug_count_hist_fig)
+            misc.add_git_hash_caption(plug_count_hist_fig)
         plug_count_hist_fig.savefig(qc_dir.joinpath(f"plug_count_hist.{self.config.figure_export_file_type}"))
 
         # Plotting length bias
         length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(length_bias_plot.fig)
+            misc.add_git_hash_caption(length_bias_plot.fig)
         length_bias_plot.fig.tight_layout()
         length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
 
@@ -206,7 +206,7 @@ class PlugExperiment(object):
         contamination_hist_ax.set_title("Relative barcode contamination")
         contamination_hist_ax.set_xlabel(r"Relative contamination $\left[\frac{\overline{barcode_{median}}}{\overline{control_{median}}}\right]$")
         contamination_hist_ax.set_ylabel("Counts")
-        helpers.addGitHashCaption(contamination_hist_fig)
+        misc.add_git_hash_caption(contamination_hist_fig)
         contamination_hist_fig.tight_layout()
         contamination_hist_fig.savefig(qc_dir.joinpath(f"contamination_hist.{self.config.figure_export_file_type}"))
 
@@ -219,7 +219,7 @@ class PlugExperiment(object):
                 contamination_ax[idx_y][idx_x].set_title("Unfiltered")
 
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(contamination_fig)
+            misc.add_git_hash_caption(contamination_fig)
         contamination_fig.tight_layout()
         contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
 
@@ -240,13 +240,13 @@ class PlugExperiment(object):
 
         control_fig.tight_layout()
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(control_fig)
+            misc.add_git_hash_caption(control_fig)
         control_fig.savefig(qc_dir.joinpath(f"control_fluorescence.{self.config.figure_export_file_type}"))
 
         # Plotting PMT overview
         sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(sample_cycle_fig)
+            misc.add_git_hash_caption(sample_cycle_fig)
         sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
 
         if qc_successful:
@@ -271,7 +271,7 @@ class PlugExperiment(object):
         drug_z_violin_ax.set_title("Caspase activity z-scores")
         drug_z_violin_fig.tight_layout()
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(drug_z_violin_fig)
+            misc.add_git_hash_caption(drug_z_violin_fig)
         drug_z_violin_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_violins.{self.config.figure_export_file_type}"))
 
         # Overview heatmap of z-scores
@@ -280,5 +280,5 @@ class PlugExperiment(object):
         drug_z_hm_ax.set_title("Caspase activity z-scores")
         drug_z_hm_fig.tight_layout()
         if self.config.plot_git_caption:
-            helpers.addGitHashCaption(drug_z_hm_fig)
+            misc.add_git_hash_caption(drug_z_hm_fig)
         drug_z_hm_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_heatmap.{self.config.figure_export_file_type}"))
