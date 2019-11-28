@@ -56,6 +56,7 @@ class PmtData(object):
         self.data = self.set_channel_values()
         self.data = self.cut_data()
         self.data = self.digital_gain()
+        # self.data = self.correct_crosstalk()
 
     def read_txt(self) -> pd.DataFrame:
         """
@@ -214,3 +215,14 @@ class PmtData(object):
             axes.set_ylabel("Fluorescence [AU]")
 
         return axes
+
+    def correct_crosstalk(self) -> pd.DataFrame:
+        """
+        Implements crosstalk compensation as in Federica's BraDiPluS package (peaksSelection.R)
+        :return: pd.DataFrame with corrected orange channel
+        """
+        df = self.data
+
+        df = df.assign(orange=df.orange - (0.45 * df.green))
+
+        return df
