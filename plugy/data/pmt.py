@@ -159,7 +159,7 @@ class PmtData(object):
 
         if self.correct_acquisition_time:
             module_logger.info("Correcting acquisition time")
-            df = df.assign(time=np.linspace(0, time_between_samplings * (len(df) - 1), len(df)))
+            df = df.assign(time=np.linspace(self.data.time[0], self.data.time[0] + time_between_samplings * (len(df) - 1), len(df)))
 
         return df
 
