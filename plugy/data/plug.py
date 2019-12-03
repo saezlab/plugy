@@ -242,12 +242,15 @@ class PlugData(object):
         axes = self.pmt_data.plot_pmt_data(axes, cut=cut)
 
         plug_df = self.plug_df
+        sample_df = self.sample_df
 
         if cut[0] is not None:
             plug_df = plug_df.loc[plug_df.start_time >= cut[0]]
+            sample_df = sample_df.loc[sample_df.start_time >= cut[0]]
 
         if cut[1] is not None:
             plug_df = plug_df.loc[plug_df.end_time <= cut[1]]
+            sample_df = sample_df.loc[sample_df.end_time <= cut[1]]
 
         # Plotting light green rectangles that indicate the used plug length and plug height
         bc_patches = list()
@@ -256,8 +259,11 @@ class PlugData(object):
         for plug in plug_df.itertuples():
             if plug.barcode:
                 bc_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.barcode_peak_median))
-            else:
-                readout_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.readout_peak_median))
+            # else:
+            #     readout_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.readout_peak_median))
+
+        for plug in sample_df.itertuples():
+            readout_patches.append(mpl_patch.Rectangle(xy=(plug.start_time, 0), width=plug.end_time - plug.start_time, height=plug.readout_peak_median))
 
         axes.add_collection(mpl_coll.PatchCollection(bc_patches, facecolors=self.config.colors["blue"], alpha=0.4))
         axes.add_collection(mpl_coll.PatchCollection(readout_patches, facecolors=self.config.colors["green"], alpha=0.4))
