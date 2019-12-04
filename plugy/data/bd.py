@@ -99,6 +99,18 @@ class ChannelMap(object):
 
         return compounds
 
+    def get_compound_list(self):
+        """
+        Retrieves a list of the compounds used in the experiment including the media
+        :return: list containing the names of the compounds
+        """
+        compounds = list()
+
+        compounds.extend([self.map[valve] for valve in self.media])
+        compounds.extend([self.map[valve] for valve in self.drugs])
+
+        return compounds
+
 
 class PlugSequence(object):
     @classmethod
