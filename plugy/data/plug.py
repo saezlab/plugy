@@ -504,7 +504,15 @@ class PlugData(object):
         heatmap_data = heatmap_data.reset_index()
 
         # Pivot/reshape data into heatmap format
+        # heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "readout_peak_z_score")
+        # heatmap_data = heatmap_data.sort_index(axis=0, na_position="first").sort_index(axis=1, na_position="first")
+        # compounds = self.channel_map.get_compound_list()[1:]
+        # heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "readout_peak_z_score").reindex(compounds)[compounds[:-1]]
         heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "readout_peak_z_score")
+        # compounds = heatmap_data.isna().sum(axis=0).sort_values(ascending=True).index.to_list()
+        heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis=1).sort_values(ascending=False).index.to_list())[heatmap_data.isna().sum(axis=0).sort_values(ascending=True).index.to_list()]
+        # heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis=1))[heatmap_data.isna().sum(axis=0)]
+        # heatmap_data = heatmap_data.sort_values(by=heatmap_data.columns, axis=1, na_position="last")
 
         axes = sns.heatmap(heatmap_data, ax=axes)
         axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
