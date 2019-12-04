@@ -451,27 +451,6 @@ class PlugData(object):
 
         return axes
 
-    def plot_control_channel_heatmap(self, axes: plt.Axes) -> plt.Axes:
-        """
-        Plots a histogram to find influences of a certain valve on the control peak median
-        :param axes: plt.Axes object to draw on
-        :return: plt.Axes object with the plot
-        """
-        heatmap_data = self.sample_df[["control_peak_median", "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
-
-        # Prepare index for pivot
-        heatmap_data = heatmap_data.reset_index()
-
-        # Pivot/reshape data into heatmap format
-        heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "control_peak_median")
-
-        axes = sns.heatmap(heatmap_data, ax=axes)
-        axes.set_title("Mean control peak fluorescence by combination [AU]")
-        axes.set_ylabel("")
-        axes.set_xlabel("")
-
-        return axes
-
     def save(self, file_path: pl.Path):
         """
         Saves this PlugData object as pickle
@@ -492,19 +471,23 @@ class PlugData(object):
         axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
         return axes
 
-    def plot_readout_z_heatmap(self, axes: plt.Axes) -> plt.Axes:
+    def plot_compound_heatmap(self, column: str, axes: plt.Axes) -> plt.Axes:
         """
         Plots a heatmap to visualize readout z-scores of the different combinations
+        :param column: Name of the column to extract values from
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        heatmap_data = self.sample_df[["readout_peak_z_score", "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
+        assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
+        assert column not in ["compound_a", "compound_b"], f"Column has to be different from 'compound_a' and 'compound_b'!"
+
+        heatmap_data = self.sample_df[[column, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
         # Prepare index for pivot
         heatmap_data = heatmap_data.reset_index()
 
         # Pivot/reshape data into heatmap format
-        heatmap_data = heatmap_data.pivot("compound_a", "compound_b", "readout_peak_z_score")
+        heatmap_data = heatmap_data.pivot("compound_a", "compound_b", column)
 
         # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
         heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis=1).sort_values(ascending=False).index.to_list())
