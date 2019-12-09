@@ -41,6 +41,7 @@ class PmtData(object):
     ignore_orange_channel: bool = False
     ignore_green_channel: bool = False
     ignore_uv_channel: bool = False
+    auto_gain: bool = False
     digital_gain_uv: float = 1.0
     digital_gain_green: float = 1.0
     digital_gain_orange: float = 1.0
@@ -55,6 +56,8 @@ class PmtData(object):
         self.data = self.read_txt()
         self.data = self.set_channel_values()
         self.data = self.cut_data()
+        if self.auto_gain:
+            self.digital_gain_uv, self.digital_gain_green, self.digital_gain_orange = self.calculate_gain()
         self.data = self.digital_gain()
         # self.data = self.correct_crosstalk()
 
@@ -163,6 +166,10 @@ class PmtData(object):
 
         return df
 
+    def calculate_gain(self) -> tuple:
+        for channel in ["uv", "green", "orange"]:
+            pass
+
     def digital_gain(self) -> pd.DataFrame:
         """
         Multiplies the corresponding channels PMT output by the given float (digital_gain_*)
@@ -184,7 +191,7 @@ class PmtData(object):
         """
         Plots the raw PMT data to the specified axes object
         :param axes: plt.Axes object to draw on
-        :param cut: Tuple to specify upper and lower time bounds for the pmt data to be plotted (lower, upper) 
+        :param cut: Tuple to specify upper and lower time bounds for the pmt data to be plotted (lower, upper)
         :return: The axes object with the plot
         """
         module_logger.debug(f"Plotting PMT data")
