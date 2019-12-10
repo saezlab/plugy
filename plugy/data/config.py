@@ -15,6 +15,7 @@ See accompanying file LICENSE.txt or copy at
 
 """
 
+import time
 import pathlib as pl
 
 from dataclasses import dataclass, field
@@ -26,7 +27,8 @@ class PlugyConfig(object):
     pmt_file: pl.Path = None
     seq_file: pl.Path = None
     channel_file: pl.Path = None
-    result_dir: pl.Path = pl.Path.cwd().joinpath("results")
+    result_base_dir: pl.Path = pl.Path.cwd().joinpath("results")
+    result_dir_prefix: str = "run"
 
     # General config
     figure_export_file_type: str = "svg"
@@ -64,3 +66,10 @@ class PlugyConfig(object):
 
     # QC
     contamination_threshold: float = 0.03
+
+    def __post_init__(self):
+        # Creating result dir for each individual run
+
+        current_time = time.strftime("%Y%m%d_%H_%M_%S")
+
+        self.result_dir = self.result_base_dir.joinpath(f"{self.result_dir_prefix}_{current_time}")

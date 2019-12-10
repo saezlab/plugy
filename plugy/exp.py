@@ -42,6 +42,14 @@ class PlugExperiment(object):
         module_logger.info("\n".join([f"{k}: {v}" for k, v in self.config.__dict__.items()]))
 
         self.check_config()
+
+        if not self.config.result_base_dir.exists():
+            self.config.result_base_dir.mkdir()
+
+        assert not self.config.result_dir.exists(), f"Automatically generated result directory name already exists {self.config.result_dir.name}, please retry in a couple of seconds"
+
+        self.config.result_dir.mkdir()
+
         self.channel_map = ChannelMap(self.config.channel_file)
         self.plug_sequence = PlugSequence.from_csv_file(self.config.seq_file)
 
@@ -77,9 +85,6 @@ class PlugExperiment(object):
         sns.set_style(self.config.seaborn_style)
 
         self.sample_data = self.get_sample_data()
-
-        if not self.config.result_dir.exists():
-            self.config.result_dir.mkdir()
 
         self.qc()
         self.drug_combination_analysis()
