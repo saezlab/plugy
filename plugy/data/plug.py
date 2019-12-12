@@ -270,7 +270,7 @@ class PlugData(object):
 
         return axes
 
-    def label_samples(self, samples_df) -> pd.DataFrame:
+    def label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
         """
         Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
         :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
@@ -278,6 +278,15 @@ class PlugData(object):
         """
         labelled_df = samples_df
         sample_sequence = self.plug_sequence.get_samples(channel_map=self.channel_map)
+
+        for cycle in labelled_df.groupby("cycle_nr"):
+            # cycle[1] is the group DataFrame, cycle[0] is the current cycle_nr
+            found_samples = len(cycle[1].sample_nr.unique())
+            expected_samples = len(sample_sequence.sequence)
+            if found_samples != expected_samples:
+                module_logger.warning(f"Cycle {cycle[0]} detected between {cycle[1].start_time.min()} - {cycle[1].end_time.max()} contains less samples ({found_samples}) than expected ({expected_samples})")
+
+
         # labelled_df.assign(sample_name=lambda row: sample_sequence.sequence[row.sample_nr].name)
         labelled_df["name"] = labelled_df.sample_nr.apply(lambda nr: sample_sequence.sequence[nr].name)
         labelled_df["compound_a"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
