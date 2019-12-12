@@ -172,7 +172,8 @@ class PlugSequence(object):
         for idx, combination in enumerate(itertools.combinations(channel_map.drugs, 2)):
             if idx % 10 == 0:
                 samples.append(control)
-                samples.append(barcode)
+                if generate_barcodes:
+                    samples.append(barcode)
 
             samples.append(
                 Sample(open_duration=open_duration, n_replicates=n_replicates, name=f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}", open_valves=channel_map.cells + channel_map.substrate + list(combination)))
