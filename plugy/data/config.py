@@ -47,6 +47,7 @@ class PlugyConfig(object):
     digital_gain_orange: float = 1.0
 
     # Plug Calling
+    auto_detect_cycles: bool = True
     peak_min_threshold: float = 0.05
     peak_max_threshold: float = 2.0
     peak_min_distance: float = 0.03

@@ -68,6 +68,7 @@ class PlugExperiment(object):
         self.plug_data = PlugData(pmt_data=self.pmt_data,
                                   plug_sequence=self.plug_sequence,
                                   channel_map=self.channel_map,
+                                  auto_detect_cycles=self.config.auto_detect_cycles,
                                   peak_min_threshold=self.config.peak_min_threshold,
                                   peak_max_threshold=self.config.peak_max_threshold,
                                   peak_min_distance=self.config.peak_min_distance,

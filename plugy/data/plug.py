@@ -40,6 +40,7 @@ class PlugData(object):
     pmt_data: pmt.PmtData
     plug_sequence: bd.PlugSequence
     channel_map: bd.ChannelMap
+    auto_detect_cycles: bool = True
     peak_min_threshold: float = 0.05
     peak_max_threshold: float = 2.0
     peak_min_distance: float = 0.03
@@ -279,16 +280,36 @@ class PlugData(object):
         """
         labelled_df = samples_df
         sample_sequence = self.plug_sequence.get_samples(channel_map=self.channel_map)
+        labelling_possible = True
+        discarded_cycles = list()
 
         for cycle in labelled_df.groupby("cycle_nr"):
             # cycle[1] is the group DataFrame, cycle[0] is the current cycle_nr
             found_samples = len(cycle[1].sample_nr.unique())
             expected_samples = len(sample_sequence.sequence)
             if found_samples != expected_samples:
-                module_logger.warning(f"Cycle {cycle[0]} detected between {cycle[1].start_time.min()} - {cycle[1].end_time.max()} contains less samples ({found_samples}) than expected ({expected_samples})")
+                log_msg = f"Cycle {cycle[0]} detected between {cycle[1].start_time.min()} - {cycle[1].end_time.max()} contains {'less' if found_samples < expected_samples else 'more'} samples ({found_samples}) than expected ({expected_samples})"
+                if self.auto_detect_cycles:
+                    module_logger.info(log_msg)
+                    module_logger.info(f"Discarding Cycle {cycle[0]}")
+                    labelled_df.loc[labelled_df.cycle_nr == cycle[0], "discard"] = True
+                    discarded_cycles.append(cycle[0])
+                else:
+                    module_logger.critical(log_msg)
+                    labelling_possible = False
 
+        check_msg = "\n".join([f"Check:",
+                               f"\tIncrease peak_max_width (currently {self.peak_max_width}) if plugs are too short to be detected",
+                               f"\tDecrease width_rel_height (currently {self.width_rel_height}) if plugs are wider than tall",
+                               f"\tCut of PMT data (currently {self.pmt_data.cut}) being precisely at the start of the first actual sample (not the barcode)"])
 
-        # labelled_df.assign(sample_name=lambda row: sample_sequence.sequence[row.sample_nr].name)
+        if not labelling_possible:
+            raise AssertionError("\n".join([f"Number of found and expected_samples have to match for all cycles", check_msg]))
+
+        # discarded_cycles = labelled_df.cycle_nr.unique()
+        assert len(discarded_cycles) < len(labelled_df.cycle_nr.unique()), "\n".join([f"Did not detect any cycle with the proper number of samples", check_msg])
+
+        module_logger.info("Labelling samples with compound names")
         labelled_df["name"] = labelled_df.sample_nr.apply(lambda nr: sample_sequence.sequence[nr].name)
         labelled_df["compound_a"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
         labelled_df["compound_b"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
