@@ -177,9 +177,9 @@ class PlugExperiment(object):
         if not qc_dir.exists():
             qc_dir.mkdir()
 
-        # Plotting PMT overview
+        # Plotting PMT cycle overview
         pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(150, 10))
-        pmt_overview_ax = self.pmt_data.plot_pmt_data(axes=pmt_overview_ax)
+        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes=pmt_overview_ax)
 
         pmt_overview_fig.tight_layout()
         if self.config.plot_git_caption:

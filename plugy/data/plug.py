@@ -274,6 +274,41 @@ class PlugData(object):
 
         return axes
 
+    def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:
+        """
+        Plots pmt data and superimposes filled rectangles for cycles with correct numbers of samples and
+        unfilled rectangles for discarded cycles
+        :param axes: plt.Axes object to plot to
+        :return: plt.Axes object with the plot
+        """
+        module_logger.info("Plotting cycle data")
+        axes = self.pmt_data.plot_pmt_data(axes=axes, cut=(None, None))
+
+        used_cycle_patches = list()
+        discarded_cycle_patches = list()
+        patch_height = self.pmt_data.data[["green", "orange", "uv"]].max().max()
+
+        for used_cycle in self.sample_df.groupby("cycle_nr"):
+            cycle_start_time = used_cycle[1].start_time.min()
+            cycle_end_time = used_cycle[1].end_time.max()
+            used_cycle_patches.append(mpl_patch.Rectangle(xy=(cycle_start_time, 0), width=cycle_end_time - cycle_start_time, height=patch_height))
+
+        for detected_cycle in self.plug_df.groupby("cycle_nr"):
+            cycle_start_time = detected_cycle[1].start_time.min()
+            cycle_end_time = detected_cycle[1].end_time.max()
+            discarded_cycle_patches.append(mpl_patch.Rectangle(xy=(cycle_start_time, 0), width=cycle_end_time - cycle_start_time, height=patch_height))
+
+            axes.text(x=(cycle_end_time - cycle_start_time) / 2 + cycle_start_time, y=0.9 * patch_height, s=f"Cycle {detected_cycle[0]}", horizontalalignment="center")
+
+        axes.add_collection(mpl_coll.PatchCollection(used_cycle_patches, facecolors="green", alpha=0.4))
+        axes.add_collection(mpl_coll.PatchCollection(discarded_cycle_patches, edgecolors="red", facecolors="none", alpha=0.4))
+
+        # for cycle in self.sample_df.cycle_nr.unique():
+        #     cycle_start_time = self.sample_df.loc[self.sample_df.cycle_nr == cycle].start_time.min()
+        #     cycle_end_time = self.sample_df.loc[self.sample_df.cycle_nr == cycle].end_time.max()
+
+        return axes
+
     def label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
         """
         Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
