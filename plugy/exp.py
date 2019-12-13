@@ -178,6 +178,16 @@ class PlugExperiment(object):
         if not qc_dir.exists():
             qc_dir.mkdir()
 
+        # Plotting media control readout over experiment time
+        media_control_fig, media_control_ax = plt.subplots(ncols=2, figsize=(20, 10))
+        media_control_ax[0] = self.plug_data.plot_media_control_evolution(axes=media_control_ax[0])
+        media_control_ax[1] = self.plug_data.plot_media_control_evolution(axes=media_control_ax[1], by_sample=True)
+
+        media_control_fig.tight_layout()
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(media_control_fig)
+        media_control_fig.savefig(qc_dir.joinpath(f"fs_media_control.{self.config.figure_export_file_type}"))
+
         # Plotting PMT cycle overview
         pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(150, 10))
         pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes=pmt_overview_ax)

@@ -235,6 +235,14 @@ class PlugData(object):
 
         return samples_df, plug_df
 
+    def get_media_control_data(self) -> pd.DataFrame:
+        """
+        Returns a DataFrame with only media control plugs (both compounds FS)
+        :return: pd.DataFrame with media control plugs
+        """
+        media_control_data = self.sample_df.loc[(self.sample_df.compound_a == "FS") & (self.sample_df.compound_b == "FS")]
+        return media_control_data
+
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
         Plots pmt data and superimposes rectangles with the called plugs upon the plot
@@ -413,6 +421,25 @@ class PlugData(object):
         # return axes
 
     # QC Plots
+    def plot_media_control_evolution(self, axes: plt.Axes, by_sample=False) -> plt.Axes:
+        """
+        Plots a scatter plot with readout medians for the media control over the experiment time
+        :param axes: plt.Axes object to draw on
+        :param by_sample: True to plot swarmplot by sample number
+        :return: plt.Axes object with the plot
+        """
+        plot_data = self.get_media_control_data()
+        if by_sample:
+            axes = sns.swarmplot(x="sample_nr", y="readout_peak_median", data=plot_data, ax=axes, hue="cycle_nr", dodge=True)
+            axes.set_xlabel("Sample Number")
+        else:
+            axes = sns.scatterplot(x="start_time", y="readout_peak_median", data=plot_data, ax=axes)
+            axes.set_xlabel("Experiment Time [s]")
+
+        axes.set_title("FS media control plug fluorescence")
+        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+        return axes
+
     def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
         """
         Plots each plugs fluorescence over its length grouped by valve. Also fits a linear regression to show if there
