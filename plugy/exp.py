@@ -205,6 +205,7 @@ class PlugExperiment(object):
         # Plotting contamination
         contamination = self.get_contamination()
         if contamination.mean() > self.config.contamination_threshold:
+            module_logger.warning(f"Contamination over threshold ({contamination.mean()} > {self.config.contamination_threshold})")
             qc_successful = False
 
         contamination_hist_fig, contamination_hist_ax = plt.subplots()
@@ -255,13 +256,14 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(sample_cycle_fig)
         sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
 
+        qc_fail_msg = "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
         if qc_successful:
             module_logger.info("Quality control successful")
         else:
-            module_logger.critical("Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True")
+            module_logger.critical(qc_fail_msg)
 
         if not self.ignore_qc_result:
-            assert qc_successful, "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
+            assert qc_successful, qc_fail_msg
 
         return qc_successful
 
