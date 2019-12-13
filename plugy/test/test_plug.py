@@ -215,7 +215,7 @@ class TestPlugData(unittest.TestCase):
             # noinspection PyTypeChecker
             plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
-        pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df.round())
+        pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df[self.cycle_data.columns].round())
 
     # noinspection DuplicatedCode
     def test_plug_detect_noisy_data(self):
@@ -226,7 +226,7 @@ class TestPlugData(unittest.TestCase):
             # noinspection PyTypeChecker
             plug_data = plug.PlugData(pmt_data=pmt.PmtData(input_file=pl.Path("MOCK")), plug_sequence=None, channel_map=None, peak_min_distance=0.03)
 
-        pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df.round())
+        pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df[self.cycle_data.columns].round())
 
     # noinspection DuplicatedCode
     def test_plug_cycle_sample_calling(self):

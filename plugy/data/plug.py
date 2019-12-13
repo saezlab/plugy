@@ -80,7 +80,7 @@ class PlugData(object):
         # plug_df = plug_df.assign(barcode=(plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
         plug_df = plug_df.assign(barcode=plug_df.barcode_peak_median > plug_df.control_peak_median)
 
-        sample_df = self.call_sample_cycles(plug_df)
+        sample_df, plug_df = self.call_sample_cycles(plug_df)
 
         return plug_df, peak_df, sample_df
 
@@ -169,10 +169,11 @@ class PlugData(object):
 
         return return_list
 
-    def call_sample_cycles(self, plug_df: pd.DataFrame) -> pd.DataFrame:
+    def call_sample_cycles(self, plug_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
         """
         Finds cycles and labels individual samples
-        :return: DataFrame containing sample data
+        :return: Tuple of pd.DataFrame containing sample data
+        and the input plug_df updated with info which plugs were discarded
         """
         samples_df = plug_df
 
@@ -222,6 +223,7 @@ class PlugData(object):
         else:
             module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labeling of samples!")
 
+        plug_df = samples_df
         samples_df = samples_df.loc[samples_df.discard == False]
         samples_df = samples_df.drop(columns=["discard", "barcode"])
 
@@ -231,7 +233,7 @@ class PlugData(object):
         else:
             module_logger.warning(f"Samples DataFrame contains {len(samples_df)} line(s), omitting z-score calculation!")
 
-        return samples_df
+        return samples_df, plug_df
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
