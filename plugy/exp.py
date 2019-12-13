@@ -120,7 +120,8 @@ class PlugExperiment(object):
         Normalizes filtered plug data to the means of the unfiltered data.
         :return: Series with the relative contamination of the plugs in sample_df
         """
-        barcode_mean = self.plug_data.plug_df.loc[self.plug_data.plug_df.barcode].barcode_peak_median.mean()
+        used_plugs = self.plug_data.plug_df.loc[self.plug_data.plug_df.cycle_nr.isin(self.plug_data.sample_df.cycle_nr.unique()) & self.plug_data.plug_df.barcode == 1]
+        barcode_mean = used_plugs.loc[used_plugs.barcode].barcode_peak_median.mean()
         control_mean = self.plug_data.sample_df.control_peak_median.mean()
         norm_df = self.plug_data.sample_df.assign(norm_barcode=self.plug_data.sample_df.barcode_peak_median / barcode_mean,
                                                   norm_control=self.plug_data.sample_df.control_peak_median / control_mean)

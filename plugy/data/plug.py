@@ -445,7 +445,7 @@ class PlugData(object):
         if filtered:
             norm_df = self.sample_df
         else:
-            norm_df = self.plug_df
+            norm_df = self.plug_df.loc[self.plug_df.cycle_nr.isin(self.sample_df.cycle_nr.unique())]
 
         if normalize:
             norm_df = norm_df.assign(norm_x=norm_df[channel_x] / norm_df[channel_x].mean(), norm_y=norm_df[channel_y] / norm_df[channel_y].mean())
