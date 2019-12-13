@@ -60,7 +60,7 @@ class PlugData(object):
 
         self.plug_df, self.peak_data, self.sample_df = self.call_plugs()
 
-    def call_plugs(self):
+    def call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
         Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks

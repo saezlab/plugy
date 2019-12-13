@@ -17,8 +17,11 @@ See accompanying file LICENSE.txt or copy at
 import logging
 import pathlib as pl
 
-import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import scipy.stats as stats
+
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 from .data.config import PlugyConfig
@@ -87,7 +90,8 @@ class PlugExperiment(object):
 
         self.sample_data = self.get_sample_data()
 
-        self.qc()
+        # self.qc()
+        self.sample_statistics = self.calculate_statistics()
         self.drug_combination_analysis()
 
     def get_sample_data(self) -> pd.DataFrame:
@@ -277,6 +281,23 @@ class PlugExperiment(object):
             assert qc_successful, qc_fail_msg
 
         return qc_successful
+
+    def calculate_statistics(self) -> pd.DataFrame:
+        """
+        Calculates statistics
+        """
+        module_logger.info("Calculating statistics")
+        media_data = self.plug_data.get_media_control_data()
+        compound_data = self.plug_data.sample_df[~self.plug_data.sample_df.isin(media_data)].dropna()
+
+        sample_stats = compound_data.groupby(by=["compound_a", "compound_b"])["readout_peak_z_score"].agg([np.mean, np.std])
+
+        pvals = list()
+        for combination, values in compound_data.groupby(by=["compound_a", "compound_b"]):
+            pvals.append(stats.ranksums(x=values.readout_peak_z_score, y=media_data.readout_peak_z_score)[1])
+
+        sample_stats = sample_stats.assign(pval=pvals)
+        return sample_stats
 
     def drug_combination_analysis(self):
         """
