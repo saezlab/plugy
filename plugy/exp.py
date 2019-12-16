@@ -20,6 +20,7 @@ import pathlib as pl
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+import statsmodels.stats.multitest as statsmod
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -292,11 +293,13 @@ class PlugExperiment(object):
 
         sample_stats = compound_data.groupby(by=["compound_a", "compound_b"])["readout_peak_z_score"].agg([np.mean, np.std])
 
-        pvals = list()
+        p_values = list()
         for combination, values in compound_data.groupby(by=["compound_a", "compound_b"]):
-            pvals.append(stats.ranksums(x=values.readout_peak_z_score, y=media_data.readout_peak_z_score)[1])
+            p_values.append(stats.ranksums(x=values.readout_peak_z_score, y=media_data.readout_peak_z_score)[1])
 
-        sample_stats = sample_stats.assign(pval=pvals)
+        sample_stats = sample_stats.assign(pval=p_values)
+        significance, p_adjusted, _, alpha_corr_bonferroni = statsmod.multipletests(pvals=sample_stats.reset_index().pval, alpha=self.config.alpha, method="bonferroni")
+        sample_stats = sample_stats.assign(p_adjusted=p_adjusted, significant=significance)
         return sample_stats
 
     def drug_combination_analysis(self):

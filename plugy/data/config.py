@@ -68,6 +68,9 @@ class PlugyConfig(object):
     # QC
     contamination_threshold: float = 0.03
 
+    # Statistics
+    alpha: float = 0.05
+
     def __post_init__(self):
         # Creating result dir for each individual run
 
