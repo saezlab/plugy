@@ -91,7 +91,7 @@ class PlugExperiment(object):
 
         self.sample_data = self.get_sample_data()
 
-        # self.qc()
+        self.qc()
         self.sample_statistics = self.calculate_statistics()
         self.drug_combination_analysis()
 
@@ -291,15 +291,21 @@ class PlugExperiment(object):
         media_data = self.plug_data.get_media_control_data()
         compound_data = self.plug_data.sample_df[~self.plug_data.sample_df.isin(media_data)].dropna()
 
-        sample_stats = compound_data.groupby(by=["compound_a", "compound_b"])["readout_peak_z_score"].agg([np.mean, np.std])
+        sample_stats = compound_data.groupby(by="name")["readout_peak_z_score"].agg([np.mean, np.std])
 
         p_values = list()
-        for combination, values in compound_data.groupby(by=["compound_a", "compound_b"]):
+        for combination, values in compound_data.groupby(by="name"):
             p_values.append(stats.ranksums(x=values.readout_peak_z_score, y=media_data.readout_peak_z_score)[1])
 
         sample_stats = sample_stats.assign(pval=p_values)
         significance, p_adjusted, _, alpha_corr_bonferroni = statsmod.multipletests(pvals=sample_stats.reset_index().pval, alpha=self.config.alpha, method="bonferroni")
         sample_stats = sample_stats.assign(p_adjusted=p_adjusted, significant=significance)
+
+        # Renaming columns to avoid shadowing mean function
+        sample_stats.columns = ["mean_z_score", "std_z_score", "pval", "p_adjusted", "significant"]
+
+        # Reindex based on sample_df from plug.PlugData object
+        sample_stats = sample_stats.reindex(self.plug_data.sample_df.name.unique())
         return sample_stats
 
     def drug_combination_analysis(self):
@@ -311,6 +317,16 @@ class PlugExperiment(object):
         # Overview violin plot with z-scores
         drug_z_violin_fig, drug_z_violin_ax = plt.subplots(figsize=(round(len(self.plug_data.sample_df.name.unique()) * 0.8), 10))
         drug_z_violin_ax = self.plug_data.plot_readout_z_violins(axes=drug_z_violin_ax)
+
+        # Getting y coordinates for asterisk from axis dimensions
+        y_max = drug_z_violin_ax.axis()[3]
+
+        # Labelling significant samples
+        for idx, sample in enumerate(self.plug_data.sample_df.name.unique()):
+            if sample != "Cell Control":
+                if self.sample_statistics.significant[idx]:
+                    drug_z_violin_ax.annotate("*", xy=(idx, y_max), xycoords="data", textcoords="data", ha="center")
+
         drug_z_violin_ax.set_title("Caspase activity z-scores")
         drug_z_violin_fig.tight_layout()
         if self.config.plot_git_caption:
