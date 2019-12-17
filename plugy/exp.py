@@ -333,7 +333,7 @@ class PlugExperiment(object):
                 if statistics.significant[idx]:
                     drug_z_violin_ax.annotate("*", xy=(idx, y_max), xycoords="data", textcoords="data", ha="center")
 
-        drug_z_violin_ax.set_title("Caspase activity z-scores")
+        drug_z_violin_ax.set_title("Caspase activity z-scores", pad=20)
         drug_z_violin_fig.tight_layout()
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(drug_z_violin_fig)
