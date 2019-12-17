@@ -603,9 +603,6 @@ class PlugData(object):
             :param str col: Column to plot in heatmap
             :return: pd.DataFrame in heatmap shape to be plotted using sns.heatmap or None if None was supplied as df
             """
-            if df is None:
-                return None
-
             # Prepare index for pivot
             df = df.reset_index()
 
@@ -619,9 +616,10 @@ class PlugData(object):
         heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis=1).sort_values(ascending=False).index.to_list())
         heatmap_data = heatmap_data[heatmap_data.isna().sum(axis=0).sort_values(ascending=True).index.to_list()]
 
-        annotation_df = prepare_heatmap_data(annotation_df, annotation_column)
-        annotation_df = annotation_df.reindex_like(heatmap_data)
-        annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
+        if annotation_df is not None:
+            annotation_df = prepare_heatmap_data(annotation_df, annotation_column)
+            annotation_df = annotation_df.reindex_like(heatmap_data)
+            annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
 
         axes = sns.heatmap(heatmap_data, annot=annotation_df, fmt="", ax=axes)
         axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
