@@ -387,11 +387,13 @@ class PlugData(object):
 
         sample_cycle_fig, sample_cycle_ax = plt.subplots(nrows=len(names), ncols=len(cycles), figsize=(7 * len(cycles), 5 * len(names)))
 
+        y_max = self.sample_df.readout_peak_median.max() * 1.1
+
         for idx_y, name in enumerate(names):
             for idx_x, cycle in enumerate(cycles):
                 module_logger.debug(f"Plotting sample {idx_y + 1} of {len(names)}, cycle {idx_x + 1} of {len(cycles)}")
                 sample_cycle_ax[idx_y][idx_x] = self.plot_sample(name=name, cycle_nr=cycle, axes=sample_cycle_ax[idx_y][idx_x])
-                sample_cycle_ax[idx_y][idx_x].set_ylim((0, 0.5))
+                sample_cycle_ax[idx_y][idx_x].set_ylim((0, y_max))
 
         sample_cycle_fig.tight_layout()
         return sample_cycle_fig, sample_cycle_ax
