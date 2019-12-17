@@ -20,6 +20,7 @@ import pickle
 import pathlib as pl
 
 import pandas as pd
+import numpy as np
 import scipy.signal as sig
 import scipy.stats as stats
 
@@ -581,12 +582,13 @@ class PlugData(object):
         axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
         return axes
 
-    def plot_compound_heatmap(self, column: str, axes: plt.Axes, annotation_df: pd.DataFrame = None) -> plt.Axes:
+    def plot_compound_heatmap(self, column: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant") -> plt.Axes:
         """
         Plots a heatmap to visualize readout z-scores of the different combinations
         :param column: Name of the column to extract values from
         :param axes: plt.Axes object to draw on
         :param annotation_df: pd.DataFrame grouped by column, compound_a and compound_b for annotation
+        :param annotation_column: Which column in annotation_df to use for the annotation
         :return: plt.Axes object with the plot
         """
         assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
@@ -610,12 +612,18 @@ class PlugData(object):
             # Pivot/reshape data into heatmap format
             df = df.pivot("compound_a", "compound_b", col)
 
-            # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
-            df = df.reindex(df.isna().sum(axis=1).sort_values(ascending=False).index.to_list())
-            df = df[df.isna().sum(axis=0).sort_values(ascending=True).index.to_list()]
             return df
 
-        axes = sns.heatmap(prepare_heatmap_data(heatmap_data, column), annot=prepare_heatmap_data(annotation_df, column), ax=axes)
+        heatmap_data = prepare_heatmap_data(heatmap_data, column)
+        # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
+        heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis=1).sort_values(ascending=False).index.to_list())
+        heatmap_data = heatmap_data[heatmap_data.isna().sum(axis=0).sort_values(ascending=True).index.to_list()]
+
+        annotation_df = prepare_heatmap_data(annotation_df, annotation_column)
+        annotation_df = annotation_df.reindex_like(heatmap_data)
+        annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
+
+        axes = sns.heatmap(heatmap_data, annot=annotation_df, fmt="", ax=axes)
         axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")

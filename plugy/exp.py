@@ -291,10 +291,11 @@ class PlugExperiment(object):
         media_data = self.plug_data.get_media_control_data()
         compound_data = self.plug_data.sample_df[~self.plug_data.sample_df.isin(media_data)].dropna()
 
-        sample_stats = compound_data.groupby(by="name")["readout_peak_z_score"].agg([np.mean, np.std])
+        group_columns = ["compound_a", "compound_b", "name"]
+        sample_stats = compound_data.groupby(by=group_columns)["readout_peak_z_score"].agg([np.mean, np.std])
 
         p_values = list()
-        for combination, values in compound_data.groupby(by="name"):
+        for combination, values in compound_data.groupby(by=group_columns):
             p_values.append(stats.ranksums(x=values.readout_peak_z_score, y=media_data.readout_peak_z_score)[1])
 
         sample_stats = sample_stats.assign(pval=p_values)
@@ -304,8 +305,8 @@ class PlugExperiment(object):
         # Renaming columns to avoid shadowing mean function
         sample_stats.columns = ["mean_z_score", "std_z_score", "pval", "p_adjusted", "significant"]
 
-        # Reindex based on sample_df from plug.PlugData object
-        sample_stats = sample_stats.reindex(self.plug_data.sample_df.name.unique())
+        # # Reindex based on sample_df from plug.PlugData object
+        # sample_stats = sample_stats.reindex(self.plug_data.sample_df.name.unique())
         return sample_stats
 
     def drug_combination_analysis(self):
@@ -322,9 +323,14 @@ class PlugExperiment(object):
         y_max = drug_z_violin_ax.axis()[3]
 
         # Labelling significant samples
+        statistics = self.sample_statistics.reset_index()
+        statistics = statistics.drop(["compound_a", "compound_b"], axis=1)
+        statistics = statistics.set_index("name")
+        statistics = statistics.reindex(self.plug_data.sample_df.name.unique())
+
         for idx, sample in enumerate(self.plug_data.sample_df.name.unique()):
             if sample != "Cell Control":
-                if self.sample_statistics.significant[idx]:
+                if statistics.significant[idx]:
                     drug_z_violin_ax.annotate("*", xy=(idx, y_max), xycoords="data", textcoords="data", ha="center")
 
         drug_z_violin_ax.set_title("Caspase activity z-scores")
@@ -335,7 +341,14 @@ class PlugExperiment(object):
 
         # Overview heatmap of z-scores
         drug_z_hm_fig, drug_z_hm_ax = plt.subplots()
-        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column="readout_peak_z_score", axes=drug_z_hm_ax)
+
+        # Labelling significant samples
+        statistics = self.sample_statistics.reset_index()
+        statistics = statistics.drop("name", axis=1)
+        statistics = statistics.set_index(["compound_a", "compound_b"])
+        statistics = statistics.significant
+
+        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column="readout_peak_z_score", axes=drug_z_hm_ax, annotation_df=statistics)
         drug_z_hm_ax.set_title("Caspase activity z-scores")
         drug_z_hm_fig.tight_layout()
         if self.config.plot_git_caption:
