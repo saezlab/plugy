@@ -581,11 +581,12 @@ class PlugData(object):
         axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
         return axes
 
-    def plot_compound_heatmap(self, column: str, axes: plt.Axes) -> plt.Axes:
+    def plot_compound_heatmap(self, column: str, axes: plt.Axes, annotation_df: pd.DataFrame = None) -> plt.Axes:
         """
         Plots a heatmap to visualize readout z-scores of the different combinations
         :param column: Name of the column to extract values from
         :param axes: plt.Axes object to draw on
+        :param annotation_df: pd.DataFrame grouped by column, compound_a and compound_b for annotation
         :return: plt.Axes object with the plot
         """
         assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
@@ -593,17 +594,28 @@ class PlugData(object):
 
         heatmap_data = self.sample_df[[column, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
-        # Prepare index for pivot
-        heatmap_data = heatmap_data.reset_index()
+        def prepare_heatmap_data(df: pd.DataFrame, col: str):
+            """
+            Prepares a pd.DataFrame grouped by compound_a and _b to be plotted as heatmap
+            :param pd.DataFrame df: pd.DataFrame grouped by compound_a and _b
+            :param str col: Column to plot in heatmap
+            :return: pd.DataFrame in heatmap shape to be plotted using sns.heatmap or None if None was supplied as df
+            """
+            if df is None:
+                return None
 
-        # Pivot/reshape data into heatmap format
-        heatmap_data = heatmap_data.pivot("compound_a", "compound_b", column)
+            # Prepare index for pivot
+            df = df.reset_index()
 
-        # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
-        heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis=1).sort_values(ascending=False).index.to_list())
-        heatmap_data = heatmap_data[heatmap_data.isna().sum(axis=0).sort_values(ascending=True).index.to_list()]
+            # Pivot/reshape data into heatmap format
+            df = df.pivot("compound_a", "compound_b", col)
 
-        axes = sns.heatmap(heatmap_data, ax=axes)
+            # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
+            df = df.reindex(df.isna().sum(axis=1).sort_values(ascending=False).index.to_list())
+            df = df[df.isna().sum(axis=0).sort_values(ascending=True).index.to_list()]
+            return df
+
+        axes = sns.heatmap(prepare_heatmap_data(heatmap_data, column), annot=prepare_heatmap_data(annotation_df, column), ax=axes)
         axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")
