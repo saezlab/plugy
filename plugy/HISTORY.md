@@ -8,3 +8,10 @@ This is a summary of the changelog.
 
 ## 0.2.0:
 * Logging and session handling
+
+## 0.3.0:
+* Complete refactor of plugy
+* New PMT file handling
+* New plug calling
+* New experimental workflow with QC plots
+* Added unit testing for some classes
