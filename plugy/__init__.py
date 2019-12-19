@@ -16,5 +16,5 @@
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
 
-import plugy._version as _version_mod
-import plugy.session as _session_mod
+# import plugy._version as _version_mod
+# import plugy.session as _session_mod
