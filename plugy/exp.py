@@ -43,16 +43,12 @@ class PlugExperiment(object):
 
     def __post_init__(self):
         module_logger.info(f"Initializing PlugExperiment using the following configuration")
-        module_logger.info("\n".join([f"{k}: {v}" for k, v in self.config.__dict__.items()]))
+        # module_logger.info("\n".join([f"{k}: {v}" for k, v in self.config.__dict__.items()]))
+
+        for k, v in self.config.__dict__.items():
+            module_logger.info(f"{k}: {v}")
 
         self.check_config()
-
-        if not self.config.result_base_dir.exists():
-            self.config.result_base_dir.mkdir()
-
-        assert not self.config.result_dir.exists(), f"Automatically generated result directory name already exists {self.config.result_dir.name}, please retry in a couple of seconds"
-
-        self.config.result_dir.mkdir()
 
         self.channel_map = ChannelMap(self.config.channel_file)
         self.plug_sequence = PlugSequence.from_csv_file(self.config.seq_file)

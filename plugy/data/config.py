@@ -77,3 +77,13 @@ class PlugyConfig(object):
         current_time = time.strftime("%Y%m%d_%H_%M_%S")
 
         self.result_dir = self.result_base_dir.joinpath(f"{self.result_dir_prefix}_{current_time}")
+
+        if not self.result_base_dir.exists():
+            self.result_base_dir.mkdir()
+
+        # assert not self.result_dir.exists(), f"Automatically generated result directory name already exists {self.result_dir.name}, please retry in a couple of seconds"
+
+        if not self.result_dir.exists():
+            self.result_dir.mkdir()
+
+
