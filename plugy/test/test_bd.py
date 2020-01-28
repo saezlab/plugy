@@ -22,9 +22,9 @@ import pathlib as pl
 
 from ..data.bd import ChannelMap, PlugSequence, Sample
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%d.%m.%y %H:%M:%S')
+logging.basicConfig(level = logging.DEBUG,
+                    format = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt = '%d.%m.%y %H:%M:%S')
 
 
 class TestChannelMapping(unittest.TestCase):
@@ -44,12 +44,12 @@ class TestChannelMapping(unittest.TestCase):
         """
         Test if a file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_file_content)
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
 
-            mapping = ChannelMap(input_file=self.channel_file_path)
+            mapping = ChannelMap(input_file = self.channel_file_path)
 
         self.assertEqual(self.test_mapping, mapping.map)
 
@@ -57,12 +57,12 @@ class TestChannelMapping(unittest.TestCase):
         """
         Test if a file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_file_content)
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
 
-            mapping = ChannelMap(input_file=self.channel_file_path)
+            mapping = ChannelMap(input_file = self.channel_file_path)
 
         self.assertEqual([23, 24], mapping.bc)
 
@@ -70,12 +70,12 @@ class TestChannelMapping(unittest.TestCase):
         """
         Test if a file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_file_content)
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
 
-            mapping = ChannelMap(input_file=self.channel_file_path)
+            mapping = ChannelMap(input_file = self.channel_file_path)
 
         self.assertEqual([i for i in range(13, 23)], mapping.drugs)
 
@@ -83,12 +83,12 @@ class TestChannelMapping(unittest.TestCase):
         """
         Test if a file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_file_content)
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
 
-            mapping = ChannelMap(input_file=self.channel_file_path)
+            mapping = ChannelMap(input_file = self.channel_file_path)
 
         self.assertEqual([9], mapping.cells)
 
@@ -96,12 +96,12 @@ class TestChannelMapping(unittest.TestCase):
         """
         Test if a file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_file_content)
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
 
-            mapping = ChannelMap(input_file=self.channel_file_path)
+            mapping = ChannelMap(input_file = self.channel_file_path)
 
         self.assertEqual([10], mapping.substrate)
 
@@ -109,12 +109,12 @@ class TestChannelMapping(unittest.TestCase):
         """
         Test if a file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_file_content)
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
 
-            mapping = ChannelMap(input_file=self.channel_file_path)
+            mapping = ChannelMap(input_file = self.channel_file_path)
 
         self.assertEqual([11, 12], mapping.media)
 
@@ -122,7 +122,7 @@ class TestChannelMapping(unittest.TestCase):
         """
         Tests if a channel not on the braille chip is raising a ValueError
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write("1:Test")
             self.channel_file.seek(0)
             self.channel_file_path = pl.Path(self.channel_file.name)
@@ -136,7 +136,7 @@ class TestChannelMapping(unittest.TestCase):
         """
         Tests if there is an ValueError raised when channel is something else than an int
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_nan_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_nan_file:
             self.channel_nan_file.write("ABC:Test")
             self.channel_nan_file.seek(0)
             self.channel_nan_file_path = pl.Path(self.channel_nan_file.name)
@@ -162,12 +162,12 @@ class TestPlugSequenceReadWrite(unittest.TestCase):
         """
         Test if a csv file with the correct contents is read properly
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".csv") as self.sequence_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".csv") as self.sequence_file:
             self.sequence_file.write(self.test_file_content)
             self.sequence_file.seek(0)
             self.sequence_file_path = pl.Path(self.sequence_file.name)
 
-            plug_sequence = PlugSequence.from_csv_file(input_file=self.sequence_file_path)
+            plug_sequence = PlugSequence.from_csv_file(input_file = self.sequence_file_path)
 
         self.assertEqual(self.test_sequence, plug_sequence.sequence)
 
@@ -176,7 +176,7 @@ class TestPlugSequenceReadWrite(unittest.TestCase):
         Tests writing sequence to a csv file
         """
         plug_sequence = PlugSequence(self.test_sequence)
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".csv") as self.save_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".csv") as self.save_file:
             plug_sequence.save_csv(pl.Path(self.save_file.name))
             self.save_file.seek(0)
             self.assertEqual(self.test_file_content, self.save_file.read())
@@ -207,12 +207,12 @@ class TestPlugSequenceGenerate(unittest.TestCase):
                               Sample(1, 15, "End Cycle Barcode", [11, 12, 23, 24]))
 
     def test_from_channel_map(self):
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt") as self.channel_file:
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
             self.channel_file.write(self.test_gen_map_content)
             self.channel_file.seek(0)
             self.channel_map = ChannelMap(pl.Path(self.channel_file.name))
 
-        plug_sequence = PlugSequence.from_channel_map(self.channel_map, n_replicates=12, n_control=12, n_barcode=10, n_cycle_bc=15, open_duration=1, generate_barcodes=True)
+        plug_sequence = PlugSequence.from_channel_map(self.channel_map, n_replicates = 12, n_control = 12, n_barcode = 10, n_cycle_bc = 15, open_duration = 1, generate_barcodes = True)
         self.assertEqual(self.test_sequence, plug_sequence.sequence)
 
 

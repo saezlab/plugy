@@ -81,7 +81,7 @@ class PmtData(object):
             else:
                 raise NotImplementedError(f"Input file has to be either .txt or .txt.gz, {self.input_file.suffix} files are not implemented!")
 
-            data_frame = pd.read_csv(self.input_file, sep="\t", decimal=",", skiprows=end_of_header, header=None).iloc[:, 1:]
+            data_frame = pd.read_csv(self.input_file, sep = "\t", decimal = ",", skiprows = end_of_header, header = None).iloc[:, 1:]
             data_frame.columns = ["time", "green", "orange", "uv"]
 
             return data_frame
@@ -99,7 +99,7 @@ class PmtData(object):
         """
         idx = -1
         for idx, line in enumerate(file):
-            if re.match(pattern=r"\t\d", string=line) is not None:
+            if re.match(pattern = r"\t\d", string = line) is not None:
                 break
 
         module_logger.debug(f"Detected end of header in line {idx}")
@@ -125,17 +125,17 @@ class PmtData(object):
 
         try:
             if cut[0] >= cut[1]:
-                raise AttributeError(f"Cut has to be specified like cut=(min, max) you specified {cut}")
+                raise AttributeError(f"Cut has to be specified like cut = (min, max) you specified {cut}")
         except TypeError:
             # in case of comparison with None
             pass
 
         if cut[0] is not None:
-            module_logger.debug(f"Cutting data before t={cut[0]}")
+            module_logger.debug(f"Cutting data before t = {cut[0]}")
             df = df.loc[df.time >= cut[0]]
 
         if cut[1] is not None:
-            module_logger.debug(f"Cutting data after t={cut[1]}")
+            module_logger.debug(f"Cutting data after t = {cut[1]}")
             df = df.loc[df.time <= cut[1]]
 
         return df
@@ -150,19 +150,19 @@ class PmtData(object):
         df = self.data.copy()
         if self.ignore_green_channel:
             module_logger.info("Setting green channel to 0.0")
-            df = df.assign(green=0.0)
+            df = df.assign(green = 0.0)
 
         if self.ignore_uv_channel:
             module_logger.info("Setting uv channel to 0.0")
-            df = df.assign(uv=0.0)
+            df = df.assign(uv = 0.0)
 
         if self.ignore_orange_channel:
             module_logger.info("Setting orange channel to 0.0")
-            df = df.assign(orange=0.0)
+            df = df.assign(orange = 0.0)
 
         if self.correct_acquisition_time:
             module_logger.info("Correcting acquisition time")
-            df = df.assign(time=np.linspace(self.data.time[0], self.data.time[0] + time_between_samplings * (len(df) - 1), len(df)))
+            df = df.assign(time = np.linspace(self.data.time[0], self.data.time[0] + time_between_samplings * (len(df) - 1), len(df)))
 
         return df
 
@@ -177,13 +177,13 @@ class PmtData(object):
         df = self.data
         if self.digital_gain_uv != 1.0:
             module_logger.info(f"Applying digital gain for uv channel ({self.digital_gain_uv})")
-            df = df.assign(uv=lambda x: x.uv * self.digital_gain_uv)
+            df = df.assign(uv = lambda x: x.uv * self.digital_gain_uv)
         if self.digital_gain_green != 1.0:
             module_logger.info(f"Applying digital gain for green channel ({self.digital_gain_green})")
-            df = df.assign(green=lambda x: x.green * self.digital_gain_green)
+            df = df.assign(green = lambda x: x.green * self.digital_gain_green)
         if self.digital_gain_orange != 1.0:
             module_logger.info(f"Applying digital gain for orange channel ({self.digital_gain_orange})")
-            df = df.assign(orange=lambda x: x.orange * self.digital_gain_orange)
+            df = df.assign(orange = lambda x: x.orange * self.digital_gain_orange)
 
         return df
 
@@ -195,14 +195,14 @@ class PmtData(object):
         :return: The axes object with the plot
         """
         module_logger.debug(f"Plotting PMT data")
-        df = self.cut_data(cut=cut)
+        df = self.cut_data(cut = cut)
 
         with sns.axes_style("darkgrid", {"xtick.bottom": True,
                                          'xtick.major.size': 1.0,
                                          'xtick.minor.size': 0.5}):
-            sns.lineplot(x=df.time, y=df.green, estimator=None, ci=None, sort=False, color=self.config.colors["green"], ax=axes)
-            sns.lineplot(x=df.time, y=df.orange, estimator=None, ci=None, sort=False, color=self.config.colors["orange"], ax=axes)
-            sns.lineplot(x=df.time, y=df.uv, estimator=None, ci=None, sort=False, color=self.config.colors["blue"], ax=axes)
+            sns.lineplot(x = df.time, y = df.green, estimator = None, ci = None, sort = False, color = self.config.colors["green"], ax = axes)
+            sns.lineplot(x = df.time, y = df.orange, estimator = None, ci = None, sort = False, color = self.config.colors["orange"], ax = axes)
+            sns.lineplot(x = df.time, y = df.uv, estimator = None, ci = None, sort = False, color = self.config.colors["blue"], ax = axes)
 
             if df.time.max() - df.time.min() > 1000:
                 major_tick_freq = 100
@@ -211,12 +211,12 @@ class PmtData(object):
                 major_tick_freq = 10
                 minor_tick_freq = 1
 
-            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), major_tick_freq), minor=False)
-            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), minor_tick_freq), minor=True)
-            axes.set_xlim(left=int(round(df.time.min())), right=int(round(df.time.max())))
+            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), major_tick_freq), minor = False)
+            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), minor_tick_freq), minor = True)
+            axes.set_xlim(left = int(round(df.time.min())), right = int(round(df.time.max())))
 
-            axes.grid(b=True, which='major', color='w', linewidth=1.0)
-            axes.grid(b=True, which='minor', color='w', linewidth=0.5)
+            axes.grid(b = True, which = 'major', color = 'w', linewidth = 1.0)
+            axes.grid(b = True, which = 'minor', color = 'w', linewidth = 0.5)
 
             axes.set_xlabel("Time [s]")
             axes.set_ylabel("Fluorescence [AU]")
@@ -230,6 +230,6 @@ class PmtData(object):
         """
         df = self.data
 
-        df = df.assign(orange=df.orange - (0.45 * df.green))
+        df = df.assign(orange = df.orange - (0.45 * df.green))
 
         return df

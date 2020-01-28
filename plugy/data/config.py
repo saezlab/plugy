@@ -32,11 +32,11 @@ class PlugyConfig(object):
 
     # General config
     figure_export_file_type: str = "svg"
-    colors: dict = field(default_factory=lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    colors: dict = field(default_factory = lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     run: bool = True,
 
     # PMT configuration
-    channels: dict = field(default_factory=lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    channels: dict = field(default_factory = lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
