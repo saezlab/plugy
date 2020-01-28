@@ -1,5 +1,3 @@
-# Hello
-
 # Plugy Tutorial
 This notebook will show you how to run a plugy based analysis of a Braille experiment.
 
