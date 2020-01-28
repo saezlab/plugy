@@ -5,7 +5,7 @@
 #  This file is part of the `plugy` python module
 #
 #  Copyright
-#  2018-2019
+#  2018-2020
 #  EMBL, Heidelberg University
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
