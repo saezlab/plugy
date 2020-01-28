@@ -16,6 +16,7 @@ See accompanying file LICENSE.txt or copy at
 """
 import logging
 import pickle
+import importlib as imp
 
 import pathlib as pl
 
@@ -60,6 +61,18 @@ class PlugData(object):
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
         self.plug_df, self.peak_data, self.sample_df = self.call_plugs()
+
+
+    def reload(self):
+        """
+        Reloads the object from the module level.
+        """
+
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
 
     def call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
@@ -470,6 +483,7 @@ class PlugData(object):
         :param col_wrap: After how many subplots the column should be wrapped.
         :return: sns.FacetGrid object with the subplots
         """
+        
         df = self.sample_df.assign(length = self.sample_df.end_time - self.sample_df.start_time)
         length_bias_plot = sns.lmplot(x = "length", y = "readout_peak_median", col = "name", data = df, col_wrap = col_wrap)
         length_bias_plot.set_xlabels("Length")
