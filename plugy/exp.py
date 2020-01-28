@@ -44,16 +44,44 @@ class PlugExperiment(object):
     def __post_init__(self):
         module_logger.info(f"Initializing PlugExperiment using the following configuration")
         module_logger.info("\n".join([f"{k}: {v}" for k, v in self.config.__dict__.items()]))
-
+        
+        if self.config.run:
+            
+            self.main()
+    
+    
+    def main(self):
+        
+        self.setup()
+        self.load()
+        self.detect_plugs()
+        self.detect_samples()
+        self.qc()
+        self.drug_combination_analysis()
+    
+    
+    def setup(self):
+        
         self.check_config()
 
         if not self.config.result_base_dir.exists():
             self.config.result_base_dir.mkdir()
 
-        assert not self.config.result_dir.exists(), f"Automatically generated result directory name already exists {self.config.result_dir.name}, please retry in a couple of seconds"
+        assert (
+            not self.config.result_dir.exists(),
+            f"Automatically generated result directory name already exists"
+            f" {self.config.result_dir.name}, "
+            f"please retry in a couple of seconds"
+        )
 
         self.config.result_dir.mkdir()
 
+        sns.set_context(self.config.seaborn_context)
+        sns.set_style(self.config.seaborn_style)
+
+
+    def load(self):
+        
         self.channel_map = ChannelMap(self.config.channel_file)
         self.plug_sequence = PlugSequence.from_csv_file(self.config.seq_file)
 
@@ -68,6 +96,9 @@ class PlugExperiment(object):
                                 digital_gain_green=self.config.digital_gain_green,
                                 digital_gain_orange=self.config.digital_gain_orange,
                                 config=self.config)
+
+
+    def detect_plugs(self):
 
         self.plug_data = PlugData(pmt_data=self.pmt_data,
                                   plug_sequence=self.plug_sequence,
@@ -86,14 +117,12 @@ class PlugExperiment(object):
                                   min_end_cycle_barcodes=self.config.min_end_cycle_barcodes,
                                   config=self.config)
 
-        sns.set_context(self.config.seaborn_context)
-        sns.set_style(self.config.seaborn_style)
+
+    def detect_samples(self):
 
         self.sample_data = self.get_sample_data()
-
-        self.qc()
         self.sample_statistics = self.calculate_statistics()
-        self.drug_combination_analysis()
+
 
     def get_sample_data(self) -> pd.DataFrame:
         """
