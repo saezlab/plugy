@@ -16,6 +16,7 @@ See accompanying file LICENSE.txt or copy at
 """
 import logging
 import pathlib as pl
+import importlib as imp
 
 import numpy as np
 import pandas as pd
@@ -239,13 +240,8 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(plug_count_hist_fig)
         plug_count_hist_fig.savefig(qc_dir.joinpath(f"plug_count_hist.{self.config.figure_export_file_type}"))
-
-        # Plotting length bias
-        length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(length_bias_plot.fig)
-        length_bias_plot.fig.tight_layout()
-        length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
+    
+        self.plot_length_bias()
 
         # Plotting contamination
         contamination = self.get_contamination()
@@ -311,7 +307,20 @@ class PlugExperiment(object):
             assert qc_successful, qc_fail_msg
 
         return qc_successful
-
+    
+    
+    def plot_length_bias(self):
+        # Plotting length bias
+        try:
+            length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
+            if self.config.plot_git_caption:
+                misc.add_git_hash_caption(length_bias_plot.fig)
+            length_bias_plot.fig.tight_layout()
+            length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
+        except:
+            module_logger.error("Failed to plot length bias")
+    
+    
     def calculate_statistics(self) -> pd.DataFrame:
         """
         Calculates statistics
