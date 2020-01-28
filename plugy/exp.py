@@ -14,9 +14,11 @@ See accompanying file LICENSE.txt or copy at
     http://www.gnu.org/licenses/gpl-3.0.html
 
 """
+import sys
 import logging
 import pathlib as pl
 import importlib as imp
+import traceback
 
 import numpy as np
 import pandas as pd
@@ -71,6 +73,7 @@ class PlugExperiment(object):
         self.detect_samples()
         self.qc()
         self.drug_combination_analysis()
+        self.close_figures()
     
     
     def setup(self):
@@ -80,12 +83,13 @@ class PlugExperiment(object):
         if not self.config.result_base_dir.exists():
             self.config.result_base_dir.mkdir()
 
-        assert (
-            not self.config.result_dir.exists(),
-            f"Automatically generated result directory name already exists"
-            f" {self.config.result_dir.name}, "
-            f"please retry in a couple of seconds"
-        )
+        assert \
+            not self.config.result_dir.exists(), \
+            (
+                f"Automatically generated result directory name already exists"
+                f" {self.config.result_dir.name}, "
+                f"please retry in a couple of seconds"
+            )
 
         self.config.result_dir.mkdir()
 
@@ -220,10 +224,7 @@ class PlugExperiment(object):
         :return: True if quality is sufficient, False otherwise
         """
         qc_successful = True
-        qc_dir = self.config.result_dir.joinpath("qc")
-
-        if not qc_dir.exists():
-            qc_dir.mkdir()
+        qc_dir = self.ensure_qc_dir()
 
         # Plotting media control readout over experiment time
         media_control_fig, media_control_ax = plt.subplots(ncols=2, figsize=(20, 10))
@@ -303,11 +304,7 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(control_fig)
         control_fig.savefig(qc_dir.joinpath(f"control_fluorescence.{self.config.figure_export_file_type}"))
 
-        # Plotting PMT overview
-        sample_cycle_fig, sample_cycle_ax = self.plug_data.plot_sample_cycles()
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(sample_cycle_fig)
-        sample_cycle_fig.savefig(qc_dir.joinpath("sample_cycle_overview.png"))
+        self.plot_sample_cycles()
 
         qc_fail_msg = "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
         if qc_successful:
@@ -321,16 +318,49 @@ class PlugExperiment(object):
         return qc_successful
     
     
+    def ensure_qc_dir(self):
+        
+        qc_dir = self.config.result_dir.joinpath("qc")
+
+        if not qc_dir.exists():
+            
+            qc_dir.mkdir()
+        
+        return qc_dir
+    
+    
     def plot_length_bias(self):
+        
         # Plotting length bias
         try:
+            qc_dir = self.ensure_qc_dir()
             length_bias_plot = self.plug_data.plot_length_bias(col_wrap=8)
             if self.config.plot_git_caption:
                 misc.add_git_hash_caption(length_bias_plot.fig)
             length_bias_plot.fig.tight_layout()
             length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
         except:
+            traceback.print_exc(file = sys.stdout)
             module_logger.error("Failed to plot length bias")
+    
+    
+    def plot_sample_cycles(self):
+        
+        # Plotting PMT overview
+        try:
+            qc_dir = self.ensure_qc_dir()
+            sample_cycle_fig, sample_cycle_ax = (
+                self.plug_data.plot_sample_cycles()
+            )
+            if self.config.plot_git_caption:
+                misc.add_git_hash_caption(sample_cycle_fig)
+            
+            sample_cycle_fig.savefig(
+                qc_dir.joinpath("sample_cycle_overview.png")
+            )
+        except:
+            traceback.print_exc(file = sys.stdout)
+            module_logger.error("Failed to plot sample cycles")
     
     
     def calculate_statistics(self) -> pd.DataFrame:
@@ -404,3 +434,8 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(drug_z_hm_fig)
         drug_z_hm_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_heatmap.{self.config.figure_export_file_type}"))
+    
+    
+    def close_figures(self):
+        
+        plt.close('all')

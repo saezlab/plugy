@@ -385,7 +385,12 @@ class PlugData(object):
         names = self.sample_df.name.unique()
         cycles = sorted(self.sample_df.cycle_nr.unique())
 
-        sample_cycle_fig, sample_cycle_ax = plt.subplots(nrows=len(names), ncols=len(cycles), figsize=(7 * len(cycles), 5 * len(names)))
+        sample_cycle_fig, sample_cycle_ax = plt.subplots(
+            nrows=len(names),
+            ncols=len(cycles),
+            figsize=(7 * len(cycles), 5 * len(names)),
+            squeeze = False,
+        )
 
         y_max = self.sample_df.readout_peak_median.max() * 1.1
 
@@ -408,7 +413,7 @@ class PlugData(object):
         :return: The plt.Axes object with the plot
         """
         peak_data = self.sample_df[(self.sample_df.cycle_nr == cycle_nr) & (self.sample_df.name == name)]
-        if len(peak_data) is 0:
+        if len(peak_data) == 0:
             axes.text(0.5, 0.5, "No Data")
         else:
             axes = self.plot_plug_pmt_data(axes=axes, cut=(peak_data.start_time.min() - offset, peak_data.end_time.max() + offset))
