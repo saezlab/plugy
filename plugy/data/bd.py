@@ -1,19 +1,26 @@
-"""
-Author      Nicolas Peschke
-Date        19.09.2019
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-This file is part of the `plugy` python module
+#
+# Author      Nicolas Peschke
+# Date        19.09.2019
+#
+# This file is part of the `plugy` python module
+#
+# Copyright
+# 2018-2020
+# EMBL, Heidelberg University
+#
+# File author(s): Dénes Türei (turei.denes@gmail.com)
+#                 Nicolas Peschke
+#
+# Distributed under the GPLv3 License.
+# See accompanying file LICENSE.txt or copy at
+#     http://www.gnu.org/licenses/gpl-3.0.html
+#
+# Webpage: https://github.com/saezlab/plugy
+#
 
-Copyright
-2018-2019
-EMBL, Heidelberg University
-File author(s): Dénes Türei (turei.denes@gmail.com)
-                Nicolas Peschke
-Distributed under the GPLv3 License.
-See accompanying file LICENSE.txt or copy at
-    http://www.gnu.org/licenses/gpl-3.0.html
-
-"""
 import itertools
 import logging
 import csv
@@ -129,9 +136,9 @@ class PlugSequence(object):
                     continue
                 else:
                     # noinspection PyCallByClass
-                    sequence.append(Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
+                    sequence.append(Sample(open_duration = int(row[0]), n_replicates = int(row[1]), name = row[2], open_valves = [int(i) for i in row[3:]]))
 
-        return cls(sequence=tuple(sequence))
+        return cls(sequence = tuple(sequence))
 
     # noinspection PyCallByClass
     @classmethod
@@ -154,16 +161,16 @@ class PlugSequence(object):
         samples = list()
 
         # Generate templates
-        control = Sample(open_duration=open_duration, n_replicates=n_control, name="Cell Control", open_valves=channel_map.cells + channel_map.substrate + channel_map.media)
-        barcode = Sample(open_duration=open_duration, n_replicates=n_barcode, name="Barcode", open_valves=channel_map.media + channel_map.bc)
+        control = Sample(open_duration = open_duration, n_replicates = n_control, name = "Cell Control", open_valves = channel_map.cells + channel_map.substrate + channel_map.media)
+        barcode = Sample(open_duration = open_duration, n_replicates = n_barcode, name = "Barcode", open_valves = channel_map.media + channel_map.bc)
         individual_drugs = list()
         for drug in channel_map.drugs:
-            individual_drugs.append(Sample(open_duration=open_duration, n_replicates=n_replicates, name=channel_map.map[drug], open_valves=channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
+            individual_drugs.append(Sample(open_duration = open_duration, n_replicates = n_replicates, name = channel_map.map[drug], open_valves = channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
             if generate_barcodes:
                 individual_drugs.append(barcode)
 
         # Generate sample list
-        samples.append(Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="Start Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
+        samples.append(Sample(open_duration = open_duration, n_replicates = n_cycle_bc, name = "Start Cycle Barcode", open_valves = channel_map.media + channel_map.bc))
         samples.append(control)
         if generate_barcodes:
             samples.append(barcode)
@@ -176,7 +183,7 @@ class PlugSequence(object):
                     samples.append(barcode)
 
             samples.append(
-                Sample(open_duration=open_duration, n_replicates=n_replicates, name=f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}", open_valves=channel_map.cells + channel_map.substrate + list(combination)))
+                Sample(open_duration = open_duration, n_replicates = n_replicates, name = f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}", open_valves = channel_map.cells + channel_map.substrate + list(combination)))
             if generate_barcodes:
                 samples.append(barcode)
 
@@ -184,8 +191,8 @@ class PlugSequence(object):
         if generate_barcodes:
             samples.append(barcode)
 
-        samples.append(Sample(open_duration=open_duration, n_replicates=n_cycle_bc, name="End Cycle Barcode", open_valves=channel_map.media + channel_map.bc))
-        return cls(sequence=tuple(samples), channel_map=channel_map)
+        samples.append(Sample(open_duration = open_duration, n_replicates = n_cycle_bc, name = "End Cycle Barcode", open_valves = channel_map.media + channel_map.bc))
+        return cls(sequence = tuple(samples), channel_map = channel_map)
 
     def __init__(self, sequence: tuple, **kwargs):
         """
@@ -226,7 +233,7 @@ class PlugSequence(object):
         :param path: Path to write to
         """
         module_logger.info(f"Writing sequence to file {path.absolute()}")
-        with path.open("w", newline="\r\n") as f:
+        with path.open("w", newline = "\r\n") as f:
             f.write("\n")
             for sample in self.sequence:
                 f.write(f"{str(sample.open_duration)},{str(sample.n_replicates)},{str(sample.name)},{','.join([str(i) for i in sample.open_valves])}")

@@ -1,6 +1,18 @@
 # Plugy Tutorial
-This notebook will show you how to run a plugy based analysis of a Braille experiment.Imports & Setup
-General imports, logging is to have log output to be printed to screen and to file,
+This notebook will show you how to run a plugy based analysis of a Braille experiment.
+
+#### Issue reporting
+Please feel free to open issues for the tutorial at https://git.embl.de/grp-merten/plugy-tutorial/issues
+in case there are some things unclear or you spotted some errors in the tutorial.
+
+In case you have some issue or feature request with plugy directly, please open an issue
+directly on the site of plugy's repository https://git.embl.de/grp-merten/plugy/issues 
+
+#### Running plugy
+
+Imports & Setup
+
+Logging is to have log output to be printed to screen and to file,
 pathlib is to handle file paths in an OS independent manner. 
 ```
 import logging
