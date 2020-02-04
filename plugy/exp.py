@@ -39,7 +39,7 @@ from .data.config import PlugyConfig
 from .data.bd import ChannelMap, PlugSequence
 from .data.pmt import PmtData
 from .data.plug import PlugData
-from ..plugy import misc as misc
+from . import misc as misc
 # import lib.plugy.plugy.misc as misc
 
 from dataclasses import dataclass
