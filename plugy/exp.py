@@ -40,7 +40,6 @@ from .data.bd import ChannelMap, PlugSequence
 from .data.pmt import PmtData
 from .data.plug import PlugData
 from . import misc as misc
-# import lib.plugy.plugy.misc as misc
 
 from dataclasses import dataclass
 
