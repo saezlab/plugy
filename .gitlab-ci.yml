@@ -1,0 +1,9 @@
+image: continuumio/miniconda3:latest
+
+testbuild :
+  stage: build
+  script:
+    - conda env create -f requirements.yaml
+    - source activate plugy
+    - python -m unittest
+    - python setup.py install
