@@ -4,8 +4,8 @@ import os
 import logging
 import pathlib as pl
 
-import lib.plugy.plugy.exp as exp
-import lib.plugy.plugy.data.config as config
+import plugy.exp as exp
+import plugy.data.config as config
 
 logging.basicConfig(
     level = logging.DEBUG,

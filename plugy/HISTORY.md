@@ -15,3 +15,6 @@ This is a summary of the changelog.
 * New plug calling
 * New experimental workflow with QC plots
 * Added unit testing for some classes
+
+## 0.4.0:
+* introduced packaging using setup.py
