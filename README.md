@@ -12,6 +12,19 @@ directly on the site of plugy's repository https://git.embl.de/grp-merten/plugy/
 
 Imports & Setup
 
+You can now install plugy as a package using `pip` in your `conda` environment.
+To install `pip` in your `conda` environment run the following lines on your `bash` or `conda` prompt.
+```
+# Activate your conda environment replacing 'YOUR_ENVIRONMENT' with the name of your environment
+conda activate YOUR_ENVIRONMENT
+
+# Install pip git support, such that plugy can be directly installed from gitlab
+conda install pip git
+
+# Install plugy into your environment
+pip install git+git+https://git.embl.de/grp-merten/plugy@master
+```
+
 Logging is to have log output to be printed to screen and to file,
 pathlib is to handle file paths in an OS independent manner. 
 ```
@@ -20,8 +33,8 @@ import pathlib as pl
 ```
 Importing plugy modules
 ```
-import lib.plugy.plugy.exp as exp
-import lib.plugy.plugy.data.config as config
+import plugy.exp as exp
+import plugy.data.config as config
 ```
 Setting up logging 
 ```
@@ -48,5 +61,5 @@ It contains all the plug, pmt, channel and sequence data that was used in the an
 This would give you a DataFrame containing the statistics to each sample
 
 ```
-plug_exp.sample_statistics
+plug_exp.sample_statistics()
 ```
