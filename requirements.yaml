@@ -1,3 +1,5 @@
+name: plugy
+
 channels:
   - bioconda
   - conda-forge
