@@ -18,3 +18,6 @@ This is a summary of the changelog.
 
 ## 0.4.0:
 * introduced packaging using setup.py
+
+## 0.4.1:
+* introduced GitLab CI
