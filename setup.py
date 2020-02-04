@@ -8,5 +8,11 @@ setup(
     license='GPLv3',
     author='Dénes Türei & Nicolas Peschke',
     author_email='turei.denes@gmail.com',
-    description='A package to handle plug microfluidics data'
+    description='A package to handle plug microfluidics data',
+    install_requires=['seaborn',
+                      'matplotlib',
+                      'statsmodels',
+                      'scipy',
+                      'pandas',
+                      'numpy']
 )
