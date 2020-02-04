@@ -1,4 +1,6 @@
 # Plugy Tutorial
+[![pipeline status](https://git.embl.de/grp-merten/plugy/badges/master/pipeline.svg)](https://git.embl.de/grp-merten/plugy/commits/master)
+
 This notebook will show you how to run a plugy based analysis of a Braille experiment.
 
 #### Issue reporting
