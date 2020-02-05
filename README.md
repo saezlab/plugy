@@ -24,7 +24,7 @@ conda activate YOUR_ENVIRONMENT
 conda install pip git
 
 # Install plugy into your environment
-pip install git+git+https://git.embl.de/grp-merten/plugy@master
+pip install git+https://git.embl.de/grp-merten/plugy@master
 ```
 
 Logging is to have log output to be printed to screen and to file,
