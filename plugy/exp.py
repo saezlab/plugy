@@ -250,7 +250,13 @@ class PlugExperiment(object):
         media_control_fig.savefig(qc_dir.joinpath(f"fs_media_control.{self.config.figure_export_file_type}"))
 
         # Plotting PMT cycle overview
-        self.save_cycle_overview_figure()
+        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize = (150, 10))
+        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes = pmt_overview_ax)
+
+        pmt_overview_fig.tight_layout()
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(pmt_overview_fig)
+        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
 
         # Plotting plug numbers
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
@@ -324,20 +330,6 @@ class PlugExperiment(object):
 
         return qc_successful
 
-    def save_cycle_overview_figure(self):
-        """
-        Plots and saves the cycle overview figure
-        :return:
-        """
-        qc_dir = self.ensure_qc_dir()
-        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(150, 10))
-
-        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes=pmt_overview_ax)
-
-        pmt_overview_fig.tight_layout()
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(pmt_overview_fig)
-        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
 
     def ensure_qc_dir(self):
         
