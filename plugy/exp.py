@@ -87,18 +87,18 @@ class PlugExperiment(object):
         
         self.check_config()
 
-        if not self.config.result_base_dir.exists():
-            self.config.result_base_dir.mkdir()
+        # if not self.config.result_base_dir.exists():
+        #     self.config.result_base_dir.mkdir()
 
-        assert \
-            not self.config.result_dir.exists(), \
-            (
-                f"Automatically generated result directory name already exists"
-                f" {self.config.result_dir.name}, "
-                f"please retry in a couple of seconds"
-            )
+        # assert \
+        #     not self.config.result_dir.exists(), \
+        #     (
+        #         f"Automatically generated result directory name already exists"
+        #         f" {self.config.result_dir.name}, "
+        #         f"please retry in a couple of seconds"
+        #     )
 
-        self.config.result_dir.mkdir()
+        # self.config.result_dir.mkdir()
 
         sns.set_context(self.config.seaborn_context)
         sns.set_style(self.config.seaborn_style)
