@@ -144,8 +144,17 @@ class PlugExperiment(object):
         except AssertionError:
             # In case labelling does not work because
             # the number of called plugs diverges from the expected number.
-            # Plot cycle overview figure to aid debugging
-            self.save_cycle_overview_figure()
+            # Plotting fallback pmt overview
+
+            pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
+            self.pmt_data.plot_pmt_data(pmt_overview_ax)
+            if self.config.plot_git_caption:
+                misc.add_git_hash_caption(pmt_overview_fig)
+
+            pmt_overview_fig.tight_layout()
+            pmt_overview_fig.savefig(self.config.result_dir.joinpath(f"pmt_overview.png"))
+
+            module_logger.error(f"Error during plug calling, plotting fallback pmt overview!")
             raise
 
     def detect_samples(self):
