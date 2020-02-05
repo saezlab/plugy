@@ -87,18 +87,18 @@ class PlugExperiment(object):
         
         self.check_config()
 
-        if not self.config.result_base_dir.exists():
-            self.config.result_base_dir.mkdir()
+        # if not self.config.result_base_dir.exists():
+        #     self.config.result_base_dir.mkdir()
 
-        assert \
-            not self.config.result_dir.exists(), \
-            (
-                f"Automatically generated result directory name already exists"
-                f" {self.config.result_dir.name}, "
-                f"please retry in a couple of seconds"
-            )
+        # assert \
+        #     not self.config.result_dir.exists(), \
+        #     (
+        #         f"Automatically generated result directory name already exists"
+        #         f" {self.config.result_dir.name}, "
+        #         f"please retry in a couple of seconds"
+        #     )
 
-        self.config.result_dir.mkdir()
+        # self.config.result_dir.mkdir()
 
         sns.set_context(self.config.seaborn_context)
         sns.set_style(self.config.seaborn_style)
@@ -124,23 +124,38 @@ class PlugExperiment(object):
 
     def detect_plugs(self):
 
-        self.plug_data = PlugData(pmt_data = self.pmt_data,
-                                  plug_sequence = self.plug_sequence,
-                                  channel_map = self.channel_map,
-                                  auto_detect_cycles = self.config.auto_detect_cycles,
-                                  peak_min_threshold = self.config.peak_min_threshold,
-                                  peak_max_threshold = self.config.peak_max_threshold,
-                                  peak_min_distance = self.config.peak_min_distance,
-                                  peak_min_prominence = self.config.peak_min_prominence,
-                                  peak_max_prominence = self.config.peak_max_prominence,
-                                  peak_min_width = self.config.peak_min_width,
-                                  peak_max_width = self.config.peak_max_width,
-                                  width_rel_height = self.config.width_rel_height,
-                                  merge_peaks_distance = self.config.merge_peaks_distance,
-                                  n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
-                                  min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
-                                  config = self.config)
+        try:
+            self.plug_data = PlugData(pmt_data = self.pmt_data,
+                                      plug_sequence = self.plug_sequence,
+                                      channel_map = self.channel_map,
+                                      auto_detect_cycles = self.config.auto_detect_cycles,
+                                      peak_min_threshold = self.config.peak_min_threshold,
+                                      peak_max_threshold = self.config.peak_max_threshold,
+                                      peak_min_distance = self.config.peak_min_distance,
+                                      peak_min_prominence = self.config.peak_min_prominence,
+                                      peak_max_prominence = self.config.peak_max_prominence,
+                                      peak_min_width = self.config.peak_min_width,
+                                      peak_max_width = self.config.peak_max_width,
+                                      width_rel_height = self.config.width_rel_height,
+                                      merge_peaks_distance = self.config.merge_peaks_distance,
+                                      n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
+                                      min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
+                                      config = self.config)
+        except AssertionError:
+            # In case labelling does not work because
+            # the number of called plugs diverges from the expected number.
+            # Plotting fallback pmt overview
 
+            pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
+            self.pmt_data.plot_pmt_data(pmt_overview_ax)
+            if self.config.plot_git_caption:
+                misc.add_git_hash_caption(pmt_overview_fig)
+
+            pmt_overview_fig.tight_layout()
+            pmt_overview_fig.savefig(self.config.result_dir.joinpath(f"pmt_overview.png"))
+
+            module_logger.error(f"Error during plug calling, plotting fallback pmt overview!")
+            raise
 
     def detect_samples(self):
 
@@ -323,8 +338,8 @@ class PlugExperiment(object):
             assert qc_successful, qc_fail_msg
 
         return qc_successful
-    
-    
+
+
     def ensure_qc_dir(self):
         
         qc_dir = self.config.result_dir.joinpath("qc")
