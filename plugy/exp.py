@@ -124,23 +124,29 @@ class PlugExperiment(object):
 
     def detect_plugs(self):
 
-        self.plug_data = PlugData(pmt_data = self.pmt_data,
-                                  plug_sequence = self.plug_sequence,
-                                  channel_map = self.channel_map,
-                                  auto_detect_cycles = self.config.auto_detect_cycles,
-                                  peak_min_threshold = self.config.peak_min_threshold,
-                                  peak_max_threshold = self.config.peak_max_threshold,
-                                  peak_min_distance = self.config.peak_min_distance,
-                                  peak_min_prominence = self.config.peak_min_prominence,
-                                  peak_max_prominence = self.config.peak_max_prominence,
-                                  peak_min_width = self.config.peak_min_width,
-                                  peak_max_width = self.config.peak_max_width,
-                                  width_rel_height = self.config.width_rel_height,
-                                  merge_peaks_distance = self.config.merge_peaks_distance,
-                                  n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
-                                  min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
-                                  config = self.config)
-
+        try:
+            self.plug_data = PlugData(pmt_data = self.pmt_data,
+                                      plug_sequence = self.plug_sequence,
+                                      channel_map = self.channel_map,
+                                      auto_detect_cycles = self.config.auto_detect_cycles,
+                                      peak_min_threshold = self.config.peak_min_threshold,
+                                      peak_max_threshold = self.config.peak_max_threshold,
+                                      peak_min_distance = self.config.peak_min_distance,
+                                      peak_min_prominence = self.config.peak_min_prominence,
+                                      peak_max_prominence = self.config.peak_max_prominence,
+                                      peak_min_width = self.config.peak_min_width,
+                                      peak_max_width = self.config.peak_max_width,
+                                      width_rel_height = self.config.width_rel_height,
+                                      merge_peaks_distance = self.config.merge_peaks_distance,
+                                      n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
+                                      min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
+                                      config = self.config)
+        except AssertionError:
+            # In case labelling does not work because
+            # the number of called plugs diverges from the expected number.
+            # Plot cycle overview figure to aid debugging
+            self.save_cycle_overview_figure()
+            raise
 
     def detect_samples(self):
 
@@ -244,13 +250,7 @@ class PlugExperiment(object):
         media_control_fig.savefig(qc_dir.joinpath(f"fs_media_control.{self.config.figure_export_file_type}"))
 
         # Plotting PMT cycle overview
-        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize = (150, 10))
-        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes = pmt_overview_ax)
-
-        pmt_overview_fig.tight_layout()
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(pmt_overview_fig)
-        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
+        self.save_cycle_overview_figure()
 
         # Plotting plug numbers
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
@@ -323,8 +323,22 @@ class PlugExperiment(object):
             assert qc_successful, qc_fail_msg
 
         return qc_successful
-    
-    
+
+    def save_cycle_overview_figure(self):
+        """
+        Plots and saves the cycle overview figure
+        :return:
+        """
+        qc_dir = self.ensure_qc_dir()
+        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(150, 10))
+
+        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes=pmt_overview_ax)
+
+        pmt_overview_fig.tight_layout()
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(pmt_overview_fig)
+        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
+
     def ensure_qc_dir(self):
         
         qc_dir = self.config.result_dir.joinpath("qc")
