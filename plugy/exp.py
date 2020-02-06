@@ -53,7 +53,9 @@ class PlugExperiment(object):
 
     def __post_init__(self):
         module_logger.info(f"Initializing PlugExperiment using the following configuration")
-        module_logger.info("\n".join([f"{k}: {v}" for k, v in self.config.__dict__.items()]))
+
+        for k, v in self.config.__dict__.items():
+            module_logger.info(f"{k}: {v}")
         
         if self.config.run:
             
