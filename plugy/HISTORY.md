@@ -21,3 +21,9 @@ This is a summary of the changelog.
 
 ## 0.4.1:
 * introduced GitLab CI
+
+## 0.4.2:
+* added fallback plotting in case cycle / plug detection fails
+
+## 0.4.3:
+* simplified logging

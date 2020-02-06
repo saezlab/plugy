@@ -7,14 +7,14 @@ This notebook will show you how to run a plugy based analysis of a Braille exper
 Please feel free to open issues for the tutorial at https://git.embl.de/grp-merten/plugy-tutorial/issues
 in case there are some things unclear or you spotted some errors in the tutorial.
 
-In case you have some issue or feature request with plugy directly, please open an issue
-directly on the site of plugy's repository https://git.embl.de/grp-merten/plugy/issues 
+In case you have some issue or feature request with `plugy` directly, please open an issue
+directly on the site of the `plugy` repository https://git.embl.de/grp-merten/plugy/issues 
 
 #### Running plugy
 
 Imports & Setup
 
-You can now install plugy as a package using `pip` in your `conda` environment.
+You can now install `plugy` as a package using `pip` in your `conda` environment.
 To install `pip` in your `conda` environment run the following lines on your `bash` or `conda` prompt.
 ```
 # Activate your conda environment replacing 'YOUR_ENVIRONMENT' with the name of your environment
@@ -27,26 +27,23 @@ conda install pip git
 pip install git+https://git.embl.de/grp-merten/plugy@master
 ```
 
-Logging is to have log output to be printed to screen and to file,
-pathlib is to handle file paths in an OS independent manner. 
+Importing modules
 ```python
-import logging
+# Handling file paths
 import pathlib as pl
-```
-Importing plugy modules
-```python
+
+# Importing plugy modules
 import plugy.exp as exp
 import plugy.data.config as config
+import plugy.misc as misc
 ```
-Setting up logging 
-```python
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%d.%m.%y %H:%M:%S')
-```
+
 Running Plugy
 
-Creating configuration
+Creating configuration & setting up logging
+This will automatically create result directories for each individual run.
+The `misc.start_logging` function will cause `plugy` to display INFO and higher level 
+messages on screen and log every message to a log file in the result directory.
 ```python
 plugy_config = config.PlugyConfig(pmt_file=pl.Path("data/pmt_data.txt.gz"),
                                   seq_file=pl.Path("data/sequence.csv"),
@@ -54,16 +51,18 @@ plugy_config = config.PlugyConfig(pmt_file=pl.Path("data/pmt_data.txt.gz"),
                                   auto_detect_cycles=True,
                                   peak_max_width=2.5,
                                   figure_export_file_type="png")
+
+misc.start_logging(plugy_config)
 ```
 Running the analysis
-this will automatically create result directories for each individual run.
+
 ```python
 plug_exp = exp.PlugExperiment(plugy_config)
 ```
 If you want to interact with the data use the contents of the plug_exp object. 
-It contains all the plug, pmt, channel and sequence data that was used in the analysis.  
-This would give you a DataFrame containing the statistics to each sample
-
+It contains all the plug, pmt, channel and sequence data that was used in the analysis. 
+ 
+For example, this would give you a DataFrame containing the statistics to each sample:
 ```python
-plug_exp.sample_statistics()
+plug_exp.sample_statistics
 ```
