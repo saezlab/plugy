@@ -30,10 +30,9 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import seaborn as sns
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from ..data.config import PlugyConfig
 
 module_logger = logging.getLogger("plugy.data.pmt")
