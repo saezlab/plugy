@@ -183,6 +183,28 @@ class TestPmtData(unittest.TestCase):
 
             self.assertEqual(pmt.PmtData.find_data(self.right_file_dot), 22)
 
+    def test_detect_decimal_separator(self):
+        """
+        Checks if decimal separator is detected properly
+        """
+        with tempfile.TemporaryFile(mode="w+t") as self.right_file_dot:
+            self.right_file_dot.write(FILE_CONTENT_DOT)
+            self.right_file_dot.seek(0)
+
+            self.assertEqual(pmt.PmtData.detect_decimal_separator(self.right_file_dot), ".")
+
+        with tempfile.TemporaryFile(mode="w+t") as self.right_file_comma:
+            self.right_file_comma.write(FILE_CONTENT_COMMA)
+            self.right_file_comma.seek(0)
+
+            self.assertEqual(pmt.PmtData.detect_decimal_separator(self.right_file_comma), ",")
+
+        with tempfile.TemporaryFile(mode="w+t") as self.wrong_header_file:
+            self.wrong_header_file.writelines(["test\n" for _ in range(100)])
+            self.wrong_header_file.seek(0)
+
+            self.assertEqual(pmt.PmtData.detect_decimal_separator(self.wrong_header_file), ",")
+
     # noinspection PyArgumentList
     def test_set_channel_value_ignore(self):
         """
