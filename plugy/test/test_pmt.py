@@ -169,12 +169,19 @@ class TestPmtData(unittest.TestCase):
             with self.assertRaises(AssertionError) as cm:
                 pmt.PmtData.find_data(self.wrong_header_file)
 
-        # Checking with real header
-        with tempfile.TemporaryFile(mode = "w+t") as self.right_file:
-            self.right_file.write(FILE_CONTENT)
-            self.right_file.seek(0)
+        # Checking with real header (comma separated)
+        with tempfile.TemporaryFile(mode = "w+t") as self.right_file_comma:
+            self.right_file_comma.write(FILE_CONTENT_COMMA)
+            self.right_file_comma.seek(0)
 
-            self.assertEqual(pmt.PmtData.find_data(self.right_file), 22)
+            self.assertEqual(pmt.PmtData.find_data(self.right_file_comma), 22)
+
+        # Checking with real header (dot separated)
+        with tempfile.TemporaryFile(mode = "w+t") as self.right_file_dot:
+            self.right_file_dot.write(FILE_CONTENT_DOT)
+            self.right_file_dot.seek(0)
+
+            self.assertEqual(pmt.PmtData.find_data(self.right_file_dot), 22)
 
     # noinspection PyArgumentList
     def test_set_channel_value_ignore(self):
