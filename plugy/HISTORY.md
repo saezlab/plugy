@@ -27,3 +27,6 @@ This is a summary of the changelog.
 
 ## 0.4.3:
 * simplified logging
+
+## 0.4.4:
+* added automatic detection of input file decimal separator
