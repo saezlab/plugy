@@ -32,7 +32,7 @@ import pathlib as pl
 import numpy as np
 
 import pandas as pd
-import pandas.util.testing as pd_test
+import pandas.testing as pd_test
 
 from ..data import pmt
 
