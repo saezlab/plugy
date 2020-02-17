@@ -115,28 +115,36 @@ class TestPmtData(unittest.TestCase):
         """
         Checks if reading gz file returns the expected DataFrame
         """
-        with tempfile.NamedTemporaryFile(mode="w+b", suffix=".txt.gz", delete=True) as self.gz_file:
-            with gzip.GzipFile(mode="wb", fileobj=self.gz_file) as gz:
-                gz.write(FILE_CONTENT_COMMA.encode())
-            self.gz_file.seek(0)
-            self.gz_file_path = pl.Path(self.gz_file.name)
+        file_contents = [FILE_CONTENT_COMMA, FILE_CONTENT_DOT]
 
-            self.data = pmt.PmtData(self.gz_file_path).read_txt()
+        for file_content in file_contents:
+            with self.subTest(file_content=file_content):
+                with tempfile.NamedTemporaryFile(mode="w+b", suffix=".txt.gz", delete=True) as self.gz_file:
+                    with gzip.GzipFile(mode="wb", fileobj=self.gz_file) as gz:
+                        gz.write(file_content.encode())
+                    self.gz_file.seek(0)
+                    self.gz_file_path = pl.Path(self.gz_file.name)
 
-        pd_test.assert_frame_equal(self.test_df, self.data)
+                    self.data = pmt.PmtData(self.gz_file_path).read_txt()
+
+                pd_test.assert_frame_equal(self.test_df, self.data)
 
     def test_txt_file_open(self):
         """
         Checks if reading normal txt file returns the expected DataFrame
         """
-        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt", delete=True) as self.txt_file:
-            self.txt_file.write(FILE_CONTENT_COMMA)
-            self.txt_file.seek(0)
-            self.txt_file_path = pl.Path(self.txt_file.name)
+        file_contents = [FILE_CONTENT_COMMA, FILE_CONTENT_DOT]
 
-            self.data = pmt.PmtData(self.txt_file_path).read_txt()
+        for file_content in file_contents:
+            with self.subTest(file_content=file_content):
+                with tempfile.NamedTemporaryFile(mode="w+t", suffix=".txt", delete=True) as self.txt_file:
+                    self.txt_file.write(file_content)
+                    self.txt_file.seek(0)
+                    self.txt_file_path = pl.Path(self.txt_file.name)
 
-        pd_test.assert_frame_equal(self.test_df, self.data)
+                    self.data = pmt.PmtData(self.txt_file_path).read_txt()
+
+                pd_test.assert_frame_equal(self.test_df, self.data)
 
     def test_other_file_open(self):
         """
