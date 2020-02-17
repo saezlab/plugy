@@ -30,10 +30,9 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import seaborn as sns
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from ..data.config import PlugyConfig
 
 module_logger = logging.getLogger("plugy.data.pmt")
@@ -78,23 +77,53 @@ class PmtData(object):
             if self.input_file.suffix == ".gz":
                 module_logger.info("Detected gzipped file")
                 with gzip.open(self.input_file, "rt") as f:
-                    end_of_header = self.find_data(f)
+                    header_info = self.parse_header(f)
 
             elif self.input_file.suffix == ".txt":
                 module_logger.info("Detected uncompressed txt file")
                 with self.input_file.open("rt") as f:
-                    end_of_header = self.find_data(f)
+                    header_info = self.parse_header(f)
 
             else:
                 raise NotImplementedError(f"Input file has to be either .txt or .txt.gz, {self.input_file.suffix} files are not implemented!")
 
-            data_frame = pd.read_csv(self.input_file, sep = "\t", decimal = ",", skiprows = end_of_header, header = None).iloc[:, 1:]
+            data_frame = pd.read_csv(self.input_file, sep = "\t", decimal = header_info["decimal_separator"], skiprows = header_info["end_of_header"], header = None).iloc[:, 1:]
             data_frame.columns = ["time", "green", "orange", "uv"]
 
             return data_frame
 
         else:
             raise FileNotFoundError(f"Input file ({self.input_file.absolute()}) does not exist! Check the path!")
+
+    def parse_header(self, file) -> dict:
+        """
+        Parses the LabView header and extracts information in form of a dict
+        "end_of_header" : Line number of the first data line
+        "decimal_separator" : Type of decimal separator
+        :param file: read opened text file object
+        :return: dictionary containing end_of_header and decimal_separator
+        """
+        info = dict()
+        info["end_of_header"] = self.find_data(file)
+        info["decimal_separator"] = self.detect_decimal_separator(file)
+        return info
+
+    @staticmethod
+    def detect_decimal_separator(file) -> str:
+        """
+        Parses the LabView header and extracts the decimal separator
+        :param file: read opened text file object
+        :return: String containing the decimal separator
+        """
+        file.seek(0)
+        for line in file:
+            if line.startswith("Decimal_Separator"):
+                sep = line.split()[1]
+                module_logger.debug(f"Detected decimal separator: {sep}")
+                return sep
+
+        module_logger.error("Automatic decimal separator detection failed, falling back to ',' as decimal separator.")
+        return ","
 
     @staticmethod
     def find_data(file) -> int:
@@ -104,6 +133,7 @@ class PmtData(object):
         :param file: File object
         :return: Line number of the first data line
         """
+        file.seek(0)
         idx = -1
         for idx, line in enumerate(file):
             if re.match(pattern = r"\t\d", string = line) is not None:
