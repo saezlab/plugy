@@ -68,9 +68,9 @@ class PlugyConfig(object):
     min_end_cycle_barcodes: int = 12
 
     # Plotting config
-    seaborn_context = "notebook"
-    seaborn_style = "darkgrid"
-    plot_git_caption = True
+    seaborn_context: str = "notebook"
+    seaborn_style: str = "darkgrid"
+    plot_git_caption: bool = True
 
     # QC
     contamination_threshold: float = 0.03

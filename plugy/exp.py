@@ -49,7 +49,7 @@ module_logger = logging.getLogger("plugy.data.exp")
 @dataclass
 class PlugExperiment(object):
     config: PlugyConfig = PlugyConfig()
-    ignore_qc_result = False
+    ignore_qc_result: bool = False
 
     def __post_init__(self):
         module_logger.info(f"Initializing PlugExperiment using the following configuration")
