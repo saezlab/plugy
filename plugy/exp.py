@@ -143,11 +143,7 @@ class PlugExperiment(object):
                                       n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
                                       min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
                                       config = self.config)
-            self.plug_detection_failed = False
         except AssertionError:
-            self.plug_detection_failed = True
-
-        if self.plug_detection_failed or self.plug_data.sample_assignment_failed:
             # In case labelling does not work because
             # the number of called plugs diverges from the expected number.
             # Plotting fallback pmt overview

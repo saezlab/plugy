@@ -52,12 +52,12 @@ class PlugData(object):
     auto_detect_cycles: bool = True
     peak_min_threshold: float = 0.05
     peak_max_threshold: float = 2.0
-    peak_min_distance: float = 0.13
+    peak_min_distance: float = 0.03
     peak_min_prominence: float = 0
     peak_max_prominence: float = 10
     peak_min_width: float = 0.5
-    peak_max_width: float = 3.5
-    width_rel_height: float = 0.1
+    peak_max_width: float = 1.5
+    width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
@@ -67,7 +67,7 @@ class PlugData(object):
         module_logger.info(f"Creating PlugData object")
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
-        self.call_plugs()
+        self.plug_df, self.peak_data, self.sample_df = self.call_plugs()
 
 
     def reload(self):
@@ -87,26 +87,23 @@ class PlugData(object):
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
-        self.sample_assignment_failed = False
-        self.peak_data = self.detect_peaks()
+        peak_df = self.detect_peaks()
 
-        plug_list = self.merge_peaks(self.peak_data)
+        plug_list = self.merge_peaks(peak_df)
 
         # Build plug_df DataFrame
         module_logger.debug("Building plug_df DataFrame")
         channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
-        self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
+        plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
 
         # Call barcode plugs
         module_logger.debug("Calling barcode plugs")
         # plug_df = plug_df.assign(barcode = (plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
-        self.plug_df = self.plug_df.assign(barcode = self.plug_df.barcode_peak_median > self.plug_df.control_peak_median)
+        plug_df = plug_df.assign(barcode = plug_df.barcode_peak_median > plug_df.control_peak_median)
 
-        try:
-            self.sample_df, self.plug_df = self.call_sample_cycles(self.plug_df)
-        except AssertionError:
-            self.sample_assignment_failed = True
+        sample_df, plug_df = self.call_sample_cycles(plug_df)
 
+        return plug_df, peak_df, sample_df
 
     def detect_peaks(self):
         """
