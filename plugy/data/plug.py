@@ -61,6 +61,7 @@ class PlugData(object):
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
+    normalize_using_control: bool = False
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
@@ -100,6 +101,9 @@ class PlugData(object):
         module_logger.debug("Calling barcode plugs")
         # plug_df = plug_df.assign(barcode = (plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
         plug_df = plug_df.assign(barcode = plug_df.barcode_peak_median > plug_df.control_peak_median)
+
+        if self.normalize_using_control:
+            plug_df = plug_df.assign(readout_per_control=plug_df.readout_peak_median / plug_df.control_peak_median)
 
         sample_df, plug_df = self.call_sample_cycles(plug_df)
 

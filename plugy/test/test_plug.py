@@ -30,7 +30,7 @@ import pathlib as pl
 
 import numpy as np
 import pandas as pd
-import pandas.testing as pd_test
+import pandas.util.testing as pd_test
 import scipy.signal as sig
 import scipy.ndimage.filters as fil
 
@@ -55,6 +55,7 @@ class TestPlugData(unittest.TestCase):
         self.filter_size = self.acquisition_rate / 6
         self.seed = 0
         self.noise_sigma = 0.13
+        self.pseudocount = 0.00001
 
         # Get precise simulated experiment time
         self.time = np.linspace(0, self.signal_length, self.signal_length * self.acquisition_rate)
@@ -97,6 +98,10 @@ class TestPlugData(unittest.TestCase):
         self.clean_data = self.clean_data.assign(green = self.clean_data.green * 0.9)
         self.clean_data = self.clean_data.assign(orange = self.clean_data.orange * 0.8)
 
+        self.clean_data = self.clean_data.assign(green=self.clean_data.green + self.pseudocount,
+                                                 uv=self.clean_data.uv + self.pseudocount,
+                                                 orange=self.clean_data.orange + self.pseudocount)
+
         # Filter the clean signal with a mean filter to get slightly rounded edges
         self.noisy_data = self.noisy_data.assign(time = self.clean_data.time)
         self.noisy_data = self.noisy_data.assign(green = fil.convolve1d(input = self.clean_data.green, weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
@@ -132,6 +137,13 @@ class TestPlugData(unittest.TestCase):
                                         "control_peak_median": [0.8, 0.8, 0.0, 0.8, 0.8, 0.0, 0.0, 0.0, 0.0, 0.8, 0.8, 0.0, 0.8, 0.8, 0.0],
                                         "readout_peak_median": [0.0, 0.9, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.9, 0.0],
                                         "barcode": [False, False, True, False, False, True, True, True, True, False, False, True, False, False, True]})
+
+        self.cycle_data = self.cycle_data.assign(barcode_peak_median=self.cycle_data.barcode_peak_median + self.pseudocount,
+                                                 control_peak_median=self.cycle_data.control_peak_median + self.pseudocount,
+                                                 readout_peak_median=self.cycle_data.readout_peak_median + self.pseudocount)
+
+        self.normalized_cycle_data = self.cycle_data
+        self.normalized_cycle_data = self.normalized_cycle_data.assign(readout_per_control=self.normalized_cycle_data.readout_peak_median / self.normalized_cycle_data.control_peak_median)
 
         self.sample_data = self.cycle_data.assign(cycle_nr = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                                                   sample_nr = [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1])
@@ -259,6 +271,28 @@ class TestPlugData(unittest.TestCase):
             plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = self.plug_sequence, channel_map = self.channel_map, peak_min_distance = 0.03, min_end_cycle_barcodes = 3, n_bc_adjacent_discards = 0)
 
         pd_test.assert_frame_equal(self.labelled_sample_data.round(), plug_data.sample_df.round())
+
+    # noinspection DuplicatedCode
+    def test_plug_detect_clean_data_cell_norm(self):
+        """
+        Tests detecting simple plugs from clean data
+        """
+        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.clean_data):
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03, normalize_using_control=True)
+
+        pd_test.assert_almost_equal(self.normalized_cycle_data, plug_data.plug_df[self.normalized_cycle_data.columns], check_less_precise=2)
+
+    # noinspection DuplicatedCode
+    def test_plug_detect_noisy_data_cell_norm(self):
+        """
+        Tests detecting plugs with a large amount of noise
+        """
+        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03, normalize_using_control=True)
+
+        pd_test.assert_frame_equal(self.normalized_cycle_data.round(), plug_data.plug_df[self.normalized_cycle_data.columns].round())
 
 
 if __name__ == '__main__':
