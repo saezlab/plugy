@@ -203,9 +203,10 @@ class PmtData(object):
 
         return df
 
-    def calculate_gain(self) -> tuple:
-        for channel in ["uv", "green", "orange"]:
-            pass
+    def calculate_gain(self):
+        # for channel in ["uv", "green", "orange"]:
+        #     pass
+        raise NotImplementedError
 
     def digital_gain(self) -> pd.DataFrame:
         """
@@ -265,8 +266,9 @@ class PmtData(object):
         Implements crosstalk compensation as in Federica's BraDiPluS package (peaksSelection.R)
         :return: pd.DataFrame with corrected orange channel
         """
-        df = self.data
-
-        df = df.assign(orange = df.orange - (0.45 * df.green))
-
-        return df
+        # df = self.data
+        #
+        # df = df.assign(orange = df.orange - (0.45 * df.green))
+        #
+        # return df
+        raise NotImplementedError
