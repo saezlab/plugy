@@ -68,7 +68,7 @@ class PlugData(object):
         module_logger.info(f"Creating PlugData object")
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
-        self.plug_df, self.peak_data, self.sample_df = self.call_plugs()
+        self.plug_df, self.peak_data, self.sample_df = self._call_plugs()
 
 
     def reload(self):
@@ -82,15 +82,15 @@ class PlugData(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
 
-    def call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+    def _call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
         Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
-        peak_df = self.detect_peaks()
+        peak_df = self._detect_peaks()
 
-        plug_list = self.merge_peaks(peak_df)
+        plug_list = self._merge_peaks(peak_df)
 
         # Build plug_df DataFrame
         module_logger.debug("Building plug_df DataFrame")
@@ -105,11 +105,11 @@ class PlugData(object):
         if self.normalize_using_control:
             plug_df = plug_df.assign(readout_per_control=plug_df.readout_peak_median / plug_df.control_peak_median)
 
-        sample_df, plug_df = self.call_sample_cycles(plug_df)
+        sample_df, plug_df = self._call_sample_cycles(plug_df)
 
         return plug_df, peak_df, sample_df
 
-    def detect_peaks(self):
+    def _detect_peaks(self):
         """
         Detects peaks using scipy.signal.find_peaks().
         :return: Returns a DataFrame containing information about the peaks as called by sig.find_peaks
@@ -141,7 +141,7 @@ class PlugData(object):
         peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
         return peak_df
 
-    def merge_peaks(self, peak_df):
+    def _merge_peaks(self, peak_df):
         """
         Merges peaks if merge_peaks_distance is > 0.
         :param peak_df: DataFrame with peaks as called by detect_peaks()
@@ -165,7 +165,7 @@ class PlugData(object):
                 while True:
                     if (i + j >= len(centers)) or (centers[i + j] - centers[i] > merge_peaks_samples):
                         # Merge from the left edge of the first plug (i) to the right base of the last plug to merge (i + j - 1)
-                        plug_list.append(self.get_plug_data_from_index(merge_df.left_ips[i], merge_df.right_ips[i + j - 1]))
+                        plug_list.append(self._get_plug_data_from_index(merge_df.left_ips[i], merge_df.right_ips[i + j - 1]))
 
                         # Skip to the next unmerged plug
                         i += j
@@ -176,10 +176,10 @@ class PlugData(object):
         else:
             module_logger.info("Creating plug list with without merging close plugs!")
             for row in peak_df.sort_values(by = "left_ips"):
-                plug_list.append(self.get_plug_data_from_index(row.left_ips, row.right_ips))
+                plug_list.append(self._get_plug_data_from_index(row.left_ips, row.right_ips))
         return plug_list
 
-    def get_plug_data_from_index(self, start_index, end_index):
+    def _get_plug_data_from_index(self, start_index, end_index):
         """
         Calculates median for each acquired channel between two data points
         :param start_index: Index of the first datapoint in pmt_data.data
@@ -194,7 +194,7 @@ class PlugData(object):
 
         return return_list
 
-    def call_sample_cycles(self, plug_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
+    def _call_sample_cycles(self, plug_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
         """
         Finds cycles and labels individual samples
         :return: Tuple of pd.DataFrame containing sample data
@@ -244,7 +244,7 @@ class PlugData(object):
 
         # Label samples in case channel map and plug sequence are provided
         if isinstance(self.channel_map, bd.ChannelMap) and isinstance(self.plug_sequence, bd.PlugSequence):
-            samples_df = self.label_samples(samples_df)
+            samples_df = self._label_samples(samples_df)
         else:
             module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labeling of samples!")
 
@@ -342,7 +342,7 @@ class PlugData(object):
 
         return axes
 
-    def label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
+    def _label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
         """
         Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
         :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
