@@ -69,6 +69,7 @@ class PlugData(object):
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
         self.plug_df, self.peak_data, self.sample_df = self._call_plugs()
+        self._check_sample_df_column(self.config.readout_analysis_column)
 
 
     def reload(self):
@@ -255,6 +256,8 @@ class PlugData(object):
         # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
         if len(samples_df) > 1:
             samples_df.insert(loc = 5, column = "readout_peak_z_score", value = stats.zscore(samples_df.readout_peak_median))
+            if self.normalize_using_control:
+                samples_df.insert(loc = 6, column = "readout_per_control_z_score", value = stats.zscore(samples_df.readout_per_control))
         else:
             module_logger.warning(f"Samples DataFrame contains {len(samples_df)} line(s), omitting z-score calculation!")
 
@@ -634,31 +637,33 @@ class PlugData(object):
         with file_path.open("wb") as f:
             pickle.dump(self, f)
 
-    def plot_readout_z_violins(self, axes: plt.Axes):
+    def plot_compound_violins(self, axes: plt.Axes, column_to_plot: str= "readout_peak_z_score"):
         """
-        Plots a violin plot of the readout z-scores per compound combination
+        Plots a violin plot per compound combination
         :param axes: plt.Axes object to draw on
+        :param column_to_plot: Column to be plotted (e.g. readout_peak_z_score, readout_per_control_z_score).
         :return: plt.Axes object with the plot
         """
-        axes = sns.violinplot(x = "name", y = "readout_peak_z_score", data = self.sample_df, ax = axes)
-        axes.set_ylabel("Readout z-score")
+        self._check_sample_df_column(column_to_plot)
+        axes = sns.violinplot(x = "name", y = column_to_plot, data = self.sample_df, ax = axes)
+        axes.set_ylabel(column_to_plot)
         axes.set_xlabel("")
         axes.set_xticklabels(axes.get_xticklabels(), rotation = 90)
         return axes
 
-    def plot_compound_heatmap(self, column: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant") -> plt.Axes:
+    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant") -> plt.Axes:
         """
-        Plots a heatmap to visualize readout z-scores of the different combinations
-        :param column: Name of the column to extract values from
+        Plots a heatmap to visualize the different combinations
+        :param column_to_plot: Name of the column to extract values from
         :param axes: plt.Axes object to draw on
         :param annotation_df: pd.DataFrame grouped by column, compound_a and compound_b for annotation
         :param annotation_column: Which column in annotation_df to use for the annotation
         :return: plt.Axes object with the plot
         """
-        assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
-        assert column not in ["compound_a", "compound_b"], f"Column has to be different from 'compound_a' and 'compound_b'!"
+        self._check_sample_df_column(column_to_plot)
+        assert column_to_plot not in ["compound_a", "compound_b"], f"Column has to be different from 'compound_a' and 'compound_b'!"
 
-        heatmap_data = self.sample_df[[column, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
+        heatmap_data = self.sample_df[[column_to_plot, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
         def prepare_heatmap_data(df: pd.DataFrame, col: str):
             """
@@ -675,7 +680,7 @@ class PlugData(object):
 
             return df
 
-        heatmap_data = prepare_heatmap_data(heatmap_data, column)
+        heatmap_data = prepare_heatmap_data(heatmap_data, column_to_plot)
         # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
         heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis = 1).sort_values(ascending = False).index.to_list())
         heatmap_data = heatmap_data[heatmap_data.isna().sum(axis = 0).sort_values(ascending = True).index.to_list()]
@@ -686,8 +691,15 @@ class PlugData(object):
             annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
 
         axes = sns.heatmap(heatmap_data, annot = annotation_df, fmt = "", ax = axes)
-        axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
+        axes.set_title(f"{column_to_plot} by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")
 
         return axes
+
+    def _check_sample_df_column(self, column: str):
+        """
+        Checks if column is in sample_df
+        :param column: Column to check
+        """
+        assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"

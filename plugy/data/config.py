@@ -67,6 +67,10 @@ class PlugyConfig(object):
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
 
+    # Analysis
+    normalize_using_control: bool = False
+    readout_analysis_column: str = "readout_peak_z_score"
+
     # Plotting config
     seaborn_context: str = "notebook"
     seaborn_style: str = "darkgrid"
