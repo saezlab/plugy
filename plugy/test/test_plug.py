@@ -37,6 +37,7 @@ import scipy.ndimage.filters as fil
 from ..data import plug
 from ..data import pmt
 from ..data import bd
+from ..data import config
 
 import matplotlib.pyplot as plt
 
@@ -86,7 +87,9 @@ class TestPlugData(unittest.TestCase):
         #     self.single_plug_data = self.single_plug_data.append(self.single_plug_data)
         # self.single_plug_data = self.single_plug_data.reset_index(drop = True)
 
-        self.clean_data = self.clean_data.assign(time = np.linspace(0, self.signal_length * repeats, self.signal_length * repeats * self.acquisition_rate))
+        self.clean_data = self.clean_data.assign(time = np.linspace(0,
+                                                                    self.signal_length * repeats,
+                                                                    self.signal_length * repeats * self.acquisition_rate))
 
         # End of cycle
         self.clean_data.loc[(self.clean_data.time > 15) & (self.clean_data.time < 20), "orange"] = 0
@@ -104,17 +107,23 @@ class TestPlugData(unittest.TestCase):
 
         # Filter the clean signal with a mean filter to get slightly rounded edges
         self.noisy_data = self.noisy_data.assign(time = self.clean_data.time)
-        self.noisy_data = self.noisy_data.assign(green = fil.convolve1d(input = self.clean_data.green, weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
-        self.noisy_data = self.noisy_data.assign(uv = fil.convolve1d(input = self.clean_data.uv, weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
-        self.noisy_data = self.noisy_data.assign(orange = fil.convolve1d(input = self.clean_data.orange, weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
+        self.noisy_data = self.noisy_data.assign(green = fil.convolve1d(input = self.clean_data.green,
+                                                                        weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
+        self.noisy_data = self.noisy_data.assign(uv = fil.convolve1d(input = self.clean_data.uv,
+                                                                     weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
+        self.noisy_data = self.noisy_data.assign(orange = fil.convolve1d(input = self.clean_data.orange,
+                                                                         weights = np.array(np.repeat(1, self.filter_size))) / self.filter_size)
 
         # Add gaussian noise to the clean square wave
         np.random.seed(self.seed)
-        self.noisy_data = self.noisy_data.assign(green = self.noisy_data.green + np.random.normal(scale = self.noise_sigma, size = len(self.noisy_data.green)))
+        self.noisy_data = self.noisy_data.assign(green = self.noisy_data.green + np.random.normal(scale = self.noise_sigma,
+                                                                                                  size = len(self.noisy_data.green)))
         np.random.seed(self.seed)
-        self.noisy_data = self.noisy_data.assign(uv = self.noisy_data.uv + np.random.normal(scale = self.noise_sigma, size = len(self.noisy_data.uv)))
+        self.noisy_data = self.noisy_data.assign(uv = self.noisy_data.uv + np.random.normal(scale = self.noise_sigma,
+                                                                                            size = len(self.noisy_data.uv)))
         np.random.seed(self.seed)
-        self.noisy_data = self.noisy_data.assign(orange = self.noisy_data.orange + np.random.normal(scale = self.noise_sigma, size = len(self.noisy_data.orange)))
+        self.noisy_data = self.noisy_data.assign(orange = self.noisy_data.orange + np.random.normal(scale = self.noise_sigma,
+                                                                                                    size = len(self.noisy_data.orange)))
 
         # Generate ground truth DataFrame
         # self.single_plug_data = pd.DataFrame({"start_time": [1.0, 3.0, 5.0],
@@ -191,6 +200,11 @@ class TestPlugData(unittest.TestCase):
                                                                         "Drug 3",
                                                                         "Drug 3"])
 
+        # workaround since there is only one simulated sample
+        # readout_analysis_column is by default "readout_peak_z_score"
+        # but z score calculation happens only for more than one sample in sample_df
+        self.config = config.PlugyConfig(readout_analysis_column="readout_peak_median")
+
     @unittest.skip
     def test_plot_test_data(self):
         test_data_fig, test_data_ax = plt.subplots(1, 2, figsize = (40, 10))
@@ -215,7 +229,10 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = None,
+                                      channel_map = None,
+                                      peak_min_distance = 0.03)
 
         plug_data_fig, plug_data_ax = plt.subplots(figsize = (40, 10))
         plug_data_ax = plug_data.plot_plug_pmt_data(axes = plug_data_ax)
@@ -232,7 +249,11 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.clean_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = None,
+                                      channel_map = None,
+                                      peak_min_distance = 0.03,
+                                      config=self.config)
 
         pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df[self.cycle_data.columns].round())
 
@@ -243,7 +264,11 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = None,
+                                      channel_map = None,
+                                      peak_min_distance = 0.03,
+                                      config=self.config)
 
         pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df[self.cycle_data.columns].round())
 
@@ -254,7 +279,12 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03, min_end_cycle_barcodes = 3, n_bc_adjacent_discards = 0)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = None,
+                                      channel_map = None,
+                                      peak_min_distance = 0.03,
+                                      min_end_cycle_barcodes = 3,
+                                      n_bc_adjacent_discards = 0)
 
         pd_test.assert_frame_equal(self.sample_data.round(), plug_data.sample_df.round())
 
@@ -268,7 +298,12 @@ class TestPlugData(unittest.TestCase):
 
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = self.plug_sequence, channel_map = self.channel_map, peak_min_distance = 0.03, min_end_cycle_barcodes = 3, n_bc_adjacent_discards = 0)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = self.plug_sequence,
+                                      channel_map = self.channel_map,
+                                      peak_min_distance = 0.03,
+                                      min_end_cycle_barcodes = 3,
+                                      n_bc_adjacent_discards = 0)
 
         pd_test.assert_frame_equal(self.labelled_sample_data.round(), plug_data.sample_df.round())
 
@@ -279,7 +314,12 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.clean_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03, normalize_using_control=True)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = None,
+                                      channel_map = None,
+                                      peak_min_distance = 0.03,
+                                      normalize_using_control=True,
+                                      config=self.config)
 
         pd_test.assert_almost_equal(self.normalized_cycle_data, plug_data.plug_df[self.normalized_cycle_data.columns], check_less_precise=2)
 
@@ -290,7 +330,12 @@ class TestPlugData(unittest.TestCase):
         """
         with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")), plug_sequence = None, channel_map = None, peak_min_distance = 0.03, normalize_using_control=True)
+            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
+                                      plug_sequence = None,
+                                      channel_map = None,
+                                      peak_min_distance = 0.03,
+                                      normalize_using_control=True,
+                                      config=self.config)
 
         pd_test.assert_frame_equal(self.normalized_cycle_data.round(), plug_data.plug_df[self.normalized_cycle_data.columns].round())
 
