@@ -271,6 +271,9 @@ class PlugData(object):
         media_control_data = self.sample_df.loc[(self.sample_df.compound_a == "FS") & (self.sample_df.compound_b == "FS")]
         return media_control_data
 
+    def get_media_control_lin_reg(self):
+        media_control = self.get_media_control_data()
+
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
         Plots pmt data and superimposes rectangles with the called plugs upon the plot
