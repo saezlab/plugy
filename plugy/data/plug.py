@@ -61,13 +61,15 @@ class PlugData(object):
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
+    normalize_using_control: bool = False
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
         module_logger.info(f"Creating PlugData object")
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
-        self.plug_df, self.peak_data, self.sample_df = self.call_plugs()
+        self.plug_df, self.peak_data, self.sample_df = self._call_plugs()
+        self._check_sample_df_column(self.config.readout_analysis_column)
 
 
     def reload(self):
@@ -81,15 +83,15 @@ class PlugData(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
 
-    def call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+    def _call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
         Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
-        peak_df = self.detect_peaks()
+        peak_df = self._detect_peaks()
 
-        plug_list = self.merge_peaks(peak_df)
+        plug_list = self._merge_peaks(peak_df)
 
         # Build plug_df DataFrame
         module_logger.debug("Building plug_df DataFrame")
@@ -101,11 +103,14 @@ class PlugData(object):
         # plug_df = plug_df.assign(barcode = (plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
         plug_df = plug_df.assign(barcode = plug_df.barcode_peak_median > plug_df.control_peak_median)
 
-        sample_df, plug_df = self.call_sample_cycles(plug_df)
+        if self.normalize_using_control:
+            plug_df = plug_df.assign(readout_per_control=plug_df.readout_peak_median / plug_df.control_peak_median)
+
+        sample_df, plug_df = self._call_sample_cycles(plug_df)
 
         return plug_df, peak_df, sample_df
 
-    def detect_peaks(self):
+    def _detect_peaks(self):
         """
         Detects peaks using scipy.signal.find_peaks().
         :return: Returns a DataFrame containing information about the peaks as called by sig.find_peaks
@@ -137,7 +142,7 @@ class PlugData(object):
         peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
         return peak_df
 
-    def merge_peaks(self, peak_df):
+    def _merge_peaks(self, peak_df):
         """
         Merges peaks if merge_peaks_distance is > 0.
         :param peak_df: DataFrame with peaks as called by detect_peaks()
@@ -161,7 +166,7 @@ class PlugData(object):
                 while True:
                     if (i + j >= len(centers)) or (centers[i + j] - centers[i] > merge_peaks_samples):
                         # Merge from the left edge of the first plug (i) to the right base of the last plug to merge (i + j - 1)
-                        plug_list.append(self.get_plug_data_from_index(merge_df.left_ips[i], merge_df.right_ips[i + j - 1]))
+                        plug_list.append(self._get_plug_data_from_index(merge_df.left_ips[i], merge_df.right_ips[i + j - 1]))
 
                         # Skip to the next unmerged plug
                         i += j
@@ -172,10 +177,10 @@ class PlugData(object):
         else:
             module_logger.info("Creating plug list with without merging close plugs!")
             for row in peak_df.sort_values(by = "left_ips"):
-                plug_list.append(self.get_plug_data_from_index(row.left_ips, row.right_ips))
+                plug_list.append(self._get_plug_data_from_index(row.left_ips, row.right_ips))
         return plug_list
 
-    def get_plug_data_from_index(self, start_index, end_index):
+    def _get_plug_data_from_index(self, start_index, end_index):
         """
         Calculates median for each acquired channel between two data points
         :param start_index: Index of the first datapoint in pmt_data.data
@@ -190,7 +195,7 @@ class PlugData(object):
 
         return return_list
 
-    def call_sample_cycles(self, plug_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
+    def _call_sample_cycles(self, plug_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
         """
         Finds cycles and labels individual samples
         :return: Tuple of pd.DataFrame containing sample data
@@ -240,7 +245,7 @@ class PlugData(object):
 
         # Label samples in case channel map and plug sequence are provided
         if isinstance(self.channel_map, bd.ChannelMap) and isinstance(self.plug_sequence, bd.PlugSequence):
-            samples_df = self.label_samples(samples_df)
+            samples_df = self._label_samples(samples_df)
         else:
             module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labeling of samples!")
 
@@ -251,6 +256,8 @@ class PlugData(object):
         # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
         if len(samples_df) > 1:
             samples_df.insert(loc = 5, column = "readout_peak_z_score", value = stats.zscore(samples_df.readout_peak_median))
+            if self.normalize_using_control:
+                samples_df.insert(loc = 6, column = "readout_per_control_z_score", value = stats.zscore(samples_df.readout_per_control))
         else:
             module_logger.warning(f"Samples DataFrame contains {len(samples_df)} line(s), omitting z-score calculation!")
 
@@ -338,7 +345,7 @@ class PlugData(object):
 
         return axes
 
-    def label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
+    def _label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
         """
         Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
         :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
@@ -630,31 +637,33 @@ class PlugData(object):
         with file_path.open("wb") as f:
             pickle.dump(self, f)
 
-    def plot_readout_z_violins(self, axes: plt.Axes):
+    def plot_compound_violins(self, axes: plt.Axes, column_to_plot: str= "readout_peak_z_score"):
         """
-        Plots a violin plot of the readout z-scores per compound combination
+        Plots a violin plot per compound combination
         :param axes: plt.Axes object to draw on
+        :param column_to_plot: Column to be plotted (e.g. readout_peak_z_score, readout_per_control_z_score).
         :return: plt.Axes object with the plot
         """
-        axes = sns.violinplot(x = "name", y = "readout_peak_z_score", data = self.sample_df, ax = axes)
-        axes.set_ylabel("Readout z-score")
+        self._check_sample_df_column(column_to_plot)
+        axes = sns.violinplot(x = "name", y = column_to_plot, data = self.sample_df, ax = axes)
+        axes.set_ylabel(column_to_plot)
         axes.set_xlabel("")
         axes.set_xticklabels(axes.get_xticklabels(), rotation = 90)
         return axes
 
-    def plot_compound_heatmap(self, column: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant") -> plt.Axes:
+    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant") -> plt.Axes:
         """
-        Plots a heatmap to visualize readout z-scores of the different combinations
-        :param column: Name of the column to extract values from
+        Plots a heatmap to visualize the different combinations
+        :param column_to_plot: Name of the column to extract values from
         :param axes: plt.Axes object to draw on
         :param annotation_df: pd.DataFrame grouped by column, compound_a and compound_b for annotation
         :param annotation_column: Which column in annotation_df to use for the annotation
         :return: plt.Axes object with the plot
         """
-        assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
-        assert column not in ["compound_a", "compound_b"], f"Column has to be different from 'compound_a' and 'compound_b'!"
+        self._check_sample_df_column(column_to_plot)
+        assert column_to_plot not in ["compound_a", "compound_b"], f"Column has to be different from 'compound_a' and 'compound_b'!"
 
-        heatmap_data = self.sample_df[[column, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
+        heatmap_data = self.sample_df[[column_to_plot, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
         def prepare_heatmap_data(df: pd.DataFrame, col: str):
             """
@@ -671,7 +680,7 @@ class PlugData(object):
 
             return df
 
-        heatmap_data = prepare_heatmap_data(heatmap_data, column)
+        heatmap_data = prepare_heatmap_data(heatmap_data, column_to_plot)
         # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
         heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis = 1).sort_values(ascending = False).index.to_list())
         heatmap_data = heatmap_data[heatmap_data.isna().sum(axis = 0).sort_values(ascending = True).index.to_list()]
@@ -682,8 +691,15 @@ class PlugData(object):
             annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
 
         axes = sns.heatmap(heatmap_data, annot = annotation_df, fmt = "", ax = axes)
-        axes.set_title("Mean readout fluorescence z-scores by combination [AU]")
+        axes.set_title(f"{column_to_plot} by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")
 
         return axes
+
+    def _check_sample_df_column(self, column: str):
+        """
+        Checks if column is in sample_df
+        :param column: Column to check
+        """
+        assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"

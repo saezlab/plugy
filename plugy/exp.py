@@ -142,6 +142,7 @@ class PlugExperiment(object):
                                       merge_peaks_distance = self.config.merge_peaks_distance,
                                       n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
                                       min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
+                                      normalize_using_control= self.config.normalize_using_control,
                                       config = self.config)
         except AssertionError:
             # In case labelling does not work because
@@ -321,7 +322,7 @@ class PlugExperiment(object):
         control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(control_ax_cycle_dist)
         control_ax_sample_dist = self.plug_data.plot_control_sample_dist(control_ax_sample_dist)
         control_ax_readout_correlation = self.plug_data.plot_control_readout_correlation(control_ax_readout_correlation)
-        control_ax_control_heatmap = self.plug_data.plot_compound_heatmap(column = "control_peak_median", axes = control_ax_control_heatmap)
+        control_ax_control_heatmap = self.plug_data.plot_compound_heatmap(column_to_plot="control_peak_median", axes = control_ax_control_heatmap)
 
         control_fig.tight_layout()
         if self.config.plot_git_caption:
@@ -396,11 +397,12 @@ class PlugExperiment(object):
         compound_data = self.plug_data.sample_df[~self.plug_data.sample_df.isin(media_data)].dropna()
 
         group_columns = ["compound_a", "compound_b", "name"]
-        sample_stats = compound_data.groupby(by = group_columns)["readout_peak_z_score"].agg([np.mean, np.std])
+        sample_stats = compound_data.groupby(by = group_columns)[self.config.readout_analysis_column].agg([np.mean, np.std])
 
         p_values = list()
         for combination, values in compound_data.groupby(by = group_columns):
-            p_values.append(stats.ranksums(x = values.readout_peak_z_score, y = media_data.readout_peak_z_score)[1])
+            p_values.append(stats.ranksums(x = values[self.config.readout_analysis_column],
+                                           y = media_data[self.config.readout_analysis_column])[1])
 
         sample_stats = sample_stats.assign(pval = p_values)
         significance, p_adjusted, _, alpha_corr_bonferroni = statsmod.multipletests(pvals = sample_stats.reset_index().pval, alpha = self.config.alpha, method = "bonferroni")
@@ -421,7 +423,7 @@ class PlugExperiment(object):
 
         # Overview violin plot with z-scores
         drug_z_violin_fig, drug_z_violin_ax = plt.subplots(figsize = (round(len(self.plug_data.sample_df.name.unique()) * 0.8), 10))
-        drug_z_violin_ax = self.plug_data.plot_readout_z_violins(axes = drug_z_violin_ax)
+        drug_z_violin_ax = self.plug_data.plot_compound_violins(axes = drug_z_violin_ax, column_to_plot=self.config.readout_analysis_column)
 
         # Getting y coordinates for asterisk from axis dimensions
         y_max = drug_z_violin_ax.axis()[3]
@@ -452,7 +454,7 @@ class PlugExperiment(object):
         statistics = statistics.set_index(["compound_a", "compound_b"])
         statistics = statistics.significant
 
-        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column = "readout_peak_z_score", axes = drug_z_hm_ax, annotation_df = statistics)
+        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column_to_plot=self.config.readout_analysis_column, axes = drug_z_hm_ax, annotation_df = statistics)
         drug_z_hm_ax.set_title("Caspase activity z-scores")
         drug_z_hm_fig.tight_layout()
         if self.config.plot_git_caption:
