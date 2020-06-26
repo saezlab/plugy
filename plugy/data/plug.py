@@ -502,7 +502,7 @@ class PlugData(object):
             slope, intercept, rvalue, _, _ = self.get_media_control_lin_reg()
             axes = sns.scatterplot(x = "start_time", y = "readout_peak_median", data = plot_data, ax = axes)
             misc.plot_line(slope, intercept, axes)
-            axes.text(0.1, 0.9, f"R²: {rvalue}", transform=axes.transAxes)
+            axes.text(0.1, 0.9, f"R²: {round(rvalue, 2)}", transform=axes.transAxes)
             axes.set_xlabel("Experiment Time [s]")
 
         axes.set_title("FS media control plug fluorescence")
