@@ -272,7 +272,14 @@ class PlugData(object):
         return media_control_data
 
     def get_media_control_lin_reg(self):
+        """
+
+        :return:
+        """
         media_control = self.get_media_control_data()
+        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.time, media_control.control_peak_median)
+        return slope, intercept, rvalue, pvalue, stderr
+
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
