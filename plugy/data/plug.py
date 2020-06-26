@@ -37,6 +37,7 @@ import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
 import seaborn as sns
 
+from .. import misc
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
 from dataclasses import dataclass
@@ -273,13 +274,16 @@ class PlugData(object):
 
     def get_media_control_lin_reg(self):
         """
+        Calculates a linear regression over time of all media control plugs
+        The readout_peak_median column is used to calculate the regression
 
-        :return:
+        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of the regression
+                 See https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.linregress.html
+                 for more information about the returned values
         """
         media_control = self.get_media_control_data()
-        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.time, media_control.control_peak_median)
+        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control.readout_peak_median)
         return slope, intercept, rvalue, pvalue, stderr
-
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
