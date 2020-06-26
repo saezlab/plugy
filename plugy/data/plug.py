@@ -499,7 +499,10 @@ class PlugData(object):
             axes = sns.swarmplot(x = "sample_nr", y = "readout_peak_median", data = plot_data, ax = axes, hue = "cycle_nr", dodge = True)
             axes.set_xlabel("Sample Number")
         else:
+            slope, intercept, rvalue, _, _ = self.get_media_control_lin_reg()
             axes = sns.scatterplot(x = "start_time", y = "readout_peak_median", data = plot_data, ax = axes)
+            misc.plot_line(slope, intercept, axes)
+            axes.text(0.1, 0.9, f"R²: {rvalue}", transform=axes.transAxes)
             axes.set_xlabel("Experiment Time [s]")
 
         axes.set_title("FS media control plug fluorescence")
