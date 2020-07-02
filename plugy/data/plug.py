@@ -282,7 +282,7 @@ class PlugData(object):
                  for more information about the returned values
         """
         media_control = self.get_media_control_data()
-        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control.readout_peak_median)
+        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control[self.config.readout_analysis_column])
         return slope, intercept, rvalue, pvalue, stderr
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
@@ -496,17 +496,17 @@ class PlugData(object):
         """
         plot_data = self.get_media_control_data()
         if by_sample:
-            axes = sns.swarmplot(x = "sample_nr", y = "readout_peak_median", data = plot_data, ax = axes, hue = "cycle_nr", dodge = True)
+            axes = sns.swarmplot(x = "sample_nr", y = self.config.readout_analysis_column, data = plot_data, ax = axes, hue = "cycle_nr", dodge = True)
             axes.set_xlabel("Sample Number")
         else:
             slope, intercept, rvalue, _, _ = self.get_media_control_lin_reg()
-            axes = sns.scatterplot(x = "start_time", y = "readout_peak_median", data = plot_data, ax = axes)
+            axes = sns.scatterplot(x = "start_time", y = self.config.readout_analysis_column, data = plot_data, ax = axes)
             misc.plot_line(slope, intercept, axes)
             axes.text(0.1, 0.9, f"R²: {round(rvalue, 2)}", transform=axes.transAxes)
             axes.set_xlabel("Experiment Time [s]")
 
         axes.set_title("FS media control plug fluorescence")
-        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+        axes.set_ylabel(self.config.readout_analysis_column)
         return axes
     
     
