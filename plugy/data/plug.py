@@ -37,6 +37,7 @@ import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
 import seaborn as sns
 
+from .. import misc
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
 from dataclasses import dataclass
@@ -62,6 +63,7 @@ class PlugData(object):
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
     normalize_using_control: bool = False
+    normalize_using_media_control_lin_reg: bool = False
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
@@ -69,8 +71,12 @@ class PlugData(object):
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
         self.plug_df, self.peak_data, self.sample_df = self._call_plugs()
-        self._check_sample_df_column(self.config.readout_analysis_column)
 
+        if self.normalize_using_media_control_lin_reg:
+            self.sample_df = self._media_lin_reg_norm()
+
+        self._check_sample_df_column(self.config.readout_analysis_column)
+        self._check_sample_df_column(self.config.readout_column)
 
     def reload(self):
         """
@@ -270,6 +276,21 @@ class PlugData(object):
         """
         media_control_data = self.sample_df.loc[(self.sample_df.compound_a == "FS") & (self.sample_df.compound_b == "FS")]
         return media_control_data
+
+    def get_media_control_lin_reg(self, readout_column: str = ""):
+        """
+        Calculates a linear regression over time of all media control plugs
+        The readout_peak_median column is used to calculate the regression
+
+        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of the regression
+                 See https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.linregress.html
+                 for more information about the returned values
+        """
+        media_control = self.get_media_control_data()
+        if readout_column == "":
+            readout_column = self.config.readout_column
+        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control[readout_column])
+        return slope, intercept, rvalue, pvalue, stderr
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
@@ -480,33 +501,42 @@ class PlugData(object):
         :param by_sample: True to plot swarmplot by sample number
         :return: plt.Axes object with the plot
         """
+        if self.normalize_using_control:
+            readout_column = "readout_per_control"
+        else:
+            readout_column = "readout_peak_median"
+
         plot_data = self.get_media_control_data()
+
         if by_sample:
-            axes = sns.swarmplot(x = "sample_nr", y = "readout_peak_median", data = plot_data, ax = axes, hue = "cycle_nr", dodge = True)
+            axes = sns.swarmplot(x = "sample_nr", y = readout_column, data = plot_data, ax = axes, hue = "cycle_nr", dodge = True)
             axes.set_xlabel("Sample Number")
         else:
-            axes = sns.scatterplot(x = "start_time", y = "readout_peak_median", data = plot_data, ax = axes)
+            slope, intercept, rvalue, _, _ = self.get_media_control_lin_reg(readout_column)
+            axes = sns.scatterplot(x = "start_time", y = readout_column, data = plot_data, ax = axes)
+            misc.plot_line(slope, intercept, axes)
+            axes.text(0.1, 0.9, f"R²: {round(rvalue, 2)}", transform=axes.transAxes)
             axes.set_xlabel("Experiment Time [s]")
 
         axes.set_title("FS media control plug fluorescence")
-        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+        axes.set_ylabel(readout_column)
         return axes
-    
-    
+
+
     def add_length_column(self):
         """
         Creates a new column ``length`` in ``sample_df`` with the difference
         of plug start and end times.
         """
-        
+
         self.sample_df = self.sample_df.assign(
             length = (
                 self.sample_df.end_time -
                 self.sample_df.start_time
             )
         )
-    
-    
+
+
     def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
         """
         Plots each plugs fluorescence over its length grouped by valve. Also fits a linear regression to show if there
@@ -515,13 +545,13 @@ class PlugData(object):
         :param col_wrap: After how many subplots the column should be wrapped.
         :return: sns.FacetGrid object with the subplots
         """
-        
+
         self.add_length_column()
-        
+
         df = self.sample_df
-        
+
         df = df.groupby('name').filter(lambda x: x.shape[0] > 1)
-        
+
         length_bias_plot = sns.lmplot(
             x = "length",
             y = "readout_peak_median",
@@ -702,4 +732,25 @@ class PlugData(object):
         Checks if column is in sample_df
         :param column: Column to check
         """
-        assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
+        try:
+            assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
+        except AssertionError:
+            module_logger.critical(f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!")
+            raise
+
+    def _media_lin_reg_norm(self):
+        """
+        Normalizes sample_df using media control regression
+
+        :return: updated sample_df
+        """
+        sample_df = self.sample_df
+        if self.normalize_using_control:
+            readout_column = "readout_per_control"
+        else:
+            readout_column = "readout_peak_median"
+        slope, intercept, _, _, _ = self.get_media_control_lin_reg(readout_column=readout_column)
+
+        sample_df = sample_df.assign(readout_media_norm=sample_df[readout_column] / (sample_df["start_time"] * slope + intercept))
+        sample_df = sample_df.assign(readout_media_norm_z_score=stats.zscore(sample_df.readout_media_norm))
+        return sample_df

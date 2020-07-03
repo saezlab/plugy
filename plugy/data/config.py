@@ -69,6 +69,8 @@ class PlugyConfig(object):
 
     # Analysis
     normalize_using_control: bool = False
+    normalize_using_media_control_lin_reg: bool = True
+    readout_column: str = "readout_peak_median"
     readout_analysis_column: str = "readout_peak_z_score"
 
     # Plotting config

@@ -26,6 +26,7 @@ import time
 
 import subprocess as sp
 import matplotlib.pyplot as plt
+import numpy as np
 
 from .data.config import PlugyConfig
 
@@ -41,6 +42,20 @@ def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
     sha = sp.run(["git", "describe", "--tags", "--long", "--dirty"], capture_output = True, text = True).stdout.strip()
     rel_position = offset / (fig.get_size_inches() * 25.4)
     fig.text(rel_position[0], rel_position[1], f"Created on {time.ctime()} with braille-kidney {sha}", fontsize = "x-small", fontweight = "light")
+
+
+def plot_line(slope: float, intercept: float, axes: plt.Axes):
+    """
+    Plots a line using slope and intercept
+
+    :param slope: Slope of the line
+    :param intercept: Y-Axis intercept of the line
+    :param axes: plt.Axes object to plot on
+    :return: None
+    """
+    x_values = np.array(axes.get_xlim())
+    y_values = intercept + slope * x_values
+    axes.plot(x_values, y_values, '--')
 
 
 def start_logging(config: PlugyConfig):
