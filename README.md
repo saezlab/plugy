@@ -4,11 +4,9 @@
 This notebook will show you how to run a plugy based analysis of a Braille experiment.
 
 #### Issue reporting
-Please feel free to open issues for the tutorial at https://git.embl.de/grp-merten/plugy-tutorial/issues
-in case there are some things unclear or you spotted some errors in the tutorial.
-
-In case you have some issue or feature request with `plugy` directly, please open an issue
-directly on the site of the `plugy` repository https://git.embl.de/grp-merten/plugy/issues 
+In case you have some issue or feature request with `plugy`, please open an issue
+with a detailed description of the problem and the steps taken to resolve
+it here: https://git.embl.de/grp-merten/plugy/issues 
 
 #### Running plugy
 
