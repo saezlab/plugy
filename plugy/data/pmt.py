@@ -280,13 +280,14 @@ class PmtData(object):
         raise NotImplementedError
 
     def _override_barcode(self) -> pd.DataFrame:
+        """
+        Overrides values in the barcode channel to 1 if current barcode value > bc_override_threshold
+        """
+        module_logger.warning(f"Setting barcode channel to 1 for barcode values > {self.bc_override_threshold}")
         df = self.data
 
-        control = self.config.channels["control"][0]
-        readout = self.config.channels["readout"][0]
         barcode = self.config.channels["barcode"][0]
 
-        df[control] = df[control].where(df[barcode] < self.bc_override_threshold, 0)
-        df[readout] = df[readout].where(df[barcode] < self.bc_override_threshold, 0)
+        df[barcode].loc[df[barcode] > self.bc_override_threshold] = 1
 
         return df
