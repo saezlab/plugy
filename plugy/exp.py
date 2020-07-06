@@ -121,6 +121,7 @@ class PlugExperiment(object):
                                 digital_gain_uv = self.config.digital_gain_uv,
                                 digital_gain_green = self.config.digital_gain_green,
                                 digital_gain_orange = self.config.digital_gain_orange,
+                                bc_override_threshold=self.config.bc_override_threshold,
                                 config = self.config)
 
 

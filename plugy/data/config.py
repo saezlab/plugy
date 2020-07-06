@@ -52,6 +52,7 @@ class PlugyConfig(object):
     digital_gain_uv: float = 1.0
     digital_gain_green: float = 1.0
     digital_gain_orange: float = 1.0
+    bc_override_threshold: float = None
 
     # Plug Calling
     auto_detect_cycles: bool = True
