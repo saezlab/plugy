@@ -51,6 +51,7 @@ class PmtData(object):
     digital_gain_uv: float = 1.0
     digital_gain_green: float = 1.0
     digital_gain_orange: float = 1.0
+    bc_override_threshold: float = None
     config: PlugyConfig = PlugyConfig()
 
     def __post_init__(self):
@@ -62,9 +63,14 @@ class PmtData(object):
         self.data = self.read_txt()
         self.data = self.set_channel_values()
         self.data = self.cut_data()
+
         if self.auto_gain:
             self.digital_gain_uv, self.digital_gain_green, self.digital_gain_orange = self.calculate_gain()
+
         self.data = self.digital_gain()
+
+        if self.bc_override_threshold is not None:
+            self.data = self._override_barcode()
         # self.data = self.correct_crosstalk()
 
     def read_txt(self) -> pd.DataFrame:
@@ -272,3 +278,15 @@ class PmtData(object):
         #
         # return df
         raise NotImplementedError
+
+    def _override_barcode(self) -> pd.DataFrame:
+        df = self.data
+
+        control = self.config.channels["control"][0]
+        readout = self.config.channels["readout"][0]
+        barcode = self.config.channels["barcode"][0]
+
+        df[control] = df[control].where(df[barcode] < self.bc_override_threshold, 0)
+        df[readout] = df[readout].where(df[barcode] < self.bc_override_threshold, 0)
+
+        return df
