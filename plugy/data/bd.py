@@ -163,6 +163,12 @@ class PlugSequence(object):
         # Generate templates
         control = Sample(open_duration = open_duration, n_replicates = n_control, name = "Cell Control", open_valves = channel_map.cells + channel_map.substrate + channel_map.media)
         barcode = Sample(open_duration = open_duration, n_replicates = n_barcode, name = "Barcode", open_valves = channel_map.media + channel_map.bc)
+
+        if len(channel_map.bc) == 1:
+            barcode_substitute = channel_map.drugs[-1]
+            module_logger.warning(f"Single barcode channel detected, substituting last drug valve ({barcode_substitute}) for missing barcode")
+            barcode.open_valves.append(barcode_substitute)
+
         individual_drugs = list()
         for drug in channel_map.drugs:
             individual_drugs.append(Sample(open_duration = open_duration, n_replicates = n_replicates, name = channel_map.map[drug], open_valves = channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
