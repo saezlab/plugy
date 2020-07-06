@@ -21,16 +21,13 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
+import collections as coll
+import csv
 import itertools
 import logging
-import csv
-
 import pathlib as pl
-import collections as coll
-
-from dataclasses import dataclass
-
 import warnings
+from dataclasses import dataclass
 
 module_logger = logging.getLogger("plugy.data.bd")
 
@@ -136,9 +133,9 @@ class PlugSequence(object):
                     continue
                 else:
                     # noinspection PyCallByClass
-                    sequence.append(Sample(open_duration = int(row[0]), n_replicates = int(row[1]), name = row[2], open_valves = [int(i) for i in row[3:]]))
+                    sequence.append(Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
 
-        return cls(sequence = tuple(sequence))
+        return cls(sequence=tuple(sequence))
 
     # noinspection PyCallByClass
     @classmethod
@@ -161,33 +158,30 @@ class PlugSequence(object):
         samples = list()
 
         # Generate templates
-        control = Sample(open_duration = open_duration, n_replicates = n_control,
-                         name = "Cell Control", open_valves = channel_map.cells + channel_map.substrate + channel_map.media)
-        barcode = Sample(open_duration = open_duration, n_replicates = n_barcode,
-                         name = "Barcode", open_valves = channel_map.media + channel_map.bc)
+        control = Sample(open_duration=open_duration, n_replicates=n_control,
+                         name="Cell Control", open_valves=channel_map.cells + channel_map.substrate + channel_map.media)
+        barcode = Sample(open_duration=open_duration, n_replicates=n_barcode,
+                         name="Barcode", open_valves=channel_map.media + channel_map.bc)
+
+        cycle_bc = Sample(open_duration=open_duration, n_replicates=n_cycle_bc,
+                          name="Cycle Barcode", open_valves=channel_map.media + channel_map.bc)
 
         if len(channel_map.bc) == 1:
             barcode_substitute = channel_map.drugs[-1]
             module_logger.warning(f"Single barcode channel detected, substituting last drug valve ({barcode_substitute}) for missing barcode")
             barcode.open_valves.append(barcode_substitute)
+            cycle_bc.open_valves.append(barcode_substitute)
 
         individual_drugs = list()
         for drug in channel_map.drugs:
-            individual_drugs.append(Sample(open_duration = open_duration, n_replicates = n_replicates,
-                                           name = channel_map.map[drug],
-                                           open_valves = channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
+            individual_drugs.append(Sample(open_duration=open_duration, n_replicates=n_replicates,
+                                           name=channel_map.map[drug],
+                                           open_valves=channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
             if generate_barcodes:
                 individual_drugs.append(barcode)
 
         # Generate sample list
-        start_cycle_bc = barcode
-        start_cycle_bc.name = name = "Start Cycle Barcode"
-        start_cycle_bc.open_duration = n_cycle_bc
-
-        end_cycle_bc = start_cycle_bc
-        end_cycle_bc.name = "End Cycle Barcode"
-
-        samples.append(start_cycle_bc)
+        samples.append(cycle_bc)
         samples.append(control)
         if generate_barcodes:
             samples.append(barcode)
@@ -199,9 +193,9 @@ class PlugSequence(object):
                 if generate_barcodes:
                     samples.append(barcode)
 
-            samples.append(Sample(open_duration = open_duration, n_replicates = n_replicates,
-                                  name = f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}",
-                                  open_valves = channel_map.cells + channel_map.substrate + list(combination)))
+            samples.append(Sample(open_duration=open_duration, n_replicates=n_replicates,
+                                  name=f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}",
+                                  open_valves=channel_map.cells + channel_map.substrate + list(combination)))
             if generate_barcodes:
                 samples.append(barcode)
 
@@ -209,8 +203,8 @@ class PlugSequence(object):
         if generate_barcodes:
             samples.append(barcode)
 
-        samples.append(end_cycle_bc)
-        return cls(sequence = tuple(samples), channel_map = channel_map)
+        samples.append(cycle_bc)
+        return cls(sequence=tuple(samples), channel_map=channel_map)
 
     def __init__(self, sequence: tuple, **kwargs):
         """
@@ -251,7 +245,7 @@ class PlugSequence(object):
         :param path: Path to write to
         """
         module_logger.info(f"Writing sequence to file {path.absolute()}")
-        with path.open("w", newline = "\r\n") as f:
+        with path.open("w", newline="\r\n") as f:
             f.write("\n")
             for sample in self.sequence:
                 f.write(f"{str(sample.open_duration)},{str(sample.n_replicates)},{str(sample.name)},{','.join([str(i) for i in sample.open_valves])}")
@@ -303,5 +297,3 @@ class PlugSequence(object):
                 filtered_samples.append(sample)
 
         return PlugSequence(tuple(filtered_samples))
-
-
