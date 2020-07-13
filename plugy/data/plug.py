@@ -681,7 +681,7 @@ class PlugData(object):
         axes.set_xticklabels(axes.get_xticklabels(), rotation = 90)
         return axes
 
-    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant") -> plt.Axes:
+    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant", **kwargs) -> plt.Axes:
         """
         Plots a heatmap to visualize the different combinations
         :param column_to_plot: Name of the column to extract values from
@@ -720,7 +720,7 @@ class PlugData(object):
             annotation_df = annotation_df.reindex_like(heatmap_data)
             annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
 
-        axes = sns.heatmap(heatmap_data, annot = annotation_df, fmt = "", ax = axes)
+        axes = sns.heatmap(heatmap_data, annot = annotation_df, fmt = "", ax = axes, **kwargs)
         axes.set_title(f"{column_to_plot} by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")

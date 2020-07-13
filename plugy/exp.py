@@ -456,7 +456,11 @@ class PlugExperiment(object):
         statistics = statistics.set_index(["compound_a", "compound_b"])
         statistics = statistics.significant
 
-        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column_to_plot=self.config.readout_analysis_column, axes = drug_z_hm_ax, annotation_df = statistics)
+        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column_to_plot=self.config.readout_analysis_column,
+                                                            axes=drug_z_hm_ax,
+                                                            annotation_df=statistics,
+                                                            vmin=self.config.drug_comb_heatmap_scale_min,
+                                                            vmax=self.config.drug_comb_heatmap_scale_max)
         drug_z_hm_ax.set_title("Caspase activity z-scores")
         drug_z_hm_fig.tight_layout()
         if self.config.plot_git_caption:
