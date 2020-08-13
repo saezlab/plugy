@@ -23,6 +23,9 @@ conda install pip git
 
 # Install plugy into your environment
 pip install git+https://git.embl.de/grp-merten/plugy@master
+
+# If you want to use the latest development version use this instead
+pip install --force-reinstall git+https://git.embl.de/grp-merten/plugy@dev
 ```
 
 Importing modules
