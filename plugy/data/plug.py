@@ -404,9 +404,9 @@ class PlugData(object):
         assert len(discarded_cycles) < len(labelled_df.cycle_nr.unique()), "\n".join([f"Did not detect any cycle with the proper number of samples", check_msg])
 
         module_logger.info("Labelling samples with compound names")
-        labelled_df["name"] = labelled_df.sample_nr.apply(lambda nr: self.get_sample_name(nr, sample_sequence))
-        labelled_df["compound_a"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
-        labelled_df["compound_b"] = labelled_df.sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
+        labelled_df["name"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.get_sample_name(nr, sample_sequence))
+        labelled_df["compound_a"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
+        labelled_df["compound_b"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
 
         return labelled_df
 
