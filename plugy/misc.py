@@ -64,9 +64,13 @@ def start_logging(config: PlugyConfig):
     :param config: PlugyConfig object to retrieve the result_dir from
     :return: None
     """
+
+    logging.shutdown()
+
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%d.%m.%y %H:%M:%S")
 
     logger = logging.getLogger()
+    logger.handlers = []
     logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler(stream=sys.stdout)
@@ -80,3 +84,7 @@ def start_logging(config: PlugyConfig):
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
 
+
+def to_int(value):
+
+    return int(float(value))
