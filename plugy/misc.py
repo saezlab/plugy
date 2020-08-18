@@ -88,3 +88,27 @@ def start_logging(config: PlugyConfig):
 def to_int(value):
 
     return int(float(value))
+
+
+def to_set(value):
+    """
+    Makes sure the object `value` is a set, if it is a list converts
+    it to set, otherwise it creates a single element set out of it.
+    If `value` is None returns empty set.
+    """
+
+    if isinstance(value, set):
+
+        return value
+
+    elif value is None:
+
+        return set()
+
+    elif not isinstance(value, basestring) and hasattr(value, '__iter__'):
+
+        return set(value)
+
+    else:
+
+        return {value}
