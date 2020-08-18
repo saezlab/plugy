@@ -76,6 +76,7 @@ class PlugyConfig(object):
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
+    min_between_samples_barcodes: int = 2
 
     # Analysis
     normalize_using_control: bool = False

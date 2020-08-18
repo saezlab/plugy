@@ -278,10 +278,18 @@ class PlugData(object):
                 # Checking cycle
                 if bc_peaks > 0 or sample_in_cycle < 0:
 
-                    sample_in_cycle += 1
-                    if bc_peaks >= self.min_end_cycle_barcodes:
-                        current_cycle += 1
-                        sample_in_cycle = 0
+                    if bc_peaks >= self.config.min_between_samples_barcodes:
+
+                        sample_in_cycle += 1
+
+                        if (
+                            bc_peaks >= self.min_end_cycle_barcodes and
+                            sample_in_cycle > 0
+                        ):
+
+                            current_cycle += 1
+                            sample_in_cycle = 0
+
                     bc_peaks = 0
 
                 sample.append(sample_in_cycle)
