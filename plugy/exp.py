@@ -56,24 +56,24 @@ class PlugExperiment(object):
 
         for k, v in self.config.__dict__.items():
             module_logger.info(f"{k}: {v}")
-        
+
         self.main()
-    
-    
+
+
     def reload(self):
         """
         Reloads the object from the module level.
         """
-        
+
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
-    
-    
+
+
     def main(self):
-        
+
         if self.config.run or self.config.setup_and_load:
 
             self.setup()
@@ -86,10 +86,10 @@ class PlugExperiment(object):
             self.qc()
             self.drug_combination_analysis()
             self.close_figures()
-    
-    
+
+
     def setup(self):
-        
+
         self.check_config()
 
         # if not self.config.result_base_dir.exists():
@@ -110,7 +110,7 @@ class PlugExperiment(object):
 
 
     def load(self):
-        
+
         self.channel_map = ChannelMap(self.config.channel_file)
         self.plug_sequence = PlugSequence.from_csv_file(
             self.config.seq_file,
@@ -157,6 +157,8 @@ class PlugExperiment(object):
             # the number of called plugs diverges from the expected number.
             # Plotting fallback pmt overview
 
+            module_logger.error(f"Error during plug calling, plotting fallback pmt overview!")
+
             pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
             self.pmt_data.plot_pmt_data(pmt_overview_ax)
             if self.config.plot_git_caption:
@@ -165,8 +167,8 @@ class PlugExperiment(object):
             pmt_overview_fig.tight_layout()
             pmt_overview_fig.savefig(self.config.result_dir.joinpath(f"pmt_overview.png"))
 
-            module_logger.error(f"Error during plug calling, plotting fallback pmt overview!")
             raise
+
 
     def detect_samples(self):
 
@@ -186,6 +188,7 @@ class PlugExperiment(object):
         sample_data = sample_data.set_index(["cycle_nr", "sample_nr"]).join(divergence.set_index(["cycle_nr", "sample_nr"]))
         return sample_data
 
+
     def get_plug_count_divergence(self):
         """
         Compares generated and called number of plugs per sample and returns the difference
@@ -198,6 +201,7 @@ class PlugExperiment(object):
             divergences.append([cycle_nr, sample_nr, divergence])
 
         return pd.DataFrame(divergences, columns = ["cycle_nr", "sample_nr", "plug_count_divergence"])
+
 
     def get_contamination(self) -> pd.Series:
         """
@@ -212,6 +216,7 @@ class PlugExperiment(object):
 
         return norm_df.norm_barcode / norm_df.norm_control
 
+
     def plot_plug_count_hist(self, axes: plt.Axes):
         """
         Plots the distribution of plug number divergence from the expected number by sample
@@ -223,6 +228,7 @@ class PlugExperiment(object):
         axes.set_xlabel("Plug count divergence per sample")
 
         return axes
+
 
     def check_config(self):
         """
@@ -250,6 +256,7 @@ class PlugExperiment(object):
                 module_logger.critical(error.args[0])
 
             raise AssertionError("One or more file paths are not properly specified, see the log for more information!")
+
 
     def qc(self):
         """
@@ -286,7 +293,7 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(plug_count_hist_fig)
         plug_count_hist_fig.savefig(qc_dir.joinpath(f"plug_count_hist.{self.config.figure_export_file_type}"))
-    
+
         self.plot_length_bias()
 
         # Plotting contamination
@@ -352,18 +359,18 @@ class PlugExperiment(object):
 
 
     def ensure_qc_dir(self):
-        
+
         qc_dir = self.config.result_dir.joinpath("qc")
 
         if not qc_dir.exists():
-            
+
             qc_dir.mkdir()
-        
+
         return qc_dir
-    
-    
+
+
     def plot_length_bias(self):
-        
+
         # Plotting length bias
         try:
             qc_dir = self.ensure_qc_dir()
@@ -375,10 +382,10 @@ class PlugExperiment(object):
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error("Failed to plot length bias")
-    
-    
+
+
     def plot_sample_cycles(self):
-        
+
         # Plotting PMT overview
         try:
             qc_dir = self.ensure_qc_dir()
@@ -387,15 +394,15 @@ class PlugExperiment(object):
             )
             if self.config.plot_git_caption:
                 misc.add_git_hash_caption(sample_cycle_fig)
-            
+
             sample_cycle_fig.savefig(
                 qc_dir.joinpath("sample_cycle_overview.png")
             )
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error("Failed to plot sample cycles")
-    
-    
+
+
     def calculate_statistics(self) -> pd.DataFrame:
         """
         Calculates statistics
@@ -472,8 +479,8 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(drug_z_hm_fig)
         drug_z_hm_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_heatmap.{self.config.figure_export_file_type}"))
-    
-    
+
+
     def close_figures(self):
-        
+
         plt.close('all')
