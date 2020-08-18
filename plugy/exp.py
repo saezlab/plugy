@@ -155,6 +155,9 @@ class PlugExperiment(object):
             config = self.config,
         )
 
+
+    def detect_samples(self):
+
         try:
 
             self.plug_data.detect_samples()
@@ -175,9 +178,6 @@ class PlugExperiment(object):
             pmt_overview_fig.savefig(self.config.result_dir.joinpath(f"pmt_overview.png"))
 
             raise
-
-
-    def detect_samples(self):
 
         self.sample_data = self.get_sample_data()
         self.sample_statistics = self.calculate_statistics()
