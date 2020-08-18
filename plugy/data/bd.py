@@ -133,7 +133,7 @@ class PlugSequence(object):
                     continue
                 else:
                     # noinspection PyCallByClass
-                    sequence.append(Sample(open_duration=int(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
+                    sequence.append(Sample(open_duration=float(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
 
         return cls(sequence=tuple(sequence))
 
