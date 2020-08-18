@@ -260,7 +260,7 @@ class PlugData(object):
         current_cycle = 0
         bc_peaks = 0
         sm_peaks = 0
-        sample_in_cycle = 0
+        sample_in_cycle = -1
         # new vectors
         cycle = []
         sample = []
@@ -271,12 +271,13 @@ class PlugData(object):
             if bc:
                 discard.append(True)
                 cycle.append(current_cycle)
-                sample.append(sample_in_cycle)
+                sample.append(max(sample_in_cycle, 0))
                 bc_peaks += 1
 
             else:
                 # Checking cycle
-                if bc_peaks > 0:
+                if bc_peaks > 0 or sample_in_cycle < 0:
+
                     sample_in_cycle += 1
                     if bc_peaks >= self.min_end_cycle_barcodes:
                         current_cycle += 1
