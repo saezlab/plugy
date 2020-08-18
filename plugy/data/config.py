@@ -45,6 +45,7 @@ class PlugyConfig(object):
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {"FS", "neg Ctr"}
     )
+    ignore_qc_result: bool = False
 
     # sequence settings
     allow_lt4_valves: bool = False

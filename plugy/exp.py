@@ -57,6 +57,11 @@ class PlugExperiment(object):
         for k, v in self.config.__dict__.items():
             module_logger.info(f"{k}: {v}")
 
+        self.ignore_qc_result = (
+            self.ignore_qc_result or
+            self.config.ignore_qc_result
+        )
+
         self.main()
 
 
@@ -279,7 +284,7 @@ class PlugExperiment(object):
         Produces multiple QC plots and metrics to evaluate the technical quality of the PlugExperiment
         :return: True if quality is sufficient, False otherwise
         """
-        qc_successful = True
+        qc_issues = []
         qc_dir = self.ensure_qc_dir()
 
         # Plotting media control readout over experiment time
@@ -315,8 +320,12 @@ class PlugExperiment(object):
         # Plotting contamination
         contamination = self.get_contamination()
         if contamination.mean() > self.config.contamination_threshold:
-            module_logger.warning(f"Contamination over threshold ({contamination.mean()} > {self.config.contamination_threshold})")
-            qc_successful = False
+            msg = (
+                f"Contamination over threshold ({contamination.mean()} > "
+                f"{self.config.contamination_threshold})"
+            )
+            module_logger.warning(msg)
+            qc_issues.append(msg)
 
         contamination_hist_fig, contamination_hist_ax = plt.subplots()
         sns.distplot(contamination, kde = True, ax = contamination_hist_ax)
@@ -362,13 +371,22 @@ class PlugExperiment(object):
 
         self.plot_sample_cycles()
 
-        qc_fail_msg = "Quality control failed, check logs and QC plots for more in depth information. In case you still want to continue, you can set ignore_qc_result to True"
-        if qc_successful:
-            module_logger.info("Quality control successful")
-        else:
+        qc_successful = not qc_issues
+        qc_fail_msg = (
+            "Quality control failed due to the following reasons: "
+            f"{', '.join(qc_issues)}. "
+            "See also the QC plots for more information. "
+            "In case you still want to continue, you can "
+            "set the `ignore_qc_result` config parameter to True."
+        )
+
+        if qc_issues:
             module_logger.critical(qc_fail_msg)
+        else:
+            module_logger.info("Quality control successful")
 
         if not self.ignore_qc_result:
+
             assert qc_successful, qc_fail_msg
 
         return qc_successful
