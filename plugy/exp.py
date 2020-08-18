@@ -133,25 +133,32 @@ class PlugExperiment(object):
 
     def detect_plugs(self):
 
+
+        self.plug_data = PlugData(
+            pmt_data = self.pmt_data,
+            plug_sequence = self.plug_sequence,
+            channel_map = self.channel_map,
+            auto_detect_cycles = self.config.auto_detect_cycles,
+            peak_min_threshold = self.config.peak_min_threshold,
+            peak_max_threshold = self.config.peak_max_threshold,
+            peak_min_distance = self.config.peak_min_distance,
+            peak_min_prominence = self.config.peak_min_prominence,
+            peak_max_prominence = self.config.peak_max_prominence,
+            peak_min_width = self.config.peak_min_width,
+            peak_max_width = self.config.peak_max_width,
+            width_rel_height = self.config.width_rel_height,
+            merge_peaks_distance = self.config.merge_peaks_distance,
+            n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
+            min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
+            normalize_using_control= self.config.normalize_using_control,
+            normalize_using_media_control_lin_reg=self.config.normalize_using_media_control_lin_reg,
+            config = self.config,
+        )
+
         try:
-            self.plug_data = PlugData(pmt_data = self.pmt_data,
-                                      plug_sequence = self.plug_sequence,
-                                      channel_map = self.channel_map,
-                                      auto_detect_cycles = self.config.auto_detect_cycles,
-                                      peak_min_threshold = self.config.peak_min_threshold,
-                                      peak_max_threshold = self.config.peak_max_threshold,
-                                      peak_min_distance = self.config.peak_min_distance,
-                                      peak_min_prominence = self.config.peak_min_prominence,
-                                      peak_max_prominence = self.config.peak_max_prominence,
-                                      peak_min_width = self.config.peak_min_width,
-                                      peak_max_width = self.config.peak_max_width,
-                                      width_rel_height = self.config.width_rel_height,
-                                      merge_peaks_distance = self.config.merge_peaks_distance,
-                                      n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
-                                      min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
-                                      normalize_using_control= self.config.normalize_using_control,
-                                      normalize_using_media_control_lin_reg=self.config.normalize_using_media_control_lin_reg,
-                                      config = self.config)
+
+            self.plug_data.detect_samples()
+
         except AssertionError:
             # In case labelling does not work because
             # the number of called plugs diverges from the expected number.
