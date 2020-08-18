@@ -66,17 +66,15 @@ class PlugData(object):
     normalize_using_media_control_lin_reg: bool = False
     config: PlugyConfig = PlugyConfig()
 
+
     def __post_init__(self):
         module_logger.info(f"Creating PlugData object")
         module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
 
+        self.detect_plugs()
+
         self.plug_df, self.peak_data, self.sample_df = self._call_plugs()
 
-        if self.normalize_using_media_control_lin_reg:
-            self.sample_df = self._media_lin_reg_norm()
-
-        self._check_sample_df_column(self.config.readout_analysis_column)
-        self._check_sample_df_column(self.config.readout_column)
 
     def reload(self):
         """
@@ -89,32 +87,29 @@ class PlugData(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
 
-    def _call_plugs(self) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+
+    def detect_plugs(self):
         """
         Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
         :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
-        peak_df = self._detect_peaks()
+        self._detect_peaks()
+        self._merge_peaks()
+        self._set_barcode()
+        self._normalize_to_control()
 
-        plug_list = self._merge_peaks(peak_df)
 
-        # Build plug_df DataFrame
-        module_logger.debug("Building plug_df DataFrame")
-        channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
-        plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
+    def detect_samples(self):
 
-        # Call barcode plugs
-        module_logger.debug("Calling barcode plugs")
-        # plug_df = plug_df.assign(barcode = (plug_df.barcode_peak_median > plug_df.readout_peak_median) | (plug_df.barcode_peak_median > plug_df.control_peak_median))
-        plug_df = plug_df.assign(barcode = plug_df.barcode_peak_median > plug_df.control_peak_median)
+        self._call_sample_cycles()
+        self._label_samples()
+        self._create_samples_df()
+        self._add_z_scores()
+        self._media_lin_reg_norm()
+        self._check_sample_df_column(self.config.readout_analysis_column)
+        self._check_sample_df_column(self.config.readout_column)
 
-        if self.normalize_using_control:
-            plug_df = plug_df.assign(readout_per_control=plug_df.readout_peak_median / plug_df.control_peak_median)
-
-        sample_df, plug_df = self._call_sample_cycles(plug_df)
-
-        return plug_df, peak_df, sample_df
 
     def _detect_peaks(self):
         """
@@ -122,7 +117,9 @@ class PlugData(object):
         :return: Returns a DataFrame containing information about the peaks as called by sig.find_peaks
         """
         peak_df = pd.DataFrame()
+
         for channel, (channel_color, _) in self.config.channels.items():
+
             module_logger.debug(f"Running peak detection for {channel} channel")
             peaks, properties = sig.find_peaks(self.pmt_data.data[channel_color],
                                                height = (self.peak_min_threshold,
@@ -146,19 +143,29 @@ class PlugData(object):
         # Converting ips values to int for indexing later on
         peak_df.assign(right_ips = round(peak_df.right_ips), left_ips = round(peak_df.left_ips))
         peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
-        return peak_df
 
-    def _merge_peaks(self, peak_df):
+        self.peak_df = peak_df
+
+
+    def _merge_peaks(self):
         """
         Merges peaks if merge_peaks_distance is > 0.
         :param peak_df: DataFrame with peaks as called by detect_peaks()
         :return: List containing plug data.
         """
+
         plug_list = list()
+
         if self.merge_peaks_distance > 0:
+
             module_logger.info(f"Merging plugs with closer centers than {self.merge_peaks_distance} seconds")
             merge_peaks_samples = self.pmt_data.acquisition_rate * self.merge_peaks_distance
-            merge_df = peak_df.assign(plug_center = peak_df.left_ips + ((peak_df.right_ips - peak_df.left_ips) / 2))
+            merge_df = self.peak_df.assign(
+                plug_center = (
+                    self.peak_df.left_ips +
+                    (self.peak_df.right_ips - self.peak_df.left_ips) / 2
+                )
+            )
             merge_df = merge_df.sort_values(by = "plug_center")
             merge_df = merge_df.reset_index(drop = True)
 
@@ -181,10 +188,50 @@ class PlugData(object):
                         j += 1
 
         else:
+
             module_logger.info("Creating plug list with without merging close plugs!")
-            for row in peak_df.sort_values(by = "left_ips"):
+            for row in self.peak_df.sort_values(by = "left_ips"):
                 plug_list.append(self._get_plug_data_from_index(row.left_ips, row.right_ips))
-        return plug_list
+
+         # Build plug_df DataFrame
+        module_logger.debug("Building plug_df DataFrame")
+        channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
+
+        self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
+
+
+    def _set_barcode(self):
+        """
+        Creates a new boolean column `barcode` in the `plug_df` which is
+        `True` if the plug is a barcode.
+        """
+
+        # Call barcode plugs
+        module_logger.debug("Calling barcode plugs")
+
+        self.plug_df = self.plug_df.assign(
+            barcode = (
+                self.plug_df.barcode_peak_median >
+                self.plug_df.control_peak_median)
+            )
+        )
+
+
+    def _normalize_to_control(self):
+        """
+        Normalizes the readout channel by dividing its value by a control
+        channel.
+        """
+
+        if self.normalize_using_control:
+
+            self.plug_df = self.plug_df.assign(
+                readout_per_control = (
+                    self.plug_df.readout_peak_median /
+                    self.plug_df.control_peak_median
+                )
+            )
+
 
     def _get_plug_data_from_index(self, start_index, end_index):
         """
@@ -201,13 +248,15 @@ class PlugData(object):
 
         return return_list
 
-    def _call_sample_cycles(self, plug_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
+
+    def _call_sample_cycles(self):
         """
         Finds cycles and labels individual samples
         :return: Tuple of pd.DataFrame containing sample data
         and the input plug_df updated with info which plugs were discarded
         """
-        samples_df = plug_df
+
+        samples_df = self.plug_df
 
         # counters
         current_cycle = 0
@@ -219,7 +268,8 @@ class PlugData(object):
         sample = []
         discard = []
 
-        for idx, bc in enumerate(samples_df.barcode):
+        for idx, bc in enumerate(self.plug_df.barcode):
+
             if bc:
                 discard.append(True)
                 cycle.append(current_cycle)
@@ -240,34 +290,43 @@ class PlugData(object):
 
                 # Discarding barcode-adjacent plugs
                 try:
-                    if samples_df.barcode[idx - self.n_bc_adjacent_discards] or samples_df.barcode[idx + self.n_bc_adjacent_discards]:
+                    if (
+                        self.plugs_df.barcode[idx - self.n_bc_adjacent_discards] or
+                        self.plug_df.barcode[idx + self.n_bc_adjacent_discards]
+                    ):
                         discard.append(True)
                     else:
                         discard.append(False)
                 except KeyError:
                     discard.append(False)
 
-        samples_df = samples_df.assign(cycle_nr = cycle, sample_nr = sample, discard = discard)
+        self.plug_df = self.plug_df.assign(cycle_nr = cycle, sample_nr = sample, discard = discard)
 
-        # Label samples in case channel map and plug sequence are provided
-        if isinstance(self.channel_map, bd.ChannelMap) and isinstance(self.plug_sequence, bd.PlugSequence):
-            samples_df = self._label_samples(samples_df)
-        else:
-            module_logger.warning("Channel map and/or plug sequence not properly specified, skipping labeling of samples!")
 
-        plug_df = samples_df
-        samples_df = samples_df.loc[samples_df.discard == False]
-        samples_df = samples_df.drop(columns = ["discard", "barcode"])
 
+    def _add_z_scores(self):
         # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
-        if len(samples_df) > 1:
-            samples_df.insert(loc = 5, column = "readout_peak_z_score", value = stats.zscore(samples_df.readout_peak_median))
-            if self.normalize_using_control:
-                samples_df.insert(loc = 6, column = "readout_per_control_z_score", value = stats.zscore(samples_df.readout_per_control))
-        else:
-            module_logger.warning(f"Samples DataFrame contains {len(samples_df)} line(s), omitting z-score calculation!")
 
-        return samples_df, plug_df
+        if len(self.samples_df) > 1:
+
+            self.samples_df.insert(
+                loc = 5,
+                column = "readout_peak_z_score",
+                value = stats.zscore(self.samples_df.readout_peak_median),
+            )
+
+            if self.normalize_using_control:
+
+                self.samples_df.insert(
+                    loc = 6,
+                    column = "readout_per_control_z_score",
+                    value = stats.zscore(self.samples_df.readout_per_control),
+                )
+
+        else:
+
+            module_logger.warning(f"Samples DataFrame contains {len(self.samples_df)} line(s), omitting z-score calculation!")
+
 
     def get_media_control_data(self) -> pd.DataFrame:
         """
@@ -276,6 +335,7 @@ class PlugData(object):
         """
         media_control_data = self.sample_df.loc[(self.sample_df.compound_a == "FS") & (self.sample_df.compound_b == "FS")]
         return media_control_data
+
 
     def get_media_control_lin_reg(self, readout_column: str = ""):
         """
@@ -291,6 +351,7 @@ class PlugData(object):
             readout_column = self.config.readout_column
         slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control[readout_column])
         return slope, intercept, rvalue, pvalue, stderr
+
 
     def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
@@ -331,6 +392,7 @@ class PlugData(object):
 
         return axes
 
+
     def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots pmt data and superimposes filled rectangles for cycles with correct numbers of samples and
@@ -366,22 +428,39 @@ class PlugData(object):
 
         return axes
 
+
     def _label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
         """
         Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
         :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
-        labelled_df = samples_df
+
+        # Label samples in case channel map and plug sequence are provided
+        if (
+            not isinstance(self.channel_map, bd.ChannelMap) or
+            not isinstance(self.plug_sequence, bd.PlugSequence)
+        ):
+
+            module_logger.warning(
+                "Channel map and/or plug sequence not properly specified, "
+                "skipping labeling of samples!"
+            )
+            return
+
+        labelled_df = self.plug_df
         sample_sequence = self.plug_sequence.get_samples(channel_map = self.channel_map)
         labelling_possible = True
         discarded_cycles = list()
 
         for cycle in labelled_df.groupby("cycle_nr"):
+
             # cycle[1] is the group DataFrame, cycle[0] is the current cycle_nr
             found_samples = len(cycle[1].sample_nr.unique())
             expected_samples = len(sample_sequence.sequence)
+
             if found_samples != expected_samples:
+
                 log_msg = f"Cycle {cycle[0]} detected between {cycle[1].start_time.min()} - {cycle[1].end_time.max()} contains {'less' if found_samples < expected_samples else 'more'} samples ({found_samples}) than expected ({expected_samples})"
                 if self.auto_detect_cycles:
                     module_logger.info(log_msg)
@@ -408,7 +487,14 @@ class PlugData(object):
         labelled_df["compound_a"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
         labelled_df["compound_b"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
 
-        return labelled_df
+        self.plug_df = labelled_df
+
+
+    def _create_samples_df(self):
+
+        samples_df = self.plug_df.loc[self.plug_df.discard == False]
+        self.samples_df = samples_df.drop(columns = ["discard", "barcode"])
+
 
     def get_sample_name(self, sample_nr: int, sample_sequence: bd.PlugSequence):
         """
@@ -424,6 +510,7 @@ class PlugData(object):
             return "Cell Control"
         else:
             return " + ".join(compounds)
+
 
     def plot_sample_cycles(self):
         """
@@ -450,6 +537,7 @@ class PlugData(object):
 
         sample_cycle_fig.tight_layout()
         return sample_cycle_fig, sample_cycle_ax
+
 
     def plot_sample(self, name: str, cycle_nr: int, axes: plt.Axes, offset: int = 10) -> plt.Axes:
         """
@@ -490,6 +578,7 @@ class PlugData(object):
         # axes.set_title(f"{drug} Cycle {cycle}")
 
         # return axes
+
 
     # QC Plots
     def plot_media_control_evolution(self, axes: plt.Axes, by_sample = False) -> plt.Axes:
@@ -659,6 +748,7 @@ class PlugData(object):
 
         return axes
 
+
     def save(self, file_path: pl.Path):
         """
         Saves this PlugData object as pickle
@@ -666,6 +756,7 @@ class PlugData(object):
         """
         with file_path.open("wb") as f:
             pickle.dump(self, f)
+
 
     def plot_compound_violins(self, axes: plt.Axes, column_to_plot: str= "readout_peak_z_score"):
         """
@@ -680,6 +771,7 @@ class PlugData(object):
         axes.set_xlabel("")
         axes.set_xticklabels(axes.get_xticklabels(), rotation = 90)
         return axes
+
 
     def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant", **kwargs) -> plt.Axes:
         """
@@ -727,6 +819,7 @@ class PlugData(object):
 
         return axes
 
+
     def _check_sample_df_column(self, column: str):
         """
         Checks if column is in sample_df
@@ -738,19 +831,26 @@ class PlugData(object):
             module_logger.critical(f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!")
             raise
 
+
     def _media_lin_reg_norm(self):
         """
         Normalizes sample_df using media control regression
 
         :return: updated sample_df
         """
-        sample_df = self.sample_df
-        if self.normalize_using_control:
-            readout_column = "readout_per_control"
-        else:
-            readout_column = "readout_peak_median"
-        slope, intercept, _, _, _ = self.get_media_control_lin_reg(readout_column=readout_column)
 
-        sample_df = sample_df.assign(readout_media_norm=sample_df[readout_column] / (sample_df["start_time"] * slope + intercept))
-        sample_df = sample_df.assign(readout_media_norm_z_score=stats.zscore(sample_df.readout_media_norm))
-        return sample_df
+        if self.normalize_using_media_control_lin_reg:
+
+            sample_df = self.sample_df
+
+            if self.normalize_using_control:
+                readout_column = "readout_per_control"
+            else:
+                readout_column = "readout_peak_median"
+
+            slope, intercept, _, _, _ = self.get_media_control_lin_reg(readout_column=readout_column)
+
+            sample_df = sample_df.assign(readout_media_norm=sample_df[readout_column] / (sample_df["start_time"] * slope + intercept))
+            sample_df = sample_df.assign(readout_media_norm_z_score=stats.zscore(sample_df.readout_media_norm))
+
+            self.sample_df = sample_df
