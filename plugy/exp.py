@@ -57,9 +57,7 @@ class PlugExperiment(object):
         for k, v in self.config.__dict__.items():
             module_logger.info(f"{k}: {v}")
         
-        if self.config.run:
-            
-            self.main()
+        self.main()
     
     
     def reload(self):
@@ -76,13 +74,18 @@ class PlugExperiment(object):
     
     def main(self):
         
-        self.setup()
-        self.load()
-        self.detect_plugs()
-        self.detect_samples()
-        self.qc()
-        self.drug_combination_analysis()
-        self.close_figures()
+        if self.config.run or self.config.setup_and_load:
+
+            self.setup()
+            self.load()
+
+        if self.config.run:
+
+            self.detect_plugs()
+            self.detect_samples()
+            self.qc()
+            self.drug_combination_analysis()
+            self.close_figures()
     
     
     def setup(self):
