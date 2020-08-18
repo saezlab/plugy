@@ -29,6 +29,8 @@ import pathlib as pl
 import pandas as pd
 import numpy as np
 
+import matplotlib.patches as mpl_patch
+import matplotlib.collections as mpl_coll
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -259,11 +261,19 @@ class PmtData(object):
             axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), minor_tick_freq), minor = True)
             axes.set_xlim(left = int(round(df.time.min())), right = int(round(df.time.max())))
 
-            axes.grid(b = True, which = 'major', color = 'w', linewidth = 1.0)
-            axes.grid(b = True, which = 'minor', color = 'w', linewidth = 0.5)
+            axes.grid(b = True, which = "major", color = "k", linewidth = 1.0)
+            axes.grid(b = True, which = "minor", color = "k", linewidth = 0.5)
 
-            axes.set_xlabel("Time [s]")
-            axes.set_ylabel("Fluorescence [AU]")
+            axes.set_facecolor("white")
+            axes.tick_params(labelsize = "xx-large")
+
+            axes.set_xlabel(
+                "Time [s]",
+                horizontalalignment = "left",
+                size = "xx-large",
+                x = 0,
+            )
+            axes.set_ylabel("Fluorescence [AU]", size = "xx-large")
 
         return axes
 

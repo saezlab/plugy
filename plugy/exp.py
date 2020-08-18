@@ -133,7 +133,6 @@ class PlugExperiment(object):
 
     def detect_plugs(self):
 
-
         self.plug_data = PlugData(
             pmt_data = self.pmt_data,
             plug_sequence = self.plug_sequence,
@@ -150,8 +149,8 @@ class PlugExperiment(object):
             merge_peaks_distance = self.config.merge_peaks_distance,
             n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
             min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
-            normalize_using_control= self.config.normalize_using_control,
-            normalize_using_media_control_lin_reg=self.config.normalize_using_media_control_lin_reg,
+            normalize_using_control = self.config.normalize_using_control,
+            normalize_using_media_control_lin_reg = self.config.normalize_using_media_control_lin_reg,
             config = self.config,
         )
 
@@ -171,11 +170,21 @@ class PlugExperiment(object):
 
             pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
             self.pmt_data.plot_pmt_data(pmt_overview_ax)
+
+            self.plug_data.highlight_plugs(
+                axes = pmt_overview_ax,
+                below_peak = False,
+            )
+            self.plug_data.highlight_samples(axes = pmt_overview_ax)
+
             if self.config.plot_git_caption:
                 misc.add_git_hash_caption(pmt_overview_fig)
 
             pmt_overview_fig.tight_layout()
-            pmt_overview_fig.savefig(self.config.result_dir.joinpath(f"pmt_overview.png"))
+            png_path = self.config.result_dir.joinpath(f"pmt_overview.png")
+            pmt_overview_fig.savefig(png_path)
+
+            module_logger.info(f"Plotted PMT overview to {png_path}")
 
             raise
 

@@ -391,6 +391,98 @@ class PlugData(object):
         return axes
 
 
+    def highlight_plugs(self, axes: plt.Axes, below_peak: bool = True):
+
+        if below_peak:
+
+            return self.highlight_plugs_below_peak(axes)
+
+        else:
+
+            return self.highlight_plugs_vspan(axes)
+
+
+    def highlight_plugs_below_peak(self, axes: plt.Axes):
+
+        plug_patches = {
+            'readout': [],
+            'barcode': [],
+        }
+
+        for plug in self.plug_df.itertuples():
+
+            plug_type = 'barcode' if plug.barcode else 'readout'
+            patch = mpl_patch.Rectangle(
+                xy = (plug.start_time, 0),
+                width = plug.end_time - plug.start_time,
+                height = getattr(plug, '%s_peak_median' % plug_type),
+            )
+            plug_patches[plug_type].append(patch)
+
+        colors = {
+            'readout': self.config.colors["green"],
+            'barcode': self.config.colors["blue"],
+        }
+
+        for key, color in colors.items():
+
+            axes.add_collection(
+                mpl_coll.PatchCollection(
+                    plug_patches[key],
+                    facecolors = color,
+                    alpha = .4,
+                )
+            )
+
+        return axes
+
+
+    def highlight_plugs_vspan(self, axes: plt.Axes):
+
+        for plug in self.plug_df.itertuples():
+
+            color = self.config.colors["blue" if plug.barcode else "green"]
+            axes.axvspan(
+                xmin = plug.start_time,
+                xmax = plug.end_time,
+                facecolor = color,
+                alpha = .4,
+            )
+
+        return axes
+
+
+    def highlight_samples(self, axes: plt.Axes):
+
+        samples = self.plug_df.groupby(
+            ['cycle_nr', 'sample_nr']
+        ).agg(
+            {
+                'start_time': 'min',
+                'end_time': 'max',
+            }
+        )
+
+        ymax = axes.get_ylim()[1]
+
+        for sample in samples.itertuples():
+
+            axes.axvspan(
+                xmin = sample.start_time,
+                xmax = sample.end_time,
+                facecolor = '#777777',
+                alpha = .3,
+            )
+            axes.text(
+                x = sample.start_time,
+                y = ymax - .1,
+                s = '%u/%u' % sample.Index,
+                size = 'xx-large',
+            )
+
+        return axes
+
+
     def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots pmt data and superimposes filled rectangles for cycles with correct numbers of samples and
@@ -691,6 +783,7 @@ class PlugData(object):
         #     contamination_plot = sns.scatterplot(x = channel_x, y = channel_y, hue = hue, data = self.plug_df, ax = axes)
         return contamination_plot
 
+
     def plot_control_regression(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots a scatter plot of control peak medians over experiment time and applies a linear regression to it
@@ -703,6 +796,7 @@ class PlugData(object):
         axes.set_xlabel("Experiment Time [s]")
         return axes
 
+
     def plot_control_cycle_dist(self, axes: plt.Axes) -> plt.Axes:
         """
         Gathers control peak medians by cycle and plots a violin plot
@@ -714,6 +808,7 @@ class PlugData(object):
         axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
         axes.set_xlabel("Cycle")
         return axes
+
 
     def plot_control_sample_dist(self, axes: plt.Axes) -> plt.Axes:
         """
@@ -728,6 +823,7 @@ class PlugData(object):
         for tick in axes.get_xticklabels():
             tick.set_rotation(90)
         return axes
+
 
     def plot_control_readout_correlation(self, axes: plt.Axes) -> plt.Axes:
         """
