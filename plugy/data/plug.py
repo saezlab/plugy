@@ -73,8 +73,6 @@ class PlugData(object):
 
         self.detect_plugs()
 
-        self.plug_df, self.peak_data, self.sample_df = self._call_plugs()
-
 
     def reload(self):
         """
@@ -212,7 +210,7 @@ class PlugData(object):
         self.plug_df = self.plug_df.assign(
             barcode = (
                 self.plug_df.barcode_peak_median >
-                self.plug_df.control_peak_median)
+                self.plug_df.control_peak_median
             )
         )
 
@@ -291,7 +289,7 @@ class PlugData(object):
                 # Discarding barcode-adjacent plugs
                 try:
                     if (
-                        self.plugs_df.barcode[idx - self.n_bc_adjacent_discards] or
+                        self.plug_df.barcode[idx - self.n_bc_adjacent_discards] or
                         self.plug_df.barcode[idx + self.n_bc_adjacent_discards]
                     ):
                         discard.append(True)
@@ -429,7 +427,7 @@ class PlugData(object):
         return axes
 
 
-    def _label_samples(self, samples_df: pd.DataFrame) -> pd.DataFrame:
+    def _label_samples(self):
         """
         Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
         :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
