@@ -118,7 +118,7 @@ class ChannelMap(object):
 
 class PlugSequence(object):
     @classmethod
-    def from_csv_file(cls, input_file: pl.Path):
+    def from_csv_file(cls, input_file: pl.Path, **kwargs):
         """
         Reads a "Samples on Demand v5" compatible csv file and creates a PlugSequence object from it.
         :param input_file: File path to read from
@@ -135,11 +135,11 @@ class PlugSequence(object):
                     # noinspection PyCallByClass
                     sequence.append(Sample(open_duration=float(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
 
-        return cls(sequence=tuple(sequence))
+        return cls(sequence=tuple(sequence), **kwargs)
 
     # noinspection PyCallByClass
     @classmethod
-    def from_channel_map(cls, channel_map: ChannelMap, n_replicates: int = 12, n_control: int = 12, n_barcode: int = 5, n_cycle_bc: int = 15, open_duration: int = 1, generate_barcodes: bool = True):
+    def from_channel_map(cls, channel_map: ChannelMap, n_replicates: int = 12, n_control: int = 12, n_barcode: int = 5, n_cycle_bc: int = 15, open_duration: int = 1, generate_barcodes: bool = True, **kwargs):
         """
         Generates a PlugSequence object from a ChannelMap
         :param channel_map: ChannelMap to generate the PlugSequence from
@@ -204,13 +204,19 @@ class PlugSequence(object):
             samples.append(barcode)
 
         samples.append(cycle_bc)
-        return cls(sequence=tuple(samples), channel_map=channel_map)
+        return cls(sequence=tuple(samples), channel_map=channel_map, **kwargs)
 
-    def __init__(self, sequence: tuple, **kwargs):
+    def __init__(
+            self,
+            sequence: tuple,
+            allow_lt4_valves: bool = False,
+            **kwargs
+        ):
         """
         Handles the plug sequence of the braille display
         """
         self.sequence = sequence
+        self.allow_lt4_valves = allow_lt4_valves
         self.check_sequence()
 
         try:
@@ -229,7 +235,7 @@ class PlugSequence(object):
             if not isinstance(sample, Sample):
                 raise TypeError(f"Samples in the plug sequence have to be of class Sample, you specified {type(sample)} in sample {idx}")
 
-            if len(sample.open_valves) < 4:
+            if len(sample.open_valves) < 4 and not self.allow_lt4_valves:
                 warnings.warn(f"Less than 4 valves open ({len(sample.open_valves)}) in sample {idx}")
 
             elif len(sample.open_valves) > 4:

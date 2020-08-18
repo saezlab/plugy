@@ -109,7 +109,10 @@ class PlugExperiment(object):
     def load(self):
         
         self.channel_map = ChannelMap(self.config.channel_file)
-        self.plug_sequence = PlugSequence.from_csv_file(self.config.seq_file)
+        self.plug_sequence = PlugSequence.from_csv_file(
+            self.config.seq_file,
+            allow_lt4_valves = self.config.allow_lt4_valves,
+        )
 
         self.pmt_data = PmtData(input_file = self.config.pmt_file,
                                 acquisition_rate = self.config.acquisition_rate,
