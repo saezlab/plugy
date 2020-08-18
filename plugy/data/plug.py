@@ -102,7 +102,7 @@ class PlugData(object):
 
         self._call_sample_cycles()
         self._label_samples()
-        self._create_samples_df()
+        self._create_sample_df()
         self._add_z_scores()
         self._media_lin_reg_norm()
         self._check_sample_df_column(self.config.readout_analysis_column)
@@ -254,7 +254,7 @@ class PlugData(object):
         and the input plug_df updated with info which plugs were discarded
         """
 
-        samples_df = self.plug_df
+        sample_df = self.plug_df
 
         # counters
         current_cycle = 0
@@ -306,25 +306,25 @@ class PlugData(object):
     def _add_z_scores(self):
         # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
 
-        if len(self.samples_df) > 1:
+        if len(self.sample_df) > 1:
 
-            self.samples_df.insert(
+            self.sample_df.insert(
                 loc = 5,
                 column = "readout_peak_z_score",
-                value = stats.zscore(self.samples_df.readout_peak_median),
+                value = stats.zscore(self.sample_df.readout_peak_median),
             )
 
             if self.normalize_using_control:
 
-                self.samples_df.insert(
+                self.sample_df.insert(
                     loc = 6,
                     column = "readout_per_control_z_score",
-                    value = stats.zscore(self.samples_df.readout_per_control),
+                    value = stats.zscore(self.sample_df.readout_per_control),
                 )
 
         else:
 
-            module_logger.warning(f"Samples DataFrame contains {len(self.samples_df)} line(s), omitting z-score calculation!")
+            module_logger.warning(f"Samples DataFrame contains {len(self.sample_df)} line(s), omitting z-score calculation!")
 
 
     def get_media_control_data(self) -> pd.DataFrame:
@@ -332,7 +332,14 @@ class PlugData(object):
         Returns a DataFrame with only media control plugs (both compounds FS)
         :return: pd.DataFrame with media control plugs
         """
-        media_control_data = self.sample_df.loc[(self.sample_df.compound_a == "FS") & (self.sample_df.compound_b == "FS")]
+
+        control_labels = misc.to_set(self.config.control_label)
+
+        media_control_data = self.sample_df.loc[
+            self.sample_df.compound_a.isin(control_labels) &
+            self.sample_df.compound_b.isin(control_labels)
+        ]
+
         return media_control_data
 
 
@@ -346,9 +353,11 @@ class PlugData(object):
                  for more information about the returned values
         """
         media_control = self.get_media_control_data()
-        if readout_column == "":
-            readout_column = self.config.readout_column
+
+        readout_column = readout_column or self.config.readout_column
+
         slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control[readout_column])
+
         return slope, intercept, rvalue, pvalue, stderr
 
 
@@ -522,8 +531,8 @@ class PlugData(object):
 
     def _label_samples(self):
         """
-        Labels samples_df with associated names and compounds according to the ChannelMap in the PlugSequence
-        :param samples_df: pd.DataFrame with sample_nr column to associate names and compounds
+        Labels sample_df with associated names and compounds according to the ChannelMap in the PlugSequence
+        :param sample_df: pd.DataFrame with sample_nr column to associate names and compounds
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
 
@@ -581,10 +590,10 @@ class PlugData(object):
         self.plug_df = labelled_df
 
 
-    def _create_samples_df(self):
+    def _create_sample_df(self):
 
-        samples_df = self.plug_df.loc[self.plug_df.discard == False]
-        self.samples_df = samples_df.drop(columns = ["discard", "barcode"])
+        sample_df = self.plug_df.loc[self.plug_df.discard == False]
+        self.sample_df = sample_df.drop(columns = ["discard", "barcode"])
 
 
     def get_sample_name(self, sample_nr: int, sample_sequence: bd.PlugSequence):
