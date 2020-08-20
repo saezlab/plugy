@@ -304,6 +304,7 @@ class TestPlugData(unittest.TestCase):
                                       peak_min_distance = 0.03,
                                       min_end_cycle_barcodes = 3,
                                       n_bc_adjacent_discards = 0)
+            plug_data.detect_samples()
 
         pd_test.assert_frame_equal(self.labelled_sample_data.round(), plug_data.sample_df.round())
 
@@ -336,6 +337,7 @@ class TestPlugData(unittest.TestCase):
                                       peak_min_distance = 0.03,
                                       normalize_using_control=True,
                                       config=self.config)
+            plug_data.detect_samples()
 
         pd_test.assert_frame_equal(self.normalized_cycle_data.round(), plug_data.plug_df[self.normalized_cycle_data.columns].round())
 
