@@ -472,17 +472,19 @@ class PlugExperiment(object):
         module_logger.info("Running drug combination analysis")
 
         self.z_scores_violin_plot()
+        self.z_scores_violin_plot(by_cycle = True)
         self.z_scores_heatmap()
 
 
-    def z_scores_violin_plot(self):
+    def z_scores_violin_plot(self, by_cycle: bool = False):
 
         # Overview violin plot with z-scores
-        drug_z_violin_fig, drug_z_violin_ax = plt.subplots(figsize = (round(len(self.plug_data.sample_df.name.unique()) * 0.8), 10))
-        drug_z_violin_ax = self.plug_data.plot_compound_violins(axes = drug_z_violin_ax, column_to_plot=self.config.readout_analysis_column)
 
+        grid = self.plug_data.plot_compound_violins(column_to_plot=self.config.readout_analysis_column, by_cycle = by_cycle)
+
+        ax = grid.axes[0][0]
         # Getting y coordinates for asterisk from axis dimensions
-        y_max = drug_z_violin_ax.axis()[3]
+        y_max = ax.axis()[3]
 
         # Labelling significant samples
         statistics = self.sample_statistics.reset_index()
@@ -493,15 +495,19 @@ class PlugExperiment(object):
         for idx, sample in enumerate(self.plug_data.sample_df.name.unique()):
             if sample != "Cell Control":
                 if statistics.significant[idx]:
-                    drug_z_violin_ax.annotate("*", xy = (idx, y_max), xycoords = "data", textcoords = "data", ha = "center")
+                    ax.annotate("*", xy = (idx, y_max), xycoords = "data", textcoords = "data", ha = "center")
 
-        drug_z_violin_ax.set_title("Caspase activity z-scores", pad = 20)
+        if not by_cycle:
+            ax.set_title("Caspase activity z-scores", pad = 20)
 
-        drug_z_violin_fig.tight_layout()
+        grid.fig.tight_layout()
 
         if self.config.plot_git_caption:
-            misc.add_git_hash_caption(drug_z_violin_fig)
-        drug_z_violin_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_violins.{self.config.figure_export_file_type}"))
+            misc.add_git_hash_caption(grid.fig)
+
+        path = self.config.result_dir.joinpath(f"drug_comb_z_violins{'_by-cycle' if by_cycle else ''}.{self.config.figure_export_file_type}")
+        module_logger.info(f"Saving violin plots to {path}")
+        grid.savefig(path)
 
 
     def z_scores_heatmap(self):
