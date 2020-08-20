@@ -895,7 +895,7 @@ class PlugData(object):
         :return: plt.Axes object with the plot
         """
         self._check_sample_df_column(column_to_plot)
-        assert column_to_plot not in ["compound_a", "compound_b"], f"Column has to be different from 'compound_a' and 'compound_b'!"
+        assert column_to_plot not in {"compound_a", "compound_b"}, f"You can not plot this coulumn on a heatmap: `{column_to_plot}`."
 
         heatmap_data = self.sample_df[[column_to_plot, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
@@ -928,6 +928,11 @@ class PlugData(object):
         axes.set_title(f"{column_to_plot} by combination [AU]")
         axes.set_ylabel("")
         axes.set_xlabel("")
+
+        if plt.matplotlib.__version__ == '3.1.1':
+
+            ylim = axes.get_ylim()
+            axes.set_ylim(ylim[0] + .5, ylim[1] - .5)
 
         return axes
 
