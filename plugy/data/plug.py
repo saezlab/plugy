@@ -873,7 +873,7 @@ class PlugData(object):
             pickle.dump(self, f)
 
 
-    def plot_compound_violins(self, axes: plt.Axes, column_to_plot: str= "readout_peak_z_score"):
+    def plot_compound_violins(self, axes: plt.Axes, column_to_plot: str= "readout_peak_z_score", cycle: int = None):
         """
         Plots a violin plot per compound combination
         :param axes: plt.Axes object to draw on
@@ -881,14 +881,19 @@ class PlugData(object):
         :return: plt.Axes object with the plot
         """
         self._check_sample_df_column(column_to_plot)
-        axes = sns.violinplot(x = "name", y = column_to_plot, data = self.sample_df, ax = axes)
+        data = self.sample_df
+
+        if cycle is not None:
+            data = data[data.cycle_nr == cycle]
+
+        axes = sns.violinplot(x = "name", y = column_to_plot, data = data, ax = axes)
         axes.set_ylabel(column_to_plot)
         axes.set_xlabel("")
         axes.set_xticklabels(axes.get_xticklabels(), rotation = 90)
         return axes
 
 
-    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant", **kwargs) -> plt.Axes:
+    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant", cycle: int = None, **kwargs) -> plt.Axes:
         """
         Plots a heatmap to visualize the different combinations
         :param column_to_plot: Name of the column to extract values from
@@ -900,7 +905,13 @@ class PlugData(object):
         self._check_sample_df_column(column_to_plot)
         assert column_to_plot not in {"compound_a", "compound_b"}, f"You can not plot this coulumn on a heatmap: `{column_to_plot}`."
 
-        heatmap_data = self.sample_df[[column_to_plot, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
+        data = self.sample_df
+
+        if cycle is not None:
+            data = data[data.cycle_nr == cycle]
+
+
+        heatmap_data = data[[column_to_plot, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
 
         def prepare_heatmap_data(df: pd.DataFrame, col: str):
             """

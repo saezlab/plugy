@@ -310,7 +310,6 @@ class TestPlugData(unittest.TestCase):
                                       peak_min_distance = 0.03,
                                       min_end_cycle_barcodes = 3,
                                       n_bc_adjacent_discards = 0)
-            globals()['plug_data'] = plug_data
             plug_data.detect_samples()
 
         pd_test.assert_frame_equal(self.labelled_sample_data.round(), plug_data.sample_df.round())
