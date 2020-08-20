@@ -112,3 +112,38 @@ def to_set(value):
     else:
 
         return {value}
+
+
+def matplotlib_331_fix():
+
+    def get_extents(self, transform = None, **kwargs):
+
+        Bbox = plt.matplotlib.transforms.Bbox
+        Path = plt.matplotlib.path.Path
+
+        if transform is not None:
+            self = transform.transform_path(self)
+        if self.codes is None:
+            xys = self.vertices
+        elif len(np.intersect1d(self.codes, [Path.CURVE3, Path.CURVE4])) == 0:
+            xys = self.vertices[self.codes != Path.CLOSEPOLY]
+        else:
+            xys  =  []
+            for curve, code in self.iter_bezier(**kwargs):
+                # places where the derivative is zero can be extrema
+                _, dzeros  =  curve.axis_aligned_extrema()
+                # as can the ends of the curve
+                xys.append(curve([0, *dzeros, 1]))
+            xys  =  np.concatenate(xys)
+        if len(xys):
+            return Bbox([xys.min(axis = 0), xys.max(axis = 0)])
+        else:
+            return Bbox.null()
+
+
+    if plt.matplotlib.__version__ == '3.3.1':
+
+        plt.matplotlib.path.Path.get_extents = get_extents
+
+
+matplotlib_331_fix()
