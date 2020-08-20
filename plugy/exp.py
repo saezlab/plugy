@@ -464,11 +464,18 @@ class PlugExperiment(object):
         # sample_stats = sample_stats.reindex(self.plug_data.sample_df.name.unique())
         return sample_stats
 
+
     def drug_combination_analysis(self):
         """
         Analyzes drug combinations and produces result plots
         """
         module_logger.info("Running drug combination analysis")
+
+        self.z_scores_violin_plot()
+        self.z_scores_heatmap()
+
+
+    def z_scores_violin_plot(self):
 
         # Overview violin plot with z-scores
         drug_z_violin_fig, drug_z_violin_ax = plt.subplots(figsize = (round(len(self.plug_data.sample_df.name.unique()) * 0.8), 10))
@@ -489,10 +496,15 @@ class PlugExperiment(object):
                     drug_z_violin_ax.annotate("*", xy = (idx, y_max), xycoords = "data", textcoords = "data", ha = "center")
 
         drug_z_violin_ax.set_title("Caspase activity z-scores", pad = 20)
+
         drug_z_violin_fig.tight_layout()
+
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(drug_z_violin_fig)
         drug_z_violin_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_violins.{self.config.figure_export_file_type}"))
+
+
+    def z_scores_heatmap(self):
 
         # Overview heatmap of z-scores
         drug_z_hm_fig, drug_z_hm_ax = plt.subplots()
