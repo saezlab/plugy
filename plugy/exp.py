@@ -498,6 +498,7 @@ class PlugExperiment(object):
                     ax.annotate("*", xy = (idx, y_max), xycoords = "data", textcoords = "data", ha = "center")
 
         if not by_cycle:
+
             ax.set_title("Caspase activity z-scores", pad = 20)
 
         grid.fig.tight_layout()
@@ -510,10 +511,9 @@ class PlugExperiment(object):
         grid.savefig(path)
 
 
-    def z_scores_heatmap(self):
+    def z_scores_heatmap(self, by_cycle: bool = False):
 
         # Overview heatmap of z-scores
-        drug_z_hm_fig, drug_z_hm_ax = plt.subplots()
 
         # Labelling significant samples
         statistics = self.sample_statistics.reset_index()
@@ -521,16 +521,26 @@ class PlugExperiment(object):
         statistics = statistics.set_index(["compound_a", "compound_b"])
         statistics = statistics.significant
 
-        drug_z_hm_ax = self.plug_data.plot_compound_heatmap(column_to_plot=self.config.readout_analysis_column,
-                                                            axes=drug_z_hm_ax,
-                                                            annotation_df=statistics,
-                                                            vmin=self.config.drug_comb_heatmap_scale_min,
-                                                            vmax=self.config.drug_comb_heatmap_scale_max)
-        drug_z_hm_ax.set_title("Caspase activity z-scores")
-        drug_z_hm_fig.tight_layout()
+        grid = self.plug_data.plot_compound_heatmap(
+            column_to_plot = self.config.readout_analysis_column,
+            annotation_df = statistics,
+            vmin = self.config.drug_comb_heatmap_scale_min,
+            vmax = self.config.drug_comb_heatmap_scale_max,
+            by_cycle = by_cycle,
+        )
+
+        grid.fig.tight_layout()
+
         if self.config.plot_git_caption:
-            misc.add_git_hash_caption(drug_z_hm_fig)
-        drug_z_hm_fig.savefig(self.config.result_dir.joinpath(f"drug_comb_z_heatmap.{self.config.figure_export_file_type}"))
+
+            misc.add_git_hash_caption(grid.fig)
+
+        path = self.config.result_dir.joinpath(
+            f"drug_comb_z_heatmap{'_by-cycle' if by_cycle else ''}."
+            f"{self.config.figure_export_file_type}"
+        )
+        module_logger.info(f"Saving heatmap(s) to {path}")
+        grid.savefig(path)
 
 
     def close_figures(self):

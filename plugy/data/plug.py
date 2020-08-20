@@ -873,11 +873,11 @@ class PlugData(object):
             pickle.dump(self, f)
 
 
-    def plot_compound_violins(self, column_to_plot: str= "readout_peak_z_score", by_cycle: bool = False):
+    def plot_compound_violins(self, column_to_plot: str= "readout_peak_z_score", by_cycle: bool = False) -> sns.FacetGrid:
         """
         Plots a violin plot per compound combination
-        :param axes: plt.Axes object to draw on
         :param column_to_plot: Column to be plotted (e.g. readout_peak_z_score, readout_per_control_z_score).
+        :param by_cycle: Produce separate plots for each cycle.
         :return: seaborn.FacetGrid object with the plot
         """
 
@@ -897,61 +897,104 @@ class PlugData(object):
         return grid
 
 
-    def plot_compound_heatmap(self, column_to_plot: str, axes: plt.Axes, annotation_df: pd.DataFrame = None, annotation_column: str = "significant", cycle: int = None, **kwargs) -> plt.Axes:
+    def plot_compound_heatmap(
+            self,
+            column_to_plot: str,
+            annotation_df: pd.DataFrame = None,
+            annotation_column: str = "significant",
+            by_cycle: bool = False,
+            **kwargs
+        ) -> sns.FacetGrid:
         """
         Plots a heatmap to visualize the different combinations
         :param column_to_plot: Name of the column to extract values from
-        :param axes: plt.Axes object to draw on
-        :param annotation_df: pd.DataFrame grouped by column, compound_a and compound_b for annotation
-        :param annotation_column: Which column in annotation_df to use for the annotation
-        :return: plt.Axes object with the plot
+        :param annotation_df: pd.DataFrame grouped by column, compound_a and
+            compound_b for annotation
+        :param annotation_column: Which column in annotation_df to use for
+            the annotation
+        :param by_cycle: Produce separate plots for each cycle.
+        :return: seaborn.FacetGrid object with the plot
         """
         self._check_sample_df_column(column_to_plot)
-        assert column_to_plot not in {"compound_a", "compound_b"}, f"You can not plot this coulumn on a heatmap: `{column_to_plot}`."
 
-        data = self.sample_df
-
-        if cycle is not None:
-            data = data[data.cycle_nr == cycle]
-
-        heatmap_data = data[[column_to_plot, "compound_a", "compound_b"]].groupby(["compound_a", "compound_b"]).mean()
-
-        def prepare_heatmap_data(df: pd.DataFrame, col: str):
-            """
-            Prepares a pd.DataFrame grouped by compound_a and _b to be plotted as heatmap
-            :param pd.DataFrame df: pd.DataFrame grouped by compound_a and _b
-            :param str col: Column to plot in heatmap
-            :return: pd.DataFrame in heatmap shape to be plotted using sns.heatmap or None if None was supplied as df
-            """
-            # Prepare index for pivot
-            df = df.reset_index()
-
-            # Pivot/reshape data into heatmap format
-            df = df.pivot("compound_a", "compound_b", col)
-
-            return df
-
-        heatmap_data = prepare_heatmap_data(heatmap_data, column_to_plot)
-        # Sort rows and columns by NAs to generate a lower triangular matrix to be used for plotting
-        heatmap_data = heatmap_data.reindex(heatmap_data.isna().sum(axis = 1).sort_values(ascending = False).index.to_list())
-        heatmap_data = heatmap_data[heatmap_data.isna().sum(axis = 0).sort_values(ascending = True).index.to_list()]
+        assert column_to_plot not in {"compound_a", "compound_b"},\
+            f"You can not plot this coulumn on a heatmap: `{column_to_plot}`."
 
         if annotation_df is not None:
-            annotation_df = prepare_heatmap_data(annotation_df, annotation_column)
-            annotation_df = annotation_df.reindex_like(heatmap_data)
-            annotation_df = annotation_df.replace(True, "*").replace(False, "").replace(np.nan, "")
 
-        axes = sns.heatmap(heatmap_data, annot = annotation_df, fmt = "", ax = axes, **kwargs)
-        axes.set_title(f"{column_to_plot} by combination [AU]")
-        axes.set_ylabel("")
-        axes.set_xlabel("")
+            annotation_df = annotation_df.reset_index()
+            annotation_df = annotation_df.pivot(
+                "compound_a",
+                "compound_b",
+                annotation_column,
+            )
+            annotation_df = (
+                annotation_df.
+                replace(True, "*").
+                replace(False, "").
+                replace(np.nan, "")
+            )
 
-        if plt.matplotlib.__version__ == '3.1.1':
+        cycles = self.sample_df.cycle_nr.unique() if by_cycle else (None,)
 
-            ylim = axes.get_ylim()
-            axes.set_ylim(ylim[0] + .5, ylim[1] - .5)
+        grid = sns.FacetGrid(
+            data = self.sample_df,
+            col = 'cycle_nr' if by_cycle else None,
+            height = 5,
+            aspect = .5 * len(cycles) if by_cycle else 1,
+        )
 
-        return axes
+        for i, cycle in enumerate(cycles):
+
+            data = self.sample_df
+            data = data if cycle is None else data[data.cycle_nr == cycle]
+            data = data[[column_to_plot, "compound_a", "compound_b"]]
+            data = data.groupby(["compound_a", "compound_b"]).mean()
+            data = data.reset_index()
+            data = data.pivot("compound_a", "compound_b", column_to_plot)
+            data = data.reindex(
+                data.isna().
+                sum(axis = 1).
+                sort_values(ascending = False).
+                index.
+                to_list()
+            )
+            data = data[
+                data.isna().
+                sum(axis = 0).
+                sort_values(ascending = True).
+                index.
+                to_list()
+            ]
+
+            if annotation_df is not None:
+
+                annotation_df = annotation_df.reindex_like(data)
+
+            ax = grid.axes.flat[i]
+
+            sns.heatmap(
+                data,
+                annot = annotation_df,
+                fmt = "",
+                ax = ax,
+                **kwargs
+            )
+
+            cycle_str = ('\nCycle #%u' % cycle) if by_cycle else ''
+            unit_str = 'z-score' if 'z_score' in column_to_plot else 'AU'
+            ax.set_title(
+                f"{column_to_plot} by combination [{unit_str}]{cycle_str}"
+            )
+            ax.set_ylabel("")
+            ax.set_xlabel("")
+
+            if plt.matplotlib.__version__ == '3.1.1':
+
+                ylim = ax.get_ylim()
+                ax.set_ylim(ylim[0] + .5, ylim[1] - .5)
+
+        return grid
 
 
     def _check_sample_df_column(self, column: str):
