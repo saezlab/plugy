@@ -362,7 +362,14 @@ class PlugExperiment(object):
         control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(control_ax_cycle_dist)
         control_ax_sample_dist = self.plug_data.plot_control_sample_dist(control_ax_sample_dist)
         control_ax_readout_correlation = self.plug_data.plot_control_readout_correlation(control_ax_readout_correlation)
-        control_ax_control_heatmap = self.plug_data.plot_compound_heatmap(column_to_plot="control_peak_median", axes = control_ax_control_heatmap)
+
+        grid = self.plug_data.plot_compound_heatmap(
+            column_to_plot = 'control_peak_median',
+            vmin = self.config.drug_comb_heatmap_scale_min,
+            vmax = self.config.drug_comb_heatmap_scale_max,
+        )
+
+        control_fig.axes[-1] = grid.axes.flat[0]
 
         control_fig.tight_layout()
         if self.config.plot_git_caption:
@@ -474,6 +481,7 @@ class PlugExperiment(object):
         self.z_scores_violin_plot()
         self.z_scores_violin_plot(by_cycle = True)
         self.z_scores_heatmap()
+        self.z_scores_heatmap(by_cycle = True)
 
 
     def z_scores_violin_plot(self, by_cycle: bool = False):
