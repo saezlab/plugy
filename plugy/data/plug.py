@@ -210,7 +210,8 @@ class PlugData(object):
         self.plug_df = self.plug_df.assign(
             barcode = (
                 self.plug_df.barcode_peak_median >
-                self.plug_df.control_peak_median
+                self.plug_df.control_peak_median *
+                self.config.barcode_threshold
             )
         )
 
