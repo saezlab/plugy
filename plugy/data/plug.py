@@ -198,7 +198,7 @@ class PlugData(object):
         self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
 
 
-    def _set_barcode(self):
+    def _set_barcode(self, barcode_threshold: float = None):
         """
         Creates a new boolean column `barcode` in the `plug_df` which is
         `True` if the plug is a barcode.
@@ -207,11 +207,12 @@ class PlugData(object):
         # Call barcode plugs
         module_logger.debug("Calling barcode plugs")
 
+        barcode_threshold = barcode_threshold or self.config.barcode_threshold
+
         self.plug_df = self.plug_df.assign(
             barcode = (
                 self.plug_df.barcode_peak_median >
-                self.plug_df.control_peak_median *
-                self.config.barcode_threshold
+                self.plug_df.control_peak_median * barcode_threshold
             )
         )
 
