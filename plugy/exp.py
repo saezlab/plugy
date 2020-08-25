@@ -168,33 +168,43 @@ class PlugExperiment(object):
 
         except AssertionError:
             # In case labelling does not work because
-            # the number of called plugs diverges from the expected number.
-            # Plotting fallback pmt overview
+            # the number of samples diverges from the expected number.
+            # Plotting pmt data as a fallback
 
-            module_logger.error(f"Error during plug calling, plotting fallback pmt overview!")
-
-            pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
-            self.pmt_data.plot_pmt_data(pmt_overview_ax)
-
-            self.plug_data.highlight_plugs(
-                axes = pmt_overview_ax,
-                below_peak = False,
+            module_logger.error(
+                'Could not find any cycle with the expected number of '
+                'samples. Potting the PMT data and exiting.'
             )
-            self.plug_data.highlight_samples(axes = pmt_overview_ax)
 
-            if self.config.plot_git_caption:
-                misc.add_git_hash_caption(pmt_overview_fig)
-
-            pmt_overview_fig.tight_layout()
-            png_path = self.config.result_dir.joinpath(f"pmt_overview.png")
-            pmt_overview_fig.savefig(png_path)
-
-            module_logger.info(f"Plotted PMT overview to {png_path}")
+            self.plot_pmt_data()
 
             raise
 
         self.sample_data = self.get_sample_data()
         self.sample_statistics = self.calculate_statistics()
+
+
+    def plot_pmt_data(self):
+
+        qc_dir = self.ensure_qc_dir()
+
+        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
+        self.pmt_data.plot_pmt_data(pmt_overview_ax)
+
+        self.plug_data.highlight_plugs(
+            axes = pmt_overview_ax,
+            below_peak = False,
+        )
+        self.plug_data.highlight_samples(axes = pmt_overview_ax)
+
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(pmt_overview_fig)
+
+        pmt_overview_fig.tight_layout()
+        png_path = qc_dir.joinpath(f"pmt_overview.png")
+        pmt_overview_fig.savefig(png_path)
+
+        module_logger.info(f"Plotted PMT data to {png_path}")
 
 
     def get_sample_data(self) -> pd.DataFrame:
@@ -297,14 +307,7 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(media_control_fig)
         media_control_fig.savefig(qc_dir.joinpath(f"fs_media_control.{self.config.figure_export_file_type}"))
 
-        # Plotting PMT cycle overview
-        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize = (150, 10))
-        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes = pmt_overview_ax)
-
-        pmt_overview_fig.tight_layout()
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(pmt_overview_fig)
-        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
+        self.plot_pmt_data()
 
         # Plotting plug numbers
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
