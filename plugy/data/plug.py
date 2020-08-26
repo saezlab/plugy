@@ -24,6 +24,7 @@
 import logging
 import pickle
 import importlib as imp
+import warnings
 
 import pathlib as pl
 
@@ -100,7 +101,11 @@ class PlugData(object):
 
     def detect_samples(self):
 
+
         self._call_sample_cycles()
+        self._set_sample_param()
+        self._adjust_sample_detection()
+        self._discard_cycles()
         self._label_samples()
         self._create_sample_df()
         self._add_z_scores()
@@ -255,8 +260,6 @@ class PlugData(object):
         :return: Tuple of pd.DataFrame containing sample data
         and the input plug_df updated with info which plugs were discarded
         """
-
-        sample_df = self.plug_df
 
         # counters
         current_cycle = 0
@@ -542,18 +545,15 @@ class PlugData(object):
         return axes
 
 
-    def _label_samples(self):
-        """
-        Labels sample_df with associated names and compounds according to the ChannelMap in the PlugSequence
-        :param sample_df: pd.DataFrame with sample_nr column to associate names and compounds
-        :return: pd.DataFrame with the added name, compound_a and b columns
-        """
+    def _set_sample_param(self):
 
         # Label samples in case channel map and plug sequence are provided
-        if (
-            not isinstance(self.channel_map, bd.ChannelMap) or
-            not isinstance(self.plug_sequence, bd.PlugSequence)
-        ):
+        self._has_sequence = (
+            isinstance(self.channel_map, bd.ChannelMap) and
+            isinstance(self.plug_sequence, bd.PlugSequence)
+        )
+
+        if not self._has_sequence:
 
             module_logger.warning(
                 "Channel map and/or plug sequence not properly specified, "
@@ -561,52 +561,177 @@ class PlugData(object):
             )
             return
 
-        labelled_df = self.plug_df
-        sample_sequence = self.plug_sequence.get_samples(channel_map = self.channel_map)
-        labelling_possible = True
-        discarded_cycles = list()
+        self.sample_sequence = self.plug_sequence.get_samples(
+            channel_map = self.channel_map,
+        )
+        self.expected_samples = len(self.sample_sequence.sequence)
 
-        for cycle in labelled_df.groupby("cycle_nr"):
 
-            # cycle[1] is the group DataFrame, cycle[0] is the current cycle_nr
-            found_samples = len(cycle[1].sample_nr.unique())
-            expected_samples = len(sample_sequence.sequence)
 
-            if found_samples != expected_samples:
+    def _adjust_sample_detection(self):
+        """
+        Labels sample_df with associated names and compounds according to the ChannelMap in the PlugSequence
+        :param sample_df: pd.DataFrame with sample_nr column to associate names and compounds
+        :return: pd.DataFrame with the added name, compound_a and b columns
+        """
 
-                log_msg = f"Cycle {cycle[0]} detected between {cycle[1].start_time.min()} - {cycle[1].end_time.max()} contains {'less' if found_samples < expected_samples else 'more'} samples ({found_samples}) than expected ({expected_samples})"
-                if self.auto_detect_cycles:
-                    module_logger.info(log_msg)
-                    module_logger.info(f"Discarding Cycle {cycle[0]}")
-                    labelled_df.loc[labelled_df.cycle_nr == cycle[0], "discard"] = True
-                    discarded_cycles.append(cycle[0])
-                else:
-                    module_logger.critical(log_msg)
-                    labelling_possible = False
+        if not self._has_sequence:
 
-        check_msg = "\n".join([f"Check:",
-                               f"\tIncrease peak_max_width (currently {self.peak_max_width}) if plugs are too short to be detected",
-                               f"\tDecrease width_rel_height (currently {self.width_rel_height}) if plugs are wider than tall",
-                               f"\tCut of PMT data (currently {self.pmt_data.cut}) being precisely at the start of the first actual sample (not the barcode)"])
+            return
 
-        if not labelling_possible:
-            raise AssertionError("\n".join([f"Number of found and expected_samples have to match for all cycles", check_msg]))
+        barcode_threshold = self.config.barcode_threshold
 
-        # discarded_cycles = labelled_df.cycle_nr.unique()
-        assert len(discarded_cycles) < len(labelled_df.cycle_nr.unique()), "\n".join([f"Did not detect any cycle with the proper number of samples", check_msg])
+        while True:
 
-        module_logger.info("Labelling samples with compound names")
-        labelled_df["name"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.get_sample_name(nr, sample_sequence))
-        labelled_df["compound_a"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
-        labelled_df["compound_b"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
+            self._count_samples_by_cycle()
 
-        self.plug_df = labelled_df
+            if (
+                any(
+                    0 < abs(d) < 2
+                    for d in self._sample_count_anomaly.values()
+                ) and
+                barcode_threshold < 1.5
+            ):
+
+                barcode_threshold += .05
+                self._set_barcode(barcode_threshold = barcode_threshold)
+                self._call_sample_cycles()
+
+            else:
+
+                if barcode_threshold != self.config.barcode_threshold:
+
+                    module_logger.info(
+                        f"Adjusted `barcode_threshold` "
+                        f"to {barcode_threshold}."
+                    )
+
+                break
+
+
+    def _count_samples_by_cycle(self):
+
+        self._samples_by_cycle = dict(
+            (
+                cycle_nr,
+                cycle.sample_nr.nunique()
+            )
+            for cycle_nr, cycle in self.plug_df.groupby('cycle_nr')
+        )
+
+        self._sample_count_anomaly = dict(
+            (
+                cycle_nr,
+                n_samples - self.expected_samples
+            )
+            for cycle_nr, n_samples in self._samples_by_cycle.items()
+        )
+
+
+    def _discard_cycles(self):
+
+        for cycle_nr, cycle in self.plug_df.groupby('cycle_nr'):
+
+            diff = self._sample_count_anomaly[cycle_nr]
+
+            if diff:
+
+                log_msg = (
+                    f"Cycle {cycle_nr} detected between "
+                    f"{cycle.start_time.min()}-{cycle.end_time.max()} "
+                    f"contains {'less' if diff < 0 else 'more'} than "
+                    f"expected ({self.expected_samples})."
+                )
+                module_logger.info(log_msg)
+                module_logger.info(f"Discarding cycle {cycle_nr}.")
+
+
+                with warnings.catch_warnings():
+
+                    warnings.simplefilter('ignore')
+                    self.plug_df.discard[
+                        self.plug_df.cycle_nr == cycle_nr
+                    ] = True
+
+        check_msg = (
+            f"You may want to try:\n"
+            f"\t- Increase `peak_max_width` (currently {self.peak_max_width})"
+            f" if plugs are too short to be detected\n"
+            f"\t- Decrease `width_rel_height` (currently "
+            f"{self.width_rel_height}) if plugs are wider than tall\n"
+            f"\t- Cut the data using the `cut` parameter (currently "
+            f"{self.pmt_data.cut}) being precisely at the start of "
+            f"the first actual sample (not the barcode)"
+        )
+
+        self.valid_cycles = [
+            cycle_nr
+            for cycle_nr, diff in self._sample_count_anomaly.items()
+            if not diff
+        ]
+        self.n_cycles = len(self._samples_by_cycle)
+
+        if not self.valid_cycles:
+
+            module_logger.critical(
+                f"None of the {self.n_cycles} cycles is valid."
+            )
+            module_logger.info(check_msg)
+
+        elif len(self.valid_cycles) != self.n_cycles:
+
+            module_logger.info(
+                f"Out of {self.n_cycles} only "
+                f"{len(self.valid_cycles)} are valid."
+            )
+
+            if not self.auto_detect_cycles:
+
+                module_logger.critical(
+                    f"All cycles must have the expected number of samples."
+                )
+                self.valid_cycles = ()
+
+            module_logger.info(check_msg)
+
+
+
+
+            if not self.auto_detect_cycles:
+
+                self.valid
+
+
+    def _label_samples(self):
+
+        if not self.valid_cycles:
+
+            return
+
+        module_logger.info('Labelling samples with compound names')
+
+        df = self.plug_df
+        seq = self.sample_sequence
+
+        df['name'] = df.loc[~df.discard].sample_nr.apply(
+            lambda nr: self.get_sample_name(nr, seq)
+        )
+        df['compound_a'] = df.loc[~df.discard].sample_nr.apply(
+            lambda nr: self.channel_map.get_compounds(
+                seq.sequence[nr].open_valves
+            )[0]
+        )
+        df['compound_b'] = df.loc[~df.discard].sample_nr.apply(
+            lambda nr: self.channel_map.get_compounds(
+                seq.sequence[nr].open_valves
+            )[1]
+        )
 
 
     def _create_sample_df(self):
 
         sample_df = self.plug_df.loc[self.plug_df.discard == False]
-        self.sample_df = sample_df.drop(columns = ["discard", "barcode"])
+        self.sample_df = sample_df.drop(columns = ['discard', 'barcode'])
 
 
     def get_sample_name(self, sample_nr: int, sample_sequence: bd.PlugSequence):
