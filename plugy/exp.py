@@ -324,7 +324,7 @@ class PlugExperiment(object):
         contamination = self.get_contamination()
         if contamination.mean() > self.config.contamination_threshold:
             msg = (
-                f"Contamination over threshold ({contamination.mean()} > "
+                f"Contamination above threshold ({contamination.mean()} > "
                 f"{self.config.contamination_threshold})"
             )
             module_logger.warning(msg)

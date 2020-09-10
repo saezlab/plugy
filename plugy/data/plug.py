@@ -25,6 +25,7 @@ import logging
 import pickle
 import importlib as imp
 import warnings
+import collections
 
 import pathlib as pl
 
@@ -32,6 +33,7 @@ import pandas as pd
 import numpy as np
 import scipy.signal as sig
 import scipy.stats as stats
+import skimage.filters
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patch
@@ -104,6 +106,7 @@ class PlugData(object):
 
         self._call_sample_cycles()
         self._set_sample_param()
+        self._count_samples_by_cycle()
         self._adjust_sample_detection()
         self._discard_cycles()
         self._label_samples()
@@ -203,14 +206,36 @@ class PlugData(object):
         self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
 
 
-    def _set_barcode(self, barcode_threshold: float = None):
+    def _set_barcode(
+            self,
+            barcode_threshold: float = None,
+            adaptive: bool = None,
+            **kwargs,
+        ):
         """
         Creates a new boolean column `barcode` in the `plug_df` which is
         `True` if the plug is a barcode.
         """
 
+        adaptive = (
+            self.config.barcode_adaptive_threshold
+                if adaptive is None else
+            adaptive
+        )
+
         # Call barcode plugs
-        module_logger.debug("Calling barcode plugs")
+        module_logger.debug(f"Calling barcode plugs (adaptive={adaptive})")
+
+        if adaptive:
+
+            self._set_barcode_adaptive(**kwargs)
+
+        else:
+
+            self._set_barcode_fix(barcode_threshold = barcode_threshold)
+
+
+    def _set_barcode_fix(self, barcode_threshold: float = None):
 
         barcode_threshold = barcode_threshold or self.config.barcode_threshold
 
@@ -220,6 +245,37 @@ class PlugData(object):
                 self.plug_df.control_peak_median * barcode_threshold
             )
         )
+
+
+    def _set_barcode_adaptive(self, **kwargs):
+
+        param = self.config.barcode_adaptive_threshold_param.copy()
+        param.update(kwargs)
+
+        barcode_control = (
+            self.plug_df.barcode_peak_median /
+            self.plug_df.control_peak_median
+        ).to_numpy()
+        barcode_control = self.plug_df.barcode_peak_median.to_numpy().copy()
+
+        shape = (1, barcode_control.shape[0])
+        barcode_control.shape = shape
+
+        threshold = skimage.filters.threshold_local(
+            barcode_control,
+            **param,
+        )
+
+        barcode = self.plug_df.barcode_peak_median > threshold.flatten()
+        barcode = barcode.to_numpy()
+        barcode.shape = shape
+
+        barcode = skimage.morphology.opening(
+            barcode,
+            selem = skimage.morphology.square(2),
+        )
+
+        self.plug_df['barcode'] = barcode.flatten()
 
 
     def _normalize_to_control(self):
@@ -384,7 +440,7 @@ class PlugData(object):
         :param cut: tuple with (start_time, end_time) to subset the plot to a certain time range
         :return: plt.Axes object with the plot
         """
-        module_logger.info("Plotting detected peaks")
+
         axes = self.pmt_data.plot_pmt_data(axes, cut = cut)
 
         plug_df = self.plug_df
@@ -575,19 +631,22 @@ class PlugData(object):
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
 
-        if not self._has_sequence:
+        if not self._has_sequence or self.config.barcode_adaptive_threshold:
 
             return
 
         barcode_threshold = self.config.barcode_threshold
+        n_valid_cycles = collections.defaultdict(list)
 
         while True:
 
             self._count_samples_by_cycle()
+            self._get_valid_cycles()
+            n_valid_cycles[len(self.valid_cycles)].append(barcode_threshold)
 
             if (
                 any(
-                    0 < abs(d) < 2
+                    0 < abs(d) < 4
                     for d in self._sample_count_anomaly.values()
                 ) and
                 barcode_threshold < 1.5
@@ -599,14 +658,17 @@ class PlugData(object):
 
             else:
 
-                if barcode_threshold != self.config.barcode_threshold:
-
-                    module_logger.info(
-                        f"Adjusted `barcode_threshold` "
-                        f"to {barcode_threshold}."
-                    )
-
                 break
+
+        barcode_threshold = n_valid_cycles[max(n_valid_cycles.keys())][0]
+        self._set_barcode(barcode_threshold = barcode_threshold)
+        self._call_sample_cycles()
+        self._count_samples_by_cycle()
+
+        module_logger.info(
+            f"Adjusted `barcode_threshold` "
+            f"to {barcode_threshold}."
+        )
 
 
     def _count_samples_by_cycle(self):
@@ -639,7 +701,8 @@ class PlugData(object):
                 log_msg = (
                     f"Cycle {cycle_nr} detected between "
                     f"{cycle.start_time.min()}-{cycle.end_time.max()} "
-                    f"contains {'less' if diff < 0 else 'more'} than "
+                    f"contains {self._samples_by_cycle[cycle_nr]} samples, "
+                    f"{'less' if diff < 0 else 'more'} than "
                     f"expected ({self.expected_samples})."
                 )
                 module_logger.info(log_msg)
@@ -664,11 +727,7 @@ class PlugData(object):
             f"the first actual sample (not the barcode)"
         )
 
-        self.valid_cycles = [
-            cycle_nr
-            for cycle_nr, diff in self._sample_count_anomaly.items()
-            if not diff
-        ]
+        self._get_valid_cycles()
         self.n_cycles = len(self._samples_by_cycle)
 
         if not self.valid_cycles:
@@ -694,19 +753,23 @@ class PlugData(object):
 
             module_logger.info(check_msg)
 
-
-
-
             if not self.auto_detect_cycles:
 
                 self.valid
 
 
+    def _get_valid_cycles(self):
+
+        self.valid_cycles = [
+            cycle_nr
+            for cycle_nr, diff in self._sample_count_anomaly.items()
+            if not diff
+        ]
+
+
     def _label_samples(self):
 
-        if not self.valid_cycles:
-
-            return
+        assert self.valid_cycles, 'No valid cycles available.'
 
         module_logger.info('Labelling samples with compound names')
 

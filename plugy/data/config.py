@@ -78,6 +78,12 @@ class PlugyConfig(object):
     min_end_cycle_barcodes: int = 12
     min_between_samples_barcodes: int = 2
     barcode_threshold: float = 1.0
+    barcode_adaptive_threshold: bool = False
+    barcode_adaptive_threshold_param: dict = field(
+        default_factory = lambda: {
+            'block_size': 21,
+        }
+    )
 
     # Analysis
     normalize_using_control: bool = False
