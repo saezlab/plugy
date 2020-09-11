@@ -20,15 +20,12 @@
 #
 # Webpage: https://github.com/saezlab/plugy
 #
-import logging
-import sys
+
 import time
 
 import subprocess as sp
 import matplotlib.pyplot as plt
 import numpy as np
-
-from .data.config import PlugyConfig
 
 
 def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
@@ -56,33 +53,6 @@ def plot_line(slope: float, intercept: float, axes: plt.Axes):
     x_values = np.array(axes.get_xlim())
     y_values = intercept + slope * x_values
     axes.plot(x_values, y_values, '--')
-
-
-def start_logging(config: PlugyConfig):
-    """
-    Starts logging to STDOUT and to a log file in the result directory
-    :param config: PlugyConfig object to retrieve the result_dir from
-    :return: None
-    """
-
-    logging.shutdown()
-
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%d.%m.%y %H:%M:%S")
-
-    logger = logging.getLogger()
-    logger.handlers = []
-    logger.setLevel(logging.DEBUG)
-
-    stream_handler = logging.StreamHandler(stream=sys.stdout)
-    stream_handler.setLevel(logging.INFO)
-    stream_handler.setFormatter(formatter)
-
-    file_handler = logging.FileHandler(config.result_dir.joinpath("plugy_run.log"), mode="a")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-
-    logger.addHandler(stream_handler)
-    logger.addHandler(file_handler)
 
 
 def to_int(value):

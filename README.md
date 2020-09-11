@@ -35,7 +35,6 @@ import pathlib as pl
 # Importing plugy modules
 import plugy.exp as exp
 import plugy.data.config as config
-import plugy.misc as misc
 ```
 
 Running Plugy
@@ -52,8 +51,8 @@ plugy_config = config.PlugyConfig(pmt_file=pl.Path("data/pmt_data.txt.gz"),
                                   peak_max_width=2.5,
                                   figure_export_file_type="png")
 
-misc.start_logging(plugy_config)
 ```
+
 Running the analysis
 
 ```python
