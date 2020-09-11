@@ -21,9 +21,11 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
+import sys
 import time
 import pathlib as pl
 import typing
+import logging
 
 from dataclasses import dataclass, field
 
@@ -46,6 +48,7 @@ class PlugyConfig(object):
         default_factory = lambda: {"FS", "neg Ctr"}
     )
     ignore_qc_result: bool = False
+    log_to_stdout: bool = True
 
     # sequence settings
     allow_lt4_valves: bool = False
@@ -120,4 +123,36 @@ class PlugyConfig(object):
         if not self.result_dir.exists():
             self.result_dir.mkdir()
 
+        self.start_logging()
 
+
+    def start_logging(self):
+        """
+        Starts logging to STDOUT and to a log file in the result directory
+        :param config: PlugyConfig object to retrieve the result_dir from
+        :return: None
+        """
+
+        logging.shutdown()
+
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt = "%d.%m.%y %H:%M:%S",
+        )
+
+        logger = logging.getLogger()
+        logger.handlers = []
+        logger.setLevel(logging.DEBUG)
+
+        if self.log_to_stdout:
+
+            stream_handler = logging.StreamHandler(stream=sys.stdout)
+            stream_handler.setLevel(logging.INFO)
+            stream_handler.setFormatter(formatter)
+            logger.addHandler(stream_handler)
+
+        file_handler = logging.FileHandler(config.result_dir.joinpath("plugy_run.log"), mode="a")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+
+        logger.addHandler(file_handler)
