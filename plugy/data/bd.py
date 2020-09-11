@@ -54,7 +54,7 @@ class ChannelMap(object):
 
     # noinspection PyAttributeOutsideInit
     def read_input_file(self):
-        module_logger.info(f"Reading file")
+        module_logger.info(f"Reading file {self.input_file.absolute()}")
         mapping = dict()
         with self.input_file.open("r") as f:
             for line in f:

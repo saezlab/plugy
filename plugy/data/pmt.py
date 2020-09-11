@@ -34,7 +34,7 @@ import matplotlib.collections as mpl_coll
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ..data.config import PlugyConfig
 
 module_logger = logging.getLogger("plugy.data.pmt")
@@ -54,7 +54,7 @@ class PmtData(object):
     digital_gain_green: float = 1.0
     digital_gain_orange: float = 1.0
     bc_override_threshold: float = None
-    config: PlugyConfig = PlugyConfig()
+    config: PlugyConfig = field(default_factory = PlugyConfig)
 
     def __post_init__(self):
         module_logger.info(f"Creating PmtData object from file {self.input_file.absolute()}")
@@ -80,7 +80,7 @@ class PmtData(object):
         Reads input_file
         :return: pd.DataFrame containing the PMT data of all channels
         """
-        module_logger.info("Reading input file")
+        module_logger.info(f"Reading file {self.input_file.absolute()}")
         if self.input_file.exists():
             if self.input_file.suffix == ".gz":
                 module_logger.info("Detected gzipped file")

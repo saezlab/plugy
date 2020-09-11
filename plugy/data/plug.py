@@ -40,7 +40,7 @@ import seaborn as sns
 from .. import misc
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 module_logger = logging.getLogger("plugy.data.plug")
 
@@ -64,7 +64,7 @@ class PlugData(object):
     min_end_cycle_barcodes: int = 12
     normalize_using_control: bool = False
     normalize_using_media_control_lin_reg: bool = False
-    config: PlugyConfig = PlugyConfig()
+    config: PlugyConfig = field(default_factory = PlugyConfig)
 
 
     def __post_init__(self):
