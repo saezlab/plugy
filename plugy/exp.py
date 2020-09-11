@@ -79,14 +79,17 @@ class PlugExperiment(object):
 
     def main(self):
 
-        if self.config.run or self.config.setup_and_load:
+        if self.config.run or self.config.plugs or self.config.init:
 
             self.setup()
             self.load()
 
-        if self.config.run:
+        if self.config.run or self.config.plugs:
 
             self.detect_plugs()
+
+        if self.config.run:
+
             self.detect_samples()
             self.qc()
             self.drug_combination_analysis()
