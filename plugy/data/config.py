@@ -43,7 +43,8 @@ class PlugyConfig(object):
     figure_export_file_type: str = "svg"
     colors: dict = field(default_factory = lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     run: bool = True
-    setup_and_load: bool = True
+    init: bool = True
+    plugs: bool = True
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {"FS", "neg Ctr"}
     )
