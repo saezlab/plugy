@@ -558,7 +558,7 @@ class PlugData(object):
             axes.text(
                 x = sample.start_time,
                 y = ymax - .1,
-                s = '%u/%u' % sample.Index,
+                s = '%u/%u' % (sample.Index[0] + 1, sample.Index[1] + 1),
                 size = 'xx-large',
             )
 
