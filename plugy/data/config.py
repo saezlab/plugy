@@ -187,4 +187,4 @@ class PlugyConfig(object):
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
 
-        logger.addHandler(file_handler)
+        self.start_logging()
