@@ -21,25 +21,30 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
+import os
 import sys
 import time
 import pathlib as pl
 import typing
 import logging
+import hashlib
 
 from dataclasses import dataclass, field
 
 
 @dataclass
 class PlugyConfig(object):
+
     # File Paths
     pmt_file: pl.Path = None
     seq_file: pl.Path = None
     channel_file: pl.Path = None
     result_base_dir: pl.Path = pl.Path.cwd().joinpath("results")
-    result_dir_prefix: str = "run"
+    result_subdirs: bool = False
+    timestamp_result_subdirs: bool = False
 
     # General config
+    name: str = None
     figure_export_file_type: str = "svg"
     colors: dict = field(default_factory = lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
     run: bool = True
@@ -105,19 +110,49 @@ class PlugyConfig(object):
     def __post_init__(self):
         # Creating result dir for each individual run
 
-        current_time = time.strftime("%Y%m%d_%H_%M_%S")
+        self._set_name()
 
-        self.result_dir = self.result_base_dir.joinpath(f"{self.result_dir_prefix}_{current_time}")
+        current_time = time.strftime("%Y%m%d_%H%M")
 
-        if not self.result_base_dir.exists():
-            self.result_base_dir.mkdir()
+        self.result_dir = self.result_base_dir
 
-        # assert not self.result_dir.exists(), f"Automatically generated result directory name already exists {self.result_dir.name}, please retry in a couple of seconds"
+        if self.result_subdirs:
 
-        if not self.result_dir.exists():
-            self.result_dir.mkdir()
+            subdir = (
+                f"{os.path.splitext(self.pmt_file.name)[0]}_{current_time}"
+                    if self.timestamp_result_subdirs else
+                self.name
+            )
+
+            self.result_dir = self.result_dir.joinpath(
+                self.result_dir,
+                subdir,
+            )
+
+        os.makedirs(str(self.result_dir), exist_ok = True)
 
         self.start_logging()
+
+
+    def _set_name(self):
+
+        self.identity = hashlib.md5(
+            ';'.join(
+                (
+                    str(self.pmt_file),
+                    str(self.seq_file),
+                    str(self.channel_file),
+                )
+            ).encode('utf-8')
+        ).hexdigest()[:7]
+
+        self.name = (
+            self.name or
+            '%s-%s' % (
+                os.path.splitext(self.pmt_file.name)[0],
+                self.identity,
+            )
+        )
 
 
     def start_logging(self):
