@@ -41,21 +41,21 @@ from .data.pmt import PmtData
 from .data.plug import PlugData
 from . import misc as misc
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 module_logger = logging.getLogger("plugy.data.exp")
 
 
 @dataclass
 class PlugExperiment(object):
-    config: PlugyConfig = PlugyConfig()
+    config: PlugyConfig = field(default_factory = PlugyConfig)
     ignore_qc_result: bool = False
 
     def __post_init__(self):
-        module_logger.info(f"Initializing PlugExperiment using the following configuration")
-
+        module_logger.info('Initializing PlugExperiment')
+        module_logger.debug('Configuration:')
         for k, v in self.config.__dict__.items():
-            module_logger.info(f"{k}: {v}")
+            module_logger.debug(f"{k}: {v}")
 
         self.ignore_qc_result = (
             self.ignore_qc_result or
