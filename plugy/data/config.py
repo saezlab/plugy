@@ -180,7 +180,10 @@ class PlugyConfig(object):
             stream_handler.setFormatter(formatter)
             logger.addHandler(stream_handler)
 
-        file_handler = logging.FileHandler(config.result_dir.joinpath("plugy_run.log"), mode="a")
+        file_handler = logging.FileHandler(
+            self.result_dir.joinpath("plugy_run.log"),
+            mode="a"
+        )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
 
