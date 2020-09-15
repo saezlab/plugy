@@ -134,7 +134,7 @@ class PlugExperiment(object):
             ignore_channels = self.config.ignore_channels,
             fake_gains = self.config.fake_gains,
             fake_gain_default = self.config.fake_gain_default,
-            adaptive_fake_gain = self.config.adaptive_fake_gain,
+            fake_gain_adaptive = self.config.fake_gain_adaptive,
             barcode_raw_threshold=self.config.barcode_raw_threshold,
             config = self.config,
         )

@@ -57,7 +57,7 @@ class PmtData(object):
     ignore_channels: set = field(default_factory = set)
     fake_gains: dict = field(default_factory = dict)
     fake_gain_default: float = 1.0
-    adaptive_fake_gain: bool = False
+    fake_gain_adaptive: bool = False
     barcode_raw_threshold: float = None
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
@@ -71,7 +71,7 @@ class PmtData(object):
         self.data = self.set_channel_values()
         self.data = self.cut_data()
 
-        self._set_adaptive_fake_gain()
+        self._set_fake_gain_adaptive()
         self.apply_fake_gain()
         self._override_barcode()
         # self.data = self.correct_crosstalk()
@@ -210,11 +210,11 @@ class PmtData(object):
 
         return df
 
-    def _set_adaptive_fake_gain(self):
+    def _set_fake_gain_adaptive(self):
         # for channel in ["uv", "green", "orange"]:
         #     pass
 
-        if self.adaptive_fake_gain:
+        if self.fake_gain_adaptive:
 
             raise NotImplementedError
 

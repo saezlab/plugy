@@ -102,7 +102,7 @@ class PlugyConfig(object):
     fake_gain_default: float: 1.0
     # I don't know what this intended to be,
     # raises NotImplementedError
-    adaptive_fake_gain: bool = False
+    fake_gain_adaptive: bool = False
     # above this value set the value of the barcode channel to 1.0
     barcode_raw_threshold: float = None
 
