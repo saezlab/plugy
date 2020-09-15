@@ -159,7 +159,8 @@ class PlugExperiment(object):
             n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
             min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
             normalize_using_control = self.config.normalize_using_control,
-            normalize_using_media_control_lin_reg = self.config.normalize_using_media_control_lin_reg,
+            normalize_using_media_control_lin_reg =
+                self.config.normalize_using_media_control_lin_reg,
             config = self.config,
         )
 

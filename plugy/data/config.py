@@ -137,10 +137,19 @@ class PlugyConfig(object):
     # * `blue_highest_adaptive`: change the value of the `blue_highest_times`
     #    parameter to find the one giving the best result
     barcode_method: str = 'blue_highest'
-    # a scaling factor for the `blue_highest` method: the blue channel must
-    # be at least this times higher than the control channel for barcode
-    # plugs
-    blue_highest_times: float = 1.0
+    # override parameters for the selected barcode method
+    barcode_param: dict = field(default_factory = dict)
+    # default parameters for the barcode methods
+    barcode_param_defaults: dict = field(
+        default_factory = lambda: {
+            'blue_highest': {
+                # a scaling factor for the `blue_highest` method: the blue
+                # channel must be at least this times higher than the control
+                # channel for barcode plugs
+                'times': 1.0,
+            },
+        }
+    )
 
     # Analysis
     normalize_using_control: bool = False

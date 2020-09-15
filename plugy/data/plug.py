@@ -107,7 +107,7 @@ class PlugData(object):
         self._call_sample_cycles()
         self._set_sample_param()
         self._count_samples_by_cycle()
-        self._adjust_sample_detection()
+        self._adjust_sample_detection() # to be removed
         self._discard_cycles()
         self._label_samples()
         self._create_sample_df()
@@ -208,8 +208,6 @@ class PlugData(object):
 
     def _set_barcode(
             self,
-            blue_highest: float = None,
-            adaptive: bool = None,
             **kwargs,
         ):
         """
@@ -217,37 +215,33 @@ class PlugData(object):
         `True` if the plug is a barcode.
         """
 
-        adaptive = (
-            self.config.blue_highest_adaptive
-                if adaptive is None else
-            adaptive
-        )
+        if not self.config.has_barcode:
 
-        # Call barcode plugs
-        module_logger.debug(f"Calling barcode plugs (adaptive={adaptive})")
+            return
 
-        if adaptive:
+        config = self.config
+        method = '_set_barcode_%s' % config.barcode_method
+        param = config.barcode_param_defaults.get(config.barcode_method, {})
+        param.update(config.barcode_param)
+        param.update(kwargs)
 
-            self._set_barcode_adaptive(**kwargs)
+        if hasattr(self, method):
 
-        else:
-
-            self._set_barcode_fix(blue_highest = blue_highest)
+            module_logger.debug('Barcode detection method: %s' % method)
+            getattr(self, method)(**param)
 
 
-    def _set_barcode_fix(self, blue_highest: float = None):
-
-        blue_highest = blue_highest or self.config.blue_highest
+    def _set_barcode_blue_highest(self, times: float = None):
 
         self.plug_df = self.plug_df.assign(
             barcode = (
                 self.plug_df.barcode_peak_median >
-                self.plug_df.control_peak_median * blue_highest
+                self.plug_df.control_peak_median * times
             )
         )
 
 
-    def _set_barcode_adaptive(self, **kwargs):
+    def _set_barcode_blue_highest_adaptive(self, **kwargs):
 
         param = self.config.blue_highest_adaptive_param.copy()
         param.update(kwargs)
