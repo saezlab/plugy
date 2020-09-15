@@ -121,7 +121,10 @@ class PlugyConfig(object):
     min_end_cycle_barcodes: int = 12
     min_between_samples_barcodes: int = 2
 
-    # if False, plug detection stops after the identification of the plugs
+    # if False, the workflow stops after plug identification and
+    # quantification, sample and barcode plugs won't be distinguished
+    has_barcode: bool = True
+    # if False, plug detection stops after identification of barcode plugs
     # and no sample and cycle numbers will be assigned to the plugs
     has_samples_cycles: bool = True
     # the number of samples within one cycle; no need to provide if sequence
