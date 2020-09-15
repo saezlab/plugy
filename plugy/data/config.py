@@ -43,9 +43,11 @@ class PlugyConfig(object):
     result_subdirs: bool = False
     timestamp_result_subdirs: bool = False
 
-    # General config
+    ## General config
     name: str = None
+    # file type for saving the figures
     figure_export_file_type: str = "svg"
+    # colors for representing channels on the figures
     colors: dict = field(
         default_factory = lambda: {
             'green': '#5D9731',
@@ -53,19 +55,29 @@ class PlugyConfig(object):
             'orange': '#F68026',
         }
     )
+    # run the entire workflow
     run: bool = True
+    # run the initial steps: set up the objects and load the data
     init: bool = True
+    # run the plug detection
     plugs: bool = True
+    # label of the control channels in the channel layout
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {"FS", "neg Ctr"}
     )
+    # do not raise an error if the quality control fails
+    # but proceed with quantification and visualization
+    # of the results
     ignore_qc_result: bool = False
+    # whether to write log messages also to the STDOUT
+    # or only to the log file
     log_to_stdout: bool = True
 
     # sequence settings
     allow_lt4_valves: bool = False
 
-    # PMT configuration
+    ## PMT configuration
+    # function, name and column index of the channels
     channels: dict = field(
         default_factory = lambda: {
             'barcode': ('uv', 3),
@@ -73,16 +85,26 @@ class PlugyConfig(object):
             'readout': ('green', 1),
         }
     )
+    # PMT acquisition rate in Hz
     acquisition_rate: int = 300
+    # crop the data by removing the segments before the first
+    # and after the second element of this tuple (in seconds)
     cut: tuple = (None, None)
+
+    # set the acquisition times by a linear interpolation
+    # based on the `acquisition_rate`
     correct_acquisition_time: bool = True
+    # set the value of the channels listed here to zero
     ignore_channels: set = field(default_factory = set)
+    # scale certain channels by a constant factor
     fake_gains: dict = field(default_factory = dict)
+    # a default scaling factor for the remaining channels
     fake_gain_default: float: 1.0
     # I don't know what this intended to be,
     # raises NotImplementedError
     adaptive_fake_gain: bool = False
-    bc_override_threshold: float = None
+    # above this value set the value of the barcode channel to 1.0
+    barcode_raw_threshold: float = None
 
     # Plug Calling
     auto_detect_cycles: bool = True

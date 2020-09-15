@@ -135,7 +135,7 @@ class PlugExperiment(object):
             fake_gains = self.config.fake_gains,
             fake_gain_default = self.config.fake_gain_default,
             adaptive_fake_gain = self.config.adaptive_fake_gain,
-            bc_override_threshold=self.config.bc_override_threshold,
+            barcode_raw_threshold=self.config.barcode_raw_threshold,
             config = self.config,
         )
 

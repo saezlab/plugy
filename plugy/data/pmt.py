@@ -58,7 +58,7 @@ class PmtData(object):
     fake_gains: dict = field(default_factory = dict)
     fake_gain_default: float = 1.0
     adaptive_fake_gain: bool = False
-    bc_override_threshold: float = None
+    barcode_raw_threshold: float = None
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
     def __post_init__(self):
@@ -73,9 +73,7 @@ class PmtData(object):
 
         self._set_adaptive_fake_gain()
         self.apply_fake_gain()
-
-        if self.bc_override_threshold is not None:
-            self.data = self._override_barcode()
+        self._override_barcode()
         # self.data = self.correct_crosstalk()
 
     def read_txt(self) -> pd.DataFrame:
@@ -288,9 +286,12 @@ class PmtData(object):
 
         return axes
 
+
     def correct_crosstalk(self) -> pd.DataFrame:
         """
-        Implements crosstalk compensation as in Federica's BraDiPluS package (peaksSelection.R)
+        Implements crosstalk compensation as in Federica's BraDiPluS package
+        (peaksSelection.R).
+
         :return: pd.DataFrame with corrected orange channel
         """
         # df = self.data
@@ -300,15 +301,22 @@ class PmtData(object):
         # return df
         raise NotImplementedError
 
-    def _override_barcode(self) -> pd.DataFrame:
+
+    def _override_barcode(self):
         """
-        Overrides values in the barcode channel to 1 if current barcode value > bc_override_threshold
+        Overrides values in the barcode channel to 1 if current barcode
+        value > bc_override_threshold.
         """
-        module_logger.warning(f"Setting barcode channel to 1 for barcode values > {self.bc_override_threshold}")
-        df = self.data
 
-        barcode = self.config.channels["barcode"][0]
+        if self.barcode_raw_threshold:
 
-        df[barcode].loc[df[barcode] > self.bc_override_threshold] = 1
+            module_logger.warning(
+                f"Setting barcode channel to 1 for "
+                f"barcode values > {self.barcode_raw_threshold}"
+            )
 
-        return df
+            barcode = self.config.channels["barcode"][0]
+
+            self.data[barcode].loc[
+                self.data[barcode] > self.barcode_raw_threshold
+            ] = 1.
