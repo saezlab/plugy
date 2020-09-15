@@ -46,7 +46,13 @@ class PlugyConfig(object):
     # General config
     name: str = None
     figure_export_file_type: str = "svg"
-    colors: dict = field(default_factory = lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    colors: dict = field(
+        default_factory = lambda: {
+            'green': '#5D9731',
+            'blue': '#3A73BA',
+            'orange': '#F68026',
+        }
+    )
     run: bool = True
     init: bool = True
     plugs: bool = True
@@ -60,14 +66,22 @@ class PlugyConfig(object):
     allow_lt4_valves: bool = False
 
     # PMT configuration
-    channels: dict = field(default_factory = lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    channels: dict = field(
+        default_factory = lambda: {
+            'barcode': ('uv', 3),
+            'control': ('orange', 2),
+            'readout': ('green', 1),
+        }
+    )
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
     ignore_channels: set = field(default_factory = set)
-    digital_gain_uv: float = 1.0
-    digital_gain_green: float = 1.0
-    digital_gain_orange: float = 1.0
+    fake_gains: dict = field(default_factory = dict)
+    fake_gain_default: float: 1.0
+    # I don't know what this intended to be,
+    # raises NotImplementedError
+    adaptive_fake_gain: bool = False
     bc_override_threshold: float = None
 
     # Plug Calling

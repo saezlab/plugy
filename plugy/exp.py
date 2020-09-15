@@ -132,9 +132,9 @@ class PlugExperiment(object):
             correct_acquisition_time = self.config.correct_acquisition_time,
             channels = self.config.channels,
             ignore_channels = self.config.ignore_channels,
-            digital_gain_uv = self.config.digital_gain_uv,
-            digital_gain_green = self.config.digital_gain_green,
-            digital_gain_orange = self.config.digital_gain_orange,
+            fake_gains = self.config.fake_gains,
+            fake_gain_default = self.config.fake_gain_default,
+            adaptive_fake_gain = self.config.adaptive_fake_gain,
             bc_override_threshold=self.config.bc_override_threshold,
             config = self.config,
         )

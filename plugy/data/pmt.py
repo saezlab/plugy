@@ -42,16 +42,22 @@ module_logger = logging.getLogger("plugy.data.pmt")
 
 @dataclass
 class PmtData(object):
+
     input_file: pl.Path
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
-    channels: dict = field(default_factory = lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    channels: dict = field(
+        default_factory = lambda: {
+            'barcode': ('uv', 3),
+            'control': ('orange', 2),
+            'readout': ('green', 1),
+        }
+    )
     ignore_channels: set = field(default_factory = set)
-    auto_gain: bool = False
-    digital_gain_uv: float = 1.0
-    digital_gain_green: float = 1.0
-    digital_gain_orange: float = 1.0
+    fake_gains: dict = field(default_factory = dict)
+    fake_gain_default: float = 1.0
+    adaptive_fake_gain: bool = False
     bc_override_threshold: float = None
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
@@ -65,10 +71,8 @@ class PmtData(object):
         self.data = self.set_channel_values()
         self.data = self.cut_data()
 
-        if self.auto_gain:
-            self.digital_gain_uv, self.digital_gain_green, self.digital_gain_orange = self.calculate_gain()
-
-        self.data = self.digital_gain()
+        self._set_adaptive_fake_gain()
+        self.apply_fake_gain()
 
         if self.bc_override_threshold is not None:
             self.data = self._override_barcode()
@@ -199,7 +203,7 @@ class PmtData(object):
         ):
 
             module_logger.info('Setting %s channel to 0.0' % channel)
-            df = df[channel] = .0
+            df[channel] = .0
 
         if self.correct_acquisition_time:
 
@@ -208,27 +212,37 @@ class PmtData(object):
 
         return df
 
-    def calculate_gain(self):
+    def _set_adaptive_fake_gain(self):
         # for channel in ["uv", "green", "orange"]:
         #     pass
-        raise NotImplementedError
 
-    def digital_gain(self) -> pd.DataFrame:
+        if self.adaptive_fake_gain:
+
+            raise NotImplementedError
+
+    def apply_fake_gain(self):
         """
-        Multiplies the corresponding channels PMT output by the given float (digital_gain_*)
+        Multiplies the corresponding channels PMT output by a factor provided
+        in ``fake_gains``.
         """
         df = self.data
-        if self.digital_gain_uv != 1.0:
-            module_logger.info(f"Applying digital gain for uv channel ({self.digital_gain_uv})")
-            df = df.assign(uv = lambda x: x.uv * self.digital_gain_uv)
-        if self.digital_gain_green != 1.0:
-            module_logger.info(f"Applying digital gain for green channel ({self.digital_gain_green})")
-            df = df.assign(green = lambda x: x.green * self.digital_gain_green)
-        if self.digital_gain_orange != 1.0:
-            module_logger.info(f"Applying digital gain for orange channel ({self.digital_gain_orange})")
-            df = df.assign(orange = lambda x: x.orange * self.digital_gain_orange)
 
-        return df
+        for channel in self.config.channel_names.values():
+
+            fake_gain = (
+                self.fake_gains[channel]
+                    if channel in self.fake_gains else
+                self.fake_gain_default
+            )
+
+            if fake_gain != 1.0:
+
+                module_logger.info(
+                    f"Applying fake gain for {channel} channel: {fake_gain}"
+                )
+                df[channel] = df[channel] * fake_gain
+
+        self.data = df
 
     def plot_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
