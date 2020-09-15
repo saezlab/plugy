@@ -131,19 +131,16 @@ class PlugyConfig(object):
     # file is available; otherwise it helps in evaluating barcode detection
     # methods even if the sequence is unknoen
     samples_per_cycle: int = None
-    # the name of a method for identifying barcode plugs; the simplest method,
-    # which works with not too noisy data, is `blue_highest` which means the
-    # plugs where the channel of the blue value is the highest are barcode
-    # plugs;
+    # the name of a method for identifying barcode plugs:
+    # * `blue_highest`: the simplest method, works with not too noisy data:
+    #    plugs are barcode if the channel of the blue value is the highest
+    # * `blue_highest_adaptive`: change the value of the `blue_highest_times`
+    #    parameter to find the one giving the best result
     barcode_method: str = 'blue_highest'
     # a scaling factor for the `blue_highest` method: the blue channel must
     # be at least this times higher than the control channel for barcode
     # plugs
-    # former name: barcode_threshold
     blue_highest_times: float = 1.0
-    # change the value of the `blue_highest_times` parameter to find the one
-    # giving the best result
-    blue_highest_adaptive: bool = False
 
     # Analysis
     normalize_using_control: bool = False
