@@ -86,13 +86,27 @@ class PlugyConfig(object):
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
     min_between_samples_barcodes: int = 2
-    barcode_threshold: float = 1.0
-    barcode_adaptive_threshold: bool = False
-    barcode_adaptive_threshold_param: dict = field(
-        default_factory = lambda: {
-            'block_size': 21,
-        }
-    )
+
+    # if False, plug detection stops after the identification of the plugs
+    # and no sample and cycle numbers will be assigned to the plugs
+    has_samples_cycles: bool = True
+    # the number of samples within one cycle; no need to provide if sequence
+    # file is available; otherwise it helps in evaluating barcode detection
+    # methods even if the sequence is unknoen
+    samples_per_cycle: int = None
+    # the name of a method for identifying barcode plugs; the simplest method,
+    # which works with not too noisy data, is `blue_highest` which means the
+    # plugs where the channel of the blue value is the highest are barcode
+    # plugs;
+    barcode_method: str = 'blue_highest'
+    # a scaling factor for the `blue_highest` method: the blue channel must
+    # be at least this times higher than the control channel for barcode
+    # plugs
+    # former name: barcode_threshold
+    blue_highest_times: float = 1.0
+    # change the value of the `blue_highest_times` parameter to find the one
+    # giving the best result
+    blue_highest_adaptive: bool = False
 
     # Analysis
     normalize_using_control: bool = False
