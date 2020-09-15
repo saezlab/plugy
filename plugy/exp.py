@@ -125,18 +125,19 @@ class PlugExperiment(object):
             allow_lt4_valves = self.config.allow_lt4_valves,
         )
 
-        self.pmt_data = PmtData(input_file = self.config.pmt_file,
-                                acquisition_rate = self.config.acquisition_rate,
-                                cut = self.config.cut,
-                                correct_acquisition_time = self.config.correct_acquisition_time,
-                                ignore_orange_channel = False,
-                                ignore_green_channel = False,
-                                ignore_uv_channel = False,
-                                digital_gain_uv = self.config.digital_gain_uv,
-                                digital_gain_green = self.config.digital_gain_green,
-                                digital_gain_orange = self.config.digital_gain_orange,
-                                bc_override_threshold=self.config.bc_override_threshold,
-                                config = self.config)
+        self.pmt_data = PmtData(
+            input_file = self.config.pmt_file,
+            acquisition_rate = self.config.acquisition_rate,
+            cut = self.config.cut,
+            correct_acquisition_time = self.config.correct_acquisition_time,
+            channels = self.config.channels,
+            ignore_channels = self.config.ignore_channels,
+            digital_gain_uv = self.config.digital_gain_uv,
+            digital_gain_green = self.config.digital_gain_green,
+            digital_gain_orange = self.config.digital_gain_orange,
+            bc_override_threshold=self.config.bc_override_threshold,
+            config = self.config,
+        )
 
 
     def detect_plugs(self):

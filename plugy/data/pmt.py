@@ -46,9 +46,8 @@ class PmtData(object):
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
-    ignore_orange_channel: bool = False
-    ignore_green_channel: bool = False
-    ignore_uv_channel: bool = False
+    channels: dict = field(default_factory = lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    ignore_channels: set = field(default_factory = set)
     auto_gain: bool = False
     digital_gain_uv: float = 1.0
     digital_gain_green: float = 1.0
@@ -193,19 +192,17 @@ class PmtData(object):
         time_between_samplings = 1 / self.acquisition_rate
 
         df = self.data.copy()
-        if self.ignore_green_channel:
-            module_logger.info("Setting green channel to 0.0")
-            df = df.assign(green = 0.0)
 
-        if self.ignore_uv_channel:
-            module_logger.info("Setting uv channel to 0.0")
-            df = df.assign(uv = 0.0)
+        for channel in (
+            set(self.config.channel_names.values()) &
+            self.config.ignore_channels
+        ):
 
-        if self.ignore_orange_channel:
-            module_logger.info("Setting orange channel to 0.0")
-            df = df.assign(orange = 0.0)
+            module_logger.info('Setting %s channel to 0.0' % channel)
+            df = df[channel] = .0
 
         if self.correct_acquisition_time:
+
             module_logger.info("Correcting acquisition time")
             df = df.assign(time = np.linspace(self.data.time[0], self.data.time[0] + time_between_samplings * (len(df) - 1), len(df)))
 

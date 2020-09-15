@@ -208,7 +208,7 @@ class PlugData(object):
 
     def _set_barcode(
             self,
-            barcode_threshold: float = None,
+            blue_highest: float = None,
             adaptive: bool = None,
             **kwargs,
         ):
@@ -218,7 +218,7 @@ class PlugData(object):
         """
 
         adaptive = (
-            self.config.barcode_adaptive_threshold
+            self.config.blue_highest_adaptive
                 if adaptive is None else
             adaptive
         )
@@ -232,24 +232,24 @@ class PlugData(object):
 
         else:
 
-            self._set_barcode_fix(barcode_threshold = barcode_threshold)
+            self._set_barcode_fix(blue_highest = blue_highest)
 
 
-    def _set_barcode_fix(self, barcode_threshold: float = None):
+    def _set_barcode_fix(self, blue_highest: float = None):
 
-        barcode_threshold = barcode_threshold or self.config.barcode_threshold
+        blue_highest = blue_highest or self.config.blue_highest
 
         self.plug_df = self.plug_df.assign(
             barcode = (
                 self.plug_df.barcode_peak_median >
-                self.plug_df.control_peak_median * barcode_threshold
+                self.plug_df.control_peak_median * blue_highest
             )
         )
 
 
     def _set_barcode_adaptive(self, **kwargs):
 
-        param = self.config.barcode_adaptive_threshold_param.copy()
+        param = self.config.blue_highest_adaptive_param.copy()
         param.update(kwargs)
 
         barcode_control = (
@@ -631,43 +631,43 @@ class PlugData(object):
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
 
-        if not self._has_sequence or self.config.barcode_adaptive_threshold:
+        if not self._has_sequence or self.config.blue_highest_adaptive:
 
             return
 
-        barcode_threshold = self.config.barcode_threshold
+        blue_highest = self.config.blue_highest
         n_valid_cycles = collections.defaultdict(list)
 
         while True:
 
             self._count_samples_by_cycle()
             self._get_valid_cycles()
-            n_valid_cycles[len(self.valid_cycles)].append(barcode_threshold)
+            n_valid_cycles[len(self.valid_cycles)].append(blue_highest)
 
             if (
                 any(
                     0 < abs(d) < 4
                     for d in self._sample_count_anomaly.values()
                 ) and
-                barcode_threshold < 1.5
+                blue_highest < 1.5
             ):
 
-                barcode_threshold += .05
-                self._set_barcode(barcode_threshold = barcode_threshold)
+                blue_highest += .05
+                self._set_barcode(blue_highest = blue_highest)
                 self._call_sample_cycles()
 
             else:
 
                 break
 
-        barcode_threshold = n_valid_cycles[max(n_valid_cycles.keys())][0]
-        self._set_barcode(barcode_threshold = barcode_threshold)
+        blue_highest = n_valid_cycles[max(n_valid_cycles.keys())][0]
+        self._set_barcode(blue_highest = blue_highest)
         self._call_sample_cycles()
         self._count_samples_by_cycle()
 
         module_logger.info(
-            f"Adjusted `barcode_threshold` "
-            f"to {barcode_threshold}."
+            f"Adjusted `blue_highest` "
+            f"to {blue_highest}."
         )
 
 

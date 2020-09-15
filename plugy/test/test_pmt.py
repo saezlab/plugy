@@ -222,15 +222,32 @@ class TestPmtData(unittest.TestCase):
         test_df_zero_uv = self.test_df.assign(uv=0.0)
         test_df_zero_orange = self.test_df.assign(orange=0.0)
 
-        with unittest.mock.patch.object(target=pmt.PmtData, attribute="read_txt", new=lambda _: self.test_df):
+        with unittest.mock.patch.object(
+            target=pmt.PmtData,
+            attribute="read_txt",
+            new=lambda _: self.test_df
+        ):
+
             with self.subTest():
-                data = pmt.PmtData(pl.Path(), correct_acquisition_time=False, ignore_green_channel=True).data
+                data = pmt.PmtData(
+                    pl.Path(),
+                    correct_acquisition_time=False,
+                    ignore_channels={'green'},
+                ).data
                 pd_test.assert_frame_equal(data, test_df_zero_green)
 
-                data = pmt.PmtData(pl.Path(), correct_acquisition_time=False, ignore_orange_channel=True).data
+                data = pmt.PmtData(
+                    pl.Path(),
+                    correct_acquisition_time=False,
+                    ignore_channels={'orange'},
+                ).data
                 pd_test.assert_frame_equal(data, test_df_zero_orange)
 
-                data = pmt.PmtData(pl.Path(), correct_acquisition_time=False, ignore_uv_channel=True).data
+                data = pmt.PmtData(
+                    pl.Path(),
+                    correct_acquisition_time=False,
+                    ignore_channels={'uv'},
+                ).data
                 pd_test.assert_frame_equal(data, test_df_zero_uv)
 
     # noinspection PyArgumentList

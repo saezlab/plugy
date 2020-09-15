@@ -64,9 +64,7 @@ class PlugyConfig(object):
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
-    ignore_orange_channel: bool = False
-    ignore_green_channel: bool = False
-    ignore_uv_channel: bool = False
+    ignore_channels: set = field(default_factory = set)
     digital_gain_uv: float = 1.0
     digital_gain_green: float = 1.0
     digital_gain_orange: float = 1.0
@@ -209,3 +207,12 @@ class PlugyConfig(object):
         file_handler.setFormatter(formatter)
 
         logger.addHandler(file_handler)
+
+
+    @property
+    def channel_names(self):
+
+        return dict(
+            (key, value[0])
+            for key, value in self.channels.items()
+        )
