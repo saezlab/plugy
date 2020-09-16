@@ -758,6 +758,12 @@ class PlugData(object):
             self._set_sample_param()
 
 
+    def _evaluate_barcode(self):
+
+        self._ensure_sample_param()
+        self._count_samples_by_cycle()
+
+
     def _adjust_sample_detection(self):
         """
         Labels sample_df with associated names and compounds according to the
@@ -810,6 +816,10 @@ class PlugData(object):
 
 
     def _count_samples_by_cycle(self):
+
+        if not self.expected_samples:
+
+            return
 
         self._samples_by_cycle = dict(
             (
