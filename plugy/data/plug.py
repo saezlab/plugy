@@ -26,8 +26,12 @@ import pickle
 import importlib as imp
 import warnings
 import collections
+import itertools
+import functools
 
 import pathlib as pl
+
+import tqdm
 
 import pandas as pd
 import numpy as np
@@ -260,11 +264,15 @@ class PlugData(object):
             for key, val in param.items()
         )
 
-        for _values in itertools.product(*param.values()):
+        n_param = functools.reduce(lambda i, j: i * len(j), param.values(), 1)
 
-            _param = dict(zip(param.keys(), _values))
+        with tqdm.tqdm(total = n_param, dynamic_ncols = True) as tq:
 
-            self._set_barcode_base(**_param)
+            for _values in itertools.product(*param.values()):
+
+                _param = dict(zip(param.keys(), _values))
+                self._set_barcode_base(**_param)
+                tq.update(1)
 
 
     def _set_barcode_base(
@@ -297,6 +305,7 @@ class PlugData(object):
                 'Barcode detection parameters: %s' % misc.dict_str(param)
             )
             getattr(self, method)(**param)
+            self._evaluate_barcode()
 
         else:
 
@@ -808,6 +817,12 @@ class PlugData(object):
 
         self._ensure_sample_param()
         self._count_samples_by_cycle()
+        self._evaluate_barcode_base()
+
+
+    def _evaluate_barcode_base(self):
+
+
 
 
     def _adjust_sample_detection(self):
