@@ -71,8 +71,12 @@ class PlugData(object):
 
 
     def __post_init__(self):
+
         module_logger.info(f"Creating PlugData object")
-        module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
+        module_logger.debug(
+            f"Configuration: "
+            f"{[f'{k}: {v}' for k, v in self.__dict__.items()]}"
+        )
 
         self.detect_plugs()
 
@@ -91,8 +95,11 @@ class PlugData(object):
 
     def detect_plugs(self):
         """
-        Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
-        :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
+        Finds plugs using the scipy.signal.find_peaks() method. Merges the
+        plugs afterwards if merge_peaks_distance is > 0
+
+        :return: DataFrame containing the plug data and a DataFrame
+        containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
         self._detect_peaks()
@@ -120,34 +127,44 @@ class PlugData(object):
     def _detect_peaks(self):
         """
         Detects peaks using scipy.signal.find_peaks().
-        :return: Returns a DataFrame containing information about the peaks as called by sig.find_peaks
+        :return: Returns a DataFrame containing information about the peaks
+        as called by sig.find_peaks
         """
         peak_df = pd.DataFrame()
 
         for channel, (channel_color, _) in self.config.channels.items():
 
-            module_logger.debug(f"Running peak detection for {channel} channel")
-            peaks, properties = sig.find_peaks(self.pmt_data.data[channel_color],
-                                               height = (self.peak_min_threshold,
-                                                       self.peak_max_threshold),
+            module_logger.debug(
+                f"Running peak detection for {channel} channel"
+            )
+            peaks, properties = sig.find_peaks(
+                self.pmt_data.data[channel_color],
+                height = (self.peak_min_threshold, self.peak_max_threshold),
+                distance = round(
+                    self.peak_min_distance *
+                    self.pmt_data.acquisition_rate
+                ),
+                prominence = (
+                    self.peak_min_prominence,
+                    self.peak_max_prominence,
+                ),
 
-                                               distance = round(self.peak_min_distance *
-                                                              self.pmt_data.acquisition_rate),
-
-                                               prominence = (self.peak_min_prominence,
-                                                           self.peak_max_prominence),
-
-                                               width = (self.peak_min_width * self.pmt_data.acquisition_rate,
-                                                      self.peak_max_width * self.pmt_data.acquisition_rate),
-
-                                               rel_height = self.width_rel_height)
+                width = (
+                    self.peak_min_width * self.pmt_data.acquisition_rate,
+                    self.peak_max_width * self.pmt_data.acquisition_rate,
+                ),
+                rel_height = self.width_rel_height,
+            )
 
             properties = pd.DataFrame.from_dict(properties)
-            properties = properties.assign(barcode = True if channel == "barcode" else False)
+            properties = properties.assign(barcode = channel == 'barcode')
             peak_df = peak_df.append(properties)
 
         # Converting ips values to int for indexing later on
-        peak_df.assign(right_ips = round(peak_df.right_ips), left_ips = round(peak_df.left_ips))
+        peak_df.assign(
+            right_ips = round(peak_df.right_ips),
+            left_ips = round(peak_df.left_ips),
+        )
         peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
 
         self.peak_df = peak_df
@@ -164,8 +181,14 @@ class PlugData(object):
 
         if self.merge_peaks_distance > 0:
 
-            module_logger.info(f"Merging plugs with closer centers than {self.merge_peaks_distance} seconds")
-            merge_peaks_samples = self.pmt_data.acquisition_rate * self.merge_peaks_distance
+            module_logger.info(
+                f"Merging plugs with closer centers than"
+                f"{self.merge_peaks_distance} seconds"
+            )
+            merge_peaks_samples = (
+                self.pmt_data.acquisition_rate *
+                self.merge_peaks_distance
+            )
             merge_df = self.peak_df.assign(
                 plug_center = (
                     self.peak_df.left_ips +
@@ -291,15 +314,31 @@ class PlugData(object):
     def _get_plug_data_from_index(self, start_index, end_index):
         """
         Calculates median for each acquired channel between two data points
+
         :param start_index: Index of the first datapoint in pmt_data.data
         :param end_index: Index of the last datapoint in pmt_data.data
-        :return: List with start_index end_index and the channels according to the order of config.channels
+
+        :return: List with start_index end_index and the channels according
+        to the order of config.channels
         """
         return_list = list()
-        return_list.append(start_index / self.pmt_data.acquisition_rate + self.pmt_data.data.time.iloc[0])
-        return_list.append(end_index / self.pmt_data.acquisition_rate + self.pmt_data.data.time.iloc[0])
+        return_list.append(
+            start_index / self.pmt_data.acquisition_rate +
+            self.pmt_data.data.time.iloc[0]
+        )
+        return_list.append(
+            end_index / self.pmt_data.acquisition_rate +
+            self.pmt_data.data.time.iloc[0]
+        )
         for _, (channel_color, _) in self.config.channels.items():
-            return_list.append(self.pmt_data.data[channel_color][start_index:end_index].median())
+
+            return_list.append(
+                self.pmt_data.data[
+                    channel_color
+                ][
+                    start_index:end_index
+                ].median()
+            )
 
         return return_list
 
@@ -334,7 +373,8 @@ class PlugData(object):
                 if bc_peaks > 0 or sample_in_cycle < 0:
 
                     if (
-                        bc_peaks >= self.config.min_between_samples_barcodes or
+                        bc_peaks >= self.config.min_between_samples_barcodes
+                        or
                         sample_in_cycle < 0
                     ):
 
@@ -356,8 +396,12 @@ class PlugData(object):
                 # Discarding barcode-adjacent plugs
                 try:
                     if (
-                        self.plug_df.barcode[idx - self.n_bc_adjacent_discards] or
-                        self.plug_df.barcode[idx + self.n_bc_adjacent_discards]
+                        self.plug_df.barcode[
+                            idx - self.n_bc_adjacent_discards
+                        ] or
+                        self.plug_df.barcode[
+                            idx + self.n_bc_adjacent_discards
+                        ]
                     ):
                         discard.append(True)
                     else:
@@ -365,12 +409,16 @@ class PlugData(object):
                 except KeyError:
                     discard.append(False)
 
-        self.plug_df = self.plug_df.assign(cycle_nr = cycle, sample_nr = sample, discard = discard)
-
+        self.plug_df = self.plug_df.assign(
+            cycle_nr = cycle,
+            sample_nr = sample,
+            discard = discard,
+        )
 
 
     def _add_z_scores(self):
-        # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
+        # Calculating z-score on filtered data and inserting it after
+        # readout_peak_median (index 5)
 
         if len(self.sample_df) > 1:
 
@@ -390,7 +438,10 @@ class PlugData(object):
 
         else:
 
-            module_logger.warning(f"Samples DataFrame contains {len(self.sample_df)} line(s), omitting z-score calculation!")
+            module_logger.warning(
+                f"Samples DataFrame contains {len(self.sample_df)} line(s), "
+                f"omitting z-score calculation!"
+            )
 
 
     def get_media_control_data(self) -> pd.DataFrame:
@@ -414,24 +465,36 @@ class PlugData(object):
         Calculates a linear regression over time of all media control plugs
         The readout_peak_median column is used to calculate the regression
 
-        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of the regression
-                 See https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.linregress.html
-                 for more information about the returned values
+        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of
+        the regression. See https://docs.scipy.org/doc/scipy/reference/
+        generated/scipy.stats.linregress.html for more information about
+        the returned values.
         """
         media_control = self.get_media_control_data()
 
         readout_column = readout_column or self.config.readout_column
 
-        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control[readout_column])
+        slope, intercept, rvalue, pvalue, stderr = stats.linregress(
+            media_control.start_time,
+            media_control[readout_column],
+        )
 
         return slope, intercept, rvalue, pvalue, stderr
 
 
-    def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
+    def plot_plug_pmt_data(
+            self,
+            axes: plt.Axes,
+            cut: tuple = (None, None),
+        ) -> plt.Axes:
         """
-        Plots pmt data and superimposes rectangles with the called plugs upon the plot
+        Plots pmt data and superimposes rectangles with the called plugs upon
+        the plot
+
         :param axes: plt.Axes object to plot to
-        :param cut: tuple with (start_time, end_time) to subset the plot to a certain time range
+        :param cut: tuple with (start_time, end_time) to subset the plot to
+        a certain time range
+
         :return: plt.Axes object with the plot
         """
 
@@ -448,21 +511,52 @@ class PlugData(object):
             plug_df = plug_df.loc[plug_df.end_time <= cut[1]]
             sample_df = sample_df.loc[sample_df.end_time <= cut[1]]
 
-        # Plotting light green rectangles that indicate the used plug length and plug height
+        # Plotting light green rectangles that indicate
+        # the used plug length and plug height
         bc_patches = list()
         readout_patches = list()
 
         for plug in plug_df.itertuples():
+
             if plug.barcode:
-                bc_patches.append(mpl_patch.Rectangle(xy = (plug.start_time, 0), width = plug.end_time - plug.start_time, height = plug.barcode_peak_median))
+
+                bc_patches.append(
+                    mpl_patch.Rectangle(
+                        xy = (plug.start_time, 0),
+                        width = plug.end_time - plug.start_time,
+                        height = plug.barcode_peak_median,
+                    )
+                )
             # else:
-            #     readout_patches.append(mpl_patch.Rectangle(xy = (plug.start_time, 0), width = plug.end_time - plug.start_time, height = plug.readout_peak_median))
+            #     readout_patches.append(mpl_patch.Rectangle(xy =
+            #     (plug.start_time, 0),
+            #     width = plug.end_time - plug.start_time,
+            #     height = plug.readout_peak_median))
 
         for plug in sample_df.itertuples():
-            readout_patches.append(mpl_patch.Rectangle(xy = (plug.start_time, 0), width = plug.end_time - plug.start_time, height = plug.readout_peak_median))
 
-        axes.add_collection(mpl_coll.PatchCollection(bc_patches, facecolors = self.config.colors["blue"], alpha = 0.4))
-        axes.add_collection(mpl_coll.PatchCollection(readout_patches, facecolors = self.config.colors["green"], alpha = 0.4))
+            readout_patches.append(
+                mpl_patch.Rectangle(
+                    xy = (plug.start_time, 0),
+                    width = plug.end_time - plug.start_time,
+                    height = plug.readout_peak_median,
+                )
+            )
+
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                bc_patches,
+                facecolors = self.config.colors["blue"],
+                alpha = 0.4,
+            )
+        )
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                readout_patches,
+                facecolors = self.config.colors["green"],
+                alpha = 0.4,
+            )
+        )
 
         return axes
 
@@ -561,8 +655,10 @@ class PlugData(object):
 
     def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:
         """
-        Plots pmt data and superimposes filled rectangles for cycles with correct numbers of samples and
+        Plots pmt data and superimposes filled rectangles for cycles with
+        correct numbers of samples and
         unfilled rectangles for discarded cycles
+
         :param axes: plt.Axes object to plot to
         :return: plt.Axes object with the plot
         """
@@ -571,26 +667,57 @@ class PlugData(object):
 
         used_cycle_patches = list()
         discarded_cycle_patches = list()
-        patch_height = self.pmt_data.data[["green", "orange", "uv"]].max().max()
+        patch_height = (
+            self.pmt_data.data[["green", "orange", "uv"]].max().max()
+        )
 
         for used_cycle in self.sample_df.groupby("cycle_nr"):
             cycle_start_time = used_cycle[1].start_time.min()
             cycle_end_time = used_cycle[1].end_time.max()
-            used_cycle_patches.append(mpl_patch.Rectangle(xy = (cycle_start_time, 0), width = cycle_end_time - cycle_start_time, height = patch_height))
+            used_cycle_patches.append(
+                mpl_patch.Rectangle(
+                    xy = (cycle_start_time, 0),
+                    width = cycle_end_time - cycle_start_time,
+                    height = patch_height,
+                )
+            )
 
         for detected_cycle in self.plug_df.groupby("cycle_nr"):
             cycle_start_time = detected_cycle[1].start_time.min()
             cycle_end_time = detected_cycle[1].end_time.max()
-            discarded_cycle_patches.append(mpl_patch.Rectangle(xy = (cycle_start_time, 0), width = cycle_end_time - cycle_start_time, height = patch_height))
+            discarded_cycle_patches.append(
+                mpl_patch.Rectangle(
+                    xy = (cycle_start_time, 0),
+                    width = cycle_end_time - cycle_start_time,
+                    height = patch_height,
+                )
+            )
 
-            axes.text(x = (cycle_end_time - cycle_start_time) / 2 + cycle_start_time, y = 0.9 * patch_height, s = f"Cycle {detected_cycle[0]}", horizontalalignment = "center")
+            axes.text(
+                x = (
+                    (cycle_end_time - cycle_start_time) / 2 +
+                    cycle_start_time
+                ),
+                y = 0.9 * patch_height,
+                s = f"Cycle {detected_cycle[0]}",
+                horizontalalignment = "center",
+            )
 
-        axes.add_collection(mpl_coll.PatchCollection(used_cycle_patches, facecolors = "green", alpha = 0.4))
-        axes.add_collection(mpl_coll.PatchCollection(discarded_cycle_patches, edgecolors = "red", facecolors = "none", alpha = 0.4))
-
-        # for cycle in self.sample_df.cycle_nr.unique():
-        #     cycle_start_time = self.sample_df.loc[self.sample_df.cycle_nr == cycle].start_time.min()
-        #     cycle_end_time = self.sample_df.loc[self.sample_df.cycle_nr == cycle].end_time.max()
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                used_cycle_patches,
+                facecolors = "green",
+                alpha = 0.4,
+            )
+        )
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                discarded_cycle_patches,
+                edgecolors = "red",
+                facecolors = "none",
+                alpha = 0.4,
+            )
+        )
 
         return axes
 
@@ -620,8 +747,12 @@ class PlugData(object):
 
     def _adjust_sample_detection(self):
         """
-        Labels sample_df with associated names and compounds according to the ChannelMap in the PlugSequence
-        :param sample_df: pd.DataFrame with sample_nr column to associate names and compounds
+        Labels sample_df with associated names and compounds according to the
+        ChannelMap in the PlugSequence
+
+        :param sample_df: pd.DataFrame with sample_nr column to associate
+        names and compounds
+
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
 
@@ -791,20 +922,24 @@ class PlugData(object):
         self.sample_df = sample_df.drop(columns = ['discard', 'barcode'])
 
 
-    def get_sample_name(self, sample_nr: int, sample_sequence: bd.PlugSequence):
+    def get_sample_name(
+            self,
+            sample_nr: int,
+            sample_sequence: bd.PlugSequence,
+        ):
         """
         Returns a unified naming string for a sample.
         Concatenation of both compounds or single compound or cell control
         :param sample_nr: Sample number
         :param sample_sequence: bd.PlugSequence object to get open valves from
         """
-        compounds = self.channel_map.get_compounds(sample_sequence.sequence[sample_nr].open_valves)
+        compounds = self.channel_map.get_compounds(
+            sample_sequence.sequence[sample_nr].open_valves
+        )
         compounds = [compound for compound in compounds if compound != "FS"]
+        compounds = ' + '.join(compounds) or 'Cell Control'
 
-        if len(compounds) == 0:
-            return "Cell Control"
-        else:
-            return " + ".join(compounds)
+        return compounds
 
 
     def plot_sample_cycles(self):
@@ -826,21 +961,38 @@ class PlugData(object):
 
         for idx_y, name in enumerate(names):
             for idx_x, cycle in enumerate(cycles):
-                module_logger.debug(f"Plotting sample {idx_y + 1} of {len(names)}, cycle {idx_x + 1} of {len(cycles)}")
-                sample_cycle_ax[idx_y][idx_x] = self.plot_sample(name = name, cycle_nr = cycle, axes = sample_cycle_ax[idx_y][idx_x])
+                module_logger.debug(
+                    f"Plotting sample {idx_y + 1} of {len(names)}, "
+                    f"cycle {idx_x + 1} of {len(cycles)}"
+                )
+                sample_cycle_ax[idx_y][idx_x] = self.plot_sample(
+                    name = name,
+                    cycle_nr = cycle,
+                    axes = sample_cycle_ax[idx_y][idx_x],
+                )
                 sample_cycle_ax[idx_y][idx_x].set_ylim((0, y_max))
 
         sample_cycle_fig.tight_layout()
+
         return sample_cycle_fig, sample_cycle_ax
 
 
-    def plot_sample(self, name: str, cycle_nr: int, axes: plt.Axes, offset: int = 10) -> plt.Axes:
+    def plot_sample(
+            self,
+            name: str,
+            cycle_nr: int,
+            axes: plt.Axes,
+            offset: int = 10,
+        ) -> plt.Axes:
         """
         Plots the PMT traces for a particular drug and cycle and
-        :param name: Name of the drug combination/valve as listed in the PlugSequence
+
+        :param name: Name of the drug combination/valve as listed in the
+        PlugSequence
         :param cycle_nr: Number of the cycle
         :param axes: The plt.Axes object to draw on
         :param offset: How many seconds to plot left and right of the plugs
+
         :return: The plt.Axes object with the plot
         """
         peak_data = self.sample_df[(self.sample_df.cycle_nr == cycle_nr) & (self.sample_df.name == name)]
