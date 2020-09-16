@@ -751,6 +751,12 @@ class PlugData(object):
         )
 
 
+    def _ensure_sample_param(self):
+
+        if not hasattr(self, 'expected_samples'):
+
+            self._set_sample_param()
+
 
     def _adjust_sample_detection(self):
         """
