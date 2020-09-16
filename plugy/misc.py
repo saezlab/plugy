@@ -84,6 +84,18 @@ def to_set(value):
         return {value}
 
 
+def dict_str(dct):
+
+    if not isinstance(dct, dict):
+
+        return str(dct)
+
+    return ', '.join(
+        '%s=%s' % (str(key), str(val))
+        for key, val in iteritems(dct)
+    )
+
+
 def matplotlib_331_fix():
 
     def get_extents(self, transform = None, **kwargs):
