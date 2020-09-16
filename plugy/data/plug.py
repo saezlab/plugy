@@ -50,6 +50,7 @@ module_logger = logging.getLogger("plugy.data.plug")
 
 @dataclass
 class PlugData(object):
+
     pmt_data: pmt.PmtData
     plug_sequence: bd.PlugSequence
     channel_map: bd.ChannelMap
@@ -107,6 +108,7 @@ class PlugData(object):
         self._detect_peaks()
         self._merge_peaks()
         self._normalize_to_control()
+        self._set_sample_param()
         self._set_barcode()
         self._set_sample_cycles()
 
@@ -727,6 +729,9 @@ class PlugData(object):
 
 
     def _set_sample_param(self):
+        """
+        Sets up the parameters for counting and possibly labeling samples.
+        """
 
         # Label samples in case channel map and plug sequence are provided
         self._has_sequence = (
@@ -734,18 +739,16 @@ class PlugData(object):
             isinstance(self.plug_sequence, bd.PlugSequence)
         )
 
-        if not self._has_sequence:
-
-            module_logger.warning(
-                "Channel map and/or plug sequence not properly specified, "
-                "skipping labeling of samples!"
-            )
-            return
-
-        self.sample_sequence = self.plug_sequence.get_samples(
-            channel_map = self.channel_map,
+        self.sample_sequence = (
+            self.plug_sequence.get_samples(channel_map = self.channel_map)
+                if self._has_sequence else
+            None
         )
-        self.expected_samples = len(self.sample_sequence.sequence)
+        self.expected_samples = (
+            len(self.sample_sequence.sequence)
+                if self._has_sequence else
+            self.samples_per_cycle
+        )
 
 
 
