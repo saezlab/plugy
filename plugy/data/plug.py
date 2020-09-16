@@ -232,8 +232,14 @@ class PlugData(object):
         self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
 
 
-    def _set_barcode(
+    def _set_barcode(self, **kwargs):
+
+
+
+
+    def _set_barcode_base(
             self,
+            method = None,
             **kwargs,
         ):
         """
@@ -243,10 +249,13 @@ class PlugData(object):
 
         if not self.has_barcode:
 
+            module_logger.debug(
+                '`has_barcode` is False, skipping barcode identification.'
+            )
             return
 
         config = self.config
-        method = '_set_barcode_%s' % config.barcode_method
+        method = '_set_barcode_%s' % (method or config.barcode_method)
         param = config.barcode_param_defaults.get(config.barcode_method, {})
         param.update(config.barcode_param)
         param.update(kwargs)
@@ -254,7 +263,14 @@ class PlugData(object):
         if hasattr(self, method):
 
             module_logger.debug('Barcode detection method: %s' % method)
+            module_logger.debug(
+                'Barcode detection parameters: %s' % misc.dict_str(param)
+            )
             getattr(self, method)(**param)
+
+        else:
+
+            module_logger.error('No such method: `%s`' % method)
 
 
     def _set_barcode_blue_highest(self, times: float = None):
