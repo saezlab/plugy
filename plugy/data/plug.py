@@ -67,6 +67,8 @@ class PlugData(object):
     min_end_cycle_barcodes: int = 12
     normalize_using_control: bool = False
     normalize_using_media_control_lin_reg: bool = False
+    has_barcode: bool = True
+    has_samples_cycles: bool = True
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
 
@@ -104,14 +106,13 @@ class PlugData(object):
         module_logger.info("Finding plugs")
         self._detect_peaks()
         self._merge_peaks()
-        self._set_barcode()
         self._normalize_to_control()
+        self._set_barcode()
+        self._set_sample_cycles()
 
 
     def detect_samples(self):
 
-
-        self._call_sample_cycles()
         self._set_sample_param()
         self._count_samples_by_cycle()
         self._adjust_sample_detection() # to be removed
@@ -238,7 +239,7 @@ class PlugData(object):
         `True` if the plug is a barcode.
         """
 
-        if not self.config.has_barcode:
+        if not self.has_barcode:
 
             return
 
@@ -343,12 +344,15 @@ class PlugData(object):
         return return_list
 
 
-    def _call_sample_cycles(self):
+    def _set_sample_cycles(self):
         """
-        Finds cycles and labels individual samples
-        :return: Tuple of pd.DataFrame containing sample data
-        and the input plug_df updated with info which plugs were discarded
+        Finds cycles and labels individual samples. Adds new columns to the
+        :py:attr:`plug_df`: `cycle_nr`, `sample_nr` and `discard`.
         """
+
+        if not self.has_samples_cycles:
+
+            return
 
         # counters
         current_cycle = 0
@@ -779,7 +783,7 @@ class PlugData(object):
 
                 blue_highest += .05
                 self._set_barcode(blue_highest = blue_highest)
-                self._call_sample_cycles()
+                self._set_sample_cycles()
 
             else:
 
@@ -787,7 +791,7 @@ class PlugData(object):
 
         blue_highest = n_valid_cycles[max(n_valid_cycles.keys())][0]
         self._set_barcode(blue_highest = blue_highest)
-        self._call_sample_cycles()
+        self._set_sample_cycles()
         self._count_samples_by_cycle()
 
         module_logger.info(

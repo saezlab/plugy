@@ -161,6 +161,8 @@ class PlugExperiment(object):
             normalize_using_control = self.config.normalize_using_control,
             normalize_using_media_control_lin_reg =
                 self.config.normalize_using_media_control_lin_reg,
+            has_barcode = self.config.has_barcode,
+            has_samples_cycles = self.config.has_samples_cycles,
             config = self.config,
         )
 
