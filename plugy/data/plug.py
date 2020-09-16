@@ -235,6 +235,36 @@ class PlugData(object):
     def _set_barcode(self, **kwargs):
 
 
+        def param_range(val):
+
+            if isinstance(val, (tuple, list)):
+
+                if len(val) == 2:
+
+                    step = (val[1] - val[0]) / 20 * .9999999
+                    val = tuple(val) + (step,)
+
+                return np.arange(*val)
+
+            else:
+
+                return (val,)
+
+
+        param = config.barcode_param_defaults.get(config.barcode_method, {})
+        param.update(config.barcode_param)
+        param.update(kwargs)
+
+        param = dict(
+            (key, param_range(val))
+            for key, val in param.items()
+        )
+
+        for _values in itertools.product(*param.values()):
+
+            _param = dict(zip(param.keys(), _values))
+
+            self._set_barcode_base(**_param)
 
 
     def _set_barcode_base(
