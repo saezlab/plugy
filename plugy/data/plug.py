@@ -113,7 +113,7 @@ class PlugData(object):
         self._merge_peaks()
         self._normalize_to_control()
         self._set_sample_param()
-        self._set_barcode()
+        self._set_barcoding()
         self._set_sample_cycles()
 
 
@@ -236,7 +236,7 @@ class PlugData(object):
         self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
 
 
-    def _set_barcode(self, **kwargs):
+    def _set_barcoding(self, **kwargs):
 
 
         def param_range(val):
@@ -278,7 +278,11 @@ class PlugData(object):
 
         n_param = functools.reduce(lambda i, j: i * len(j), param.values(), 1)
 
-        with tqdm.tqdm(total = n_param, dynamic_ncols = True) as tq:
+        with tqdm.tqdm(
+            total = n_param,
+            dynamic_ncols = True,
+            desc = 'Adjusting barcode detection parameters',
+        ) as tq:
 
             for _values in itertools.product(*param.values()):
 
@@ -286,11 +290,26 @@ class PlugData(object):
                 self._barcode_param_last = self._barcode_param(
                     *(_param[f] for f in self._barcode_param._fields)
                 )
-                self._set_barcode_base(**_param)
-                tq.update(1)
+                self._set_barcoding_base(**_param)
+                self._evaluate_barcoding()
+                tq.update()
+
+        self._select_best_barcoding()
+        self._set_barcoding_base(**self._barcode_best_param._asdict())
+
+        module_logger.info(
+            'Found %u cycles, %u with the expected number of samples. '
+            'Sample count mismatches: %s.'
+            'Best barcode detection parameters: %s.' % (
+                len(self._sample_count_anomaly),
+                list(self._sample_count_anomaly.values()).count(0),
+                misc.dict_str(self._sample_count_anomaly),
+                self._barcode_best_param.__repr__().split('(')[1][:-1],
+            )
+        )
 
 
-    def _set_barcode_base(
+    def _set_barcoding_base(
             self,
             method = None,
             **kwargs,
@@ -308,7 +327,7 @@ class PlugData(object):
             return
 
         config = self.config
-        method = '_set_barcode_%s' % (method or config.barcode_method)
+        method = '_set_barcoding_%s' % (method or config.barcode_method)
         param = config.barcode_param_defaults.get(config.barcode_method, {})
         param.update(config.barcode_param)
         param.update(kwargs)
@@ -327,7 +346,7 @@ class PlugData(object):
             module_logger.error('No such method: `%s`' % method)
 
 
-    def _set_barcode_blue_highest(self, times: float = None):
+    def _set_barcoding_blue_highest(self, times: float = None):
 
         self.plug_df = self.plug_df.assign(
             barcode = (
@@ -337,7 +356,7 @@ class PlugData(object):
         )
 
 
-    def _set_barcode_blue_highest_adaptive(self, **kwargs):
+    def _set_barcoding_blue_highest_adaptive(self, **kwargs):
 
         param = self.config.blue_highest_adaptive_param.copy()
         param.update(kwargs)
@@ -424,6 +443,9 @@ class PlugData(object):
 
         if not self.has_samples_cycles:
 
+            self.plug_df['cycle_nr'] = 0
+            self.plug_df['sample_nr'] = 0
+            self.plug_df['discard'] = False
             return
 
         # counters
@@ -828,14 +850,14 @@ class PlugData(object):
             self._set_sample_param()
 
 
-    def _evaluate_barcode(self):
+    def _evaluate_barcoding(self):
 
         self._ensure_sample_param()
         self._count_samples_by_cycle()
-        self._evaluate_barcode_base()
+        self._evaluate_barcoding_base()
 
 
-    def _evaluate_barcode_base(self):
+    def _evaluate_barcoding_base(self):
 
         sample_mismatch = sum(
             abs(a)
@@ -855,6 +877,14 @@ class PlugData(object):
         )
 
         self._barcode_eval[self._barcode_param_last] = result
+
+
+    def _select_best_barcoding(self):
+
+        self._barcode_best_param = min(
+            self._barcode_eval,
+            key = self._barcode_eval.get,
+        )
 
 
     def _adjust_sample_detection(self):
@@ -913,6 +943,10 @@ class PlugData(object):
         if not self.expected_samples:
 
             return
+
+        if 'cycle_nr' not in self.plug_df:
+
+            self._set_sample_cycles()
 
         self._samples_by_cycle = dict(
             (
