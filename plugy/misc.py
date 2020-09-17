@@ -92,8 +92,13 @@ def dict_str(dct):
 
     return ', '.join(
         '%s=%s' % (str(key), str(val))
-        for key, val in iteritems(dct)
+        for key, val in dct.items()
     )
+
+
+def ntuple_str(nt):
+
+    return nt.__repr__().split('(')[1][:-1]
 
 
 def matplotlib_331_fix():
