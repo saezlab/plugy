@@ -35,7 +35,6 @@ import tqdm
 
 import pandas as pd
 import numpy as np
-import scipy.signal as sig
 import scipy.stats as stats
 import skimage.filters
 
@@ -59,14 +58,6 @@ class PlugData(object):
     plug_sequence: bd.PlugSequence
     channel_map: bd.ChannelMap
     auto_detect_cycles: bool = True
-    peak_min_threshold: float = 0.05
-    peak_max_threshold: float = 2.0
-    peak_min_distance: float = 0.03
-    peak_min_prominence: float = 0
-    peak_max_prominence: float = 10
-    peak_min_width: float = 0.5
-    peak_max_width: float = 1.5
-    width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
@@ -111,7 +102,6 @@ class PlugData(object):
         """
         module_logger.info("Finding plugs")
         self._detect_peaks()
-        self._merge_peaks()
         self._normalize_to_control()
         self._set_sample_param()
         self._set_barcoding()
@@ -138,103 +128,9 @@ class PlugData(object):
         :return: Returns a DataFrame containing information about the peaks
         as called by sig.find_peaks
         """
-        peak_df = pd.DataFrame()
 
-        for channel, (channel_color, _) in self.config.channels.items():
-
-            module_logger.debug(
-                f"Running peak detection for {channel} channel"
-            )
-            peaks, properties = sig.find_peaks(
-                self.pmt_data.data[channel_color],
-                height = (self.peak_min_threshold, self.peak_max_threshold),
-                distance = round(
-                    self.peak_min_distance *
-                    self.pmt_data.acquisition_rate
-                ),
-                prominence = (
-                    self.peak_min_prominence,
-                    self.peak_max_prominence,
-                ),
-
-                width = (
-                    self.peak_min_width * self.pmt_data.acquisition_rate,
-                    self.peak_max_width * self.pmt_data.acquisition_rate,
-                ),
-                rel_height = self.width_rel_height,
-            )
-
-            properties = pd.DataFrame.from_dict(properties)
-            properties = properties.assign(barcode = channel == 'barcode')
-            peak_df = peak_df.append(properties)
-
-        # Converting ips values to int for indexing later on
-        peak_df.assign(
-            right_ips = round(peak_df.right_ips),
-            left_ips = round(peak_df.left_ips),
-        )
-        peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
-
-        self.peak_df = peak_df
-
-
-    def _merge_peaks(self):
-        """
-        Merges peaks if merge_peaks_distance is > 0.
-        :param peak_df: DataFrame with peaks as called by detect_peaks()
-        :return: List containing plug data.
-        """
-
-        plug_list = list()
-
-        if self.merge_peaks_distance > 0:
-
-            module_logger.info(
-                f"Merging plugs with closer centers than"
-                f"{self.merge_peaks_distance} seconds"
-            )
-            merge_peaks_samples = (
-                self.pmt_data.acquisition_rate *
-                self.merge_peaks_distance
-            )
-            merge_df = self.peak_df.assign(
-                plug_center = (
-                    self.peak_df.left_ips +
-                    (self.peak_df.right_ips - self.peak_df.left_ips) / 2
-                )
-            )
-            merge_df = merge_df.sort_values(by = "plug_center")
-            merge_df = merge_df.reset_index(drop = True)
-
-            centers = merge_df.plug_center
-
-            # Count through array
-            i = 0
-            while i < len(centers):
-                # Count neighborhood
-                j = 0
-                while True:
-                    if (i + j >= len(centers)) or (centers[i + j] - centers[i] > merge_peaks_samples):
-                        # Merge from the left edge of the first plug (i) to the right base of the last plug to merge (i + j - 1)
-                        plug_list.append(self._get_plug_data_from_index(merge_df.left_ips[i], merge_df.right_ips[i + j - 1]))
-
-                        # Skip to the next unmerged plug
-                        i += j
-                        break
-                    else:
-                        j += 1
-
-        else:
-
-            module_logger.info("Creating plug list with without merging close plugs!")
-            for row in self.peak_df.sort_values(by = "left_ips"):
-                plug_list.append(self._get_plug_data_from_index(row.left_ips, row.right_ips))
-
-         # Build plug_df DataFrame
-        module_logger.debug("Building plug_df DataFrame")
-        channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
-
-        self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
+        self.pmt_data.detect_peaks()
+        self.plug_df = self.pmt_data.peak_df
 
 
     def _set_barcoding(self, **kwargs):
@@ -307,7 +203,7 @@ class PlugData(object):
 
         module_logger.info(
             'Found %u cycles, %u with the expected number of samples. '
-            'Sample count mismatches: %s.'
+            'Sample count mismatches: %s. '
             'Best barcode detection parameters: %s.' % (
                 len(self._sample_count_anomaly),
                 list(self._sample_count_anomaly.values()).count(0),
@@ -411,7 +307,7 @@ class PlugData(object):
             )
 
 
-    def _get_plug_data_from_index(self, start_index, end_index):
+    def quantify_interval(self, start_index, end_index):
         """
         Calculates median for each acquired channel between two data points
 
@@ -421,26 +317,8 @@ class PlugData(object):
         :return: List with start_index end_index and the channels according
         to the order of config.channels
         """
-        return_list = list()
-        return_list.append(
-            start_index / self.pmt_data.acquisition_rate +
-            self.pmt_data.data.time.iloc[0]
-        )
-        return_list.append(
-            end_index / self.pmt_data.acquisition_rate +
-            self.pmt_data.data.time.iloc[0]
-        )
-        for _, (channel_color, _) in self.config.channels.items():
 
-            return_list.append(
-                self.pmt_data.data[
-                    channel_color
-                ][
-                    start_index:end_index
-                ].median()
-            )
-
-        return return_list
+        return self.pmt_data.quantify_interval(start_index, end_index)
 
 
     def _set_sample_cycles(self):

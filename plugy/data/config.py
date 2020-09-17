@@ -117,6 +117,7 @@ class PlugyConfig(object):
     peak_max_width: float = 1.5
     width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
+    merge_peaks_by: str = 'center'
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
     min_between_samples_barcodes: int = 2
