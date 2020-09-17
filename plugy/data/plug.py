@@ -263,6 +263,18 @@ class PlugData(object):
             (key, param_range(val))
             for key, val in param.items()
         )
+        self._barcode_param = collections.namedtuple(
+            'BarcodeParam',
+            sorted(param.keys())
+        )
+        self._barcode_result = collections.namedtuple(
+            'BarcodeResult',
+            [
+                'sample_mismatch',
+                'sample_freq_var',
+            ]
+        )
+        self._barcode_eval = {}
 
         n_param = functools.reduce(lambda i, j: i * len(j), param.values(), 1)
 
@@ -271,6 +283,9 @@ class PlugData(object):
             for _values in itertools.product(*param.values()):
 
                 _param = dict(zip(param.keys(), _values))
+                self._barcode_param_last = self._barcode_param(
+                    *(_param[f] for f in self._barcode_param._fields)
+                )
                 self._set_barcode_base(**_param)
                 tq.update(1)
 
@@ -822,7 +837,24 @@ class PlugData(object):
 
     def _evaluate_barcode_base(self):
 
+        sample_mismatch = sum(
+            abs(a)
+            for a in self._sample_count_anomaly.values()
+        )
+        sample_freq_var = 0
 
+        for cycle_nr in self.plug_df.cycle_nr.unique():
+
+            this_cycle = self.plug_df[self.plug_df.cycle_nr == cycle_nr]
+            start_times = this_cycle.groupby('sample_nr').min('start_time')
+            sample_freq_var += start_times['start_time'].std()
+
+        result = self._barcode_result(
+            sample_mismatch = sample_mismatch,
+            sample_freq_var = sample_freq_var,
+        )
+
+        self._barcode_eval[self._barcode_param_last] = result
 
 
     def _adjust_sample_detection(self):
