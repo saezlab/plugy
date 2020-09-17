@@ -74,6 +74,7 @@ class PlugData(object):
     normalize_using_media_control_lin_reg: bool = False
     has_barcode: bool = True
     has_samples_cycles: bool = True
+    samples_per_cycle: int = None
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
 
@@ -255,6 +256,7 @@ class PlugData(object):
                 return (val,)
 
 
+        config = self.config
         param = config.barcode_param_defaults.get(config.barcode_method, {})
         param.update(config.barcode_param)
         param.update(kwargs)
@@ -277,11 +279,12 @@ class PlugData(object):
         self._barcode_eval = {}
 
         n_param = functools.reduce(lambda i, j: i * len(j), param.values(), 1)
+        pbar_desc = 'Adjusting barcode detection%s'
 
         with tqdm.tqdm(
             total = n_param,
             dynamic_ncols = True,
-            desc = 'Adjusting barcode detection parameters',
+            desc = pbar_desc % '',
         ) as tq:
 
             for _values in itertools.product(*param.values()):
@@ -289,6 +292,11 @@ class PlugData(object):
                 _param = dict(zip(param.keys(), _values))
                 self._barcode_param_last = self._barcode_param(
                     *(_param[f] for f in self._barcode_param._fields)
+                )
+                tq.set_description(
+                    pbar_desc % (
+                        ' [%s]' % misc.ntuple_str(self._barcode_param_last)
+                    )
                 )
                 self._set_barcoding_base(**_param)
                 self._evaluate_barcoding()
@@ -304,7 +312,7 @@ class PlugData(object):
                 len(self._sample_count_anomaly),
                 list(self._sample_count_anomaly.values()).count(0),
                 misc.dict_str(self._sample_count_anomaly),
-                self._barcode_best_param.__repr__().split('(')[1][:-1],
+                misc.ntuple_str(self._barcode_best_param),
             )
         )
 
@@ -339,7 +347,7 @@ class PlugData(object):
                 'Barcode detection parameters: %s' % misc.dict_str(param)
             )
             getattr(self, method)(**param)
-            self._evaluate_barcode()
+            self._evaluate_barcoding()
 
         else:
 

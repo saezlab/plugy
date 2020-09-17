@@ -99,7 +99,7 @@ class PlugyConfig(object):
     # scale certain channels by a constant factor
     fake_gains: dict = field(default_factory = dict)
     # a default scaling factor for the remaining channels
-    fake_gain_default: float: 1.0
+    fake_gain_default: float = 1.0
     # I don't know what this intended to be,
     # raises NotImplementedError
     fake_gain_adaptive: bool = False
