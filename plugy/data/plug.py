@@ -112,7 +112,6 @@ class PlugData(object):
 
         self._set_sample_param()
         self._count_samples_by_cycle()
-        self._adjust_sample_detection() # to be removed
         self._discard_cycles()
         self._label_samples()
         self._create_sample_df()
@@ -203,7 +202,7 @@ class PlugData(object):
 
         module_logger.info(
             'Found %u cycles, %u with the expected number of samples. '
-            'Sample count mismatches: %s. '
+            'Sample count deviations: %s. '
             'Best barcode detection parameters: %s.' % (
                 len(self._sample_count_anomaly),
                 list(self._sample_count_anomaly.values()).count(0),
@@ -877,26 +876,24 @@ class PlugData(object):
                         self.plug_df.cycle_nr == cycle_nr
                     ] = True
 
-        check_msg = (
-            f"You may want to try:\n"
-            f"\t- Increase `peak_max_width` (currently {self.peak_max_width})"
-            f" if plugs are too short to be detected\n"
-            f"\t- Decrease `width_rel_height` (currently "
-            f"{self.width_rel_height}) if plugs are wider than tall\n"
-            f"\t- Cut the data using the `cut` parameter (currently "
-            f"{self.pmt_data.cut}) being precisely at the start of "
-            f"the first actual sample (not the barcode)"
-        )
-
         self._get_valid_cycles()
         self.n_cycles = len(self._samples_by_cycle)
+
+        message = (
+            self.pmt_data._detection_issues_message()
+                if hasattr(self, 'pmt_data') else
+            ''
+        )
 
         if not self.valid_cycles:
 
             module_logger.critical(
                 f"None of the {self.n_cycles} cycles is valid."
             )
-            module_logger.info(check_msg)
+
+            if message:
+
+                module_logger.info(message)
 
         elif len(self.valid_cycles) != self.n_cycles:
 
@@ -912,7 +909,9 @@ class PlugData(object):
                 )
                 self.valid_cycles = ()
 
-            module_logger.info(check_msg)
+            if message:
+
+                module_logger.info(message)
 
             if not self.auto_detect_cycles:
 

@@ -362,7 +362,6 @@ class PmtData(object):
                     self.peak_min_prominence,
                     self.peak_max_prominence,
                 ),
-
                 width = (
                     self.peak_min_width * self.acquisition_rate,
                     self.peak_max_width * self.acquisition_rate,
@@ -511,3 +510,17 @@ class PmtData(object):
             result.append(self.data[channel_color][i:j].median())
 
         return result
+
+
+    def _detection_issues_message(self):
+
+        return (
+            f"You may want to try:\n"
+            f"\t- Increase `peak_max_width` (currently {self.peak_max_width})"
+            f" if plugs are too short to be detected\n"
+            f"\t- Decrease `width_rel_height` (currently "
+            f"{self.width_rel_height}) if plugs are wider than tall\n"
+            f"\t- Cut the data using the `cut` parameter (currently "
+            f"{self.cut}) to remove parts from the beginning and end "
+            f"which might look like a sample but in fact is not."
+        )
