@@ -175,6 +175,7 @@ class PlugyConfig(object):
     def __post_init__(self):
         # Creating result dir for each individual run
 
+        self._set_paths()
         self._set_name()
 
         current_time = time.strftime("%Y%m%d_%H%M")
@@ -197,6 +198,22 @@ class PlugyConfig(object):
         os.makedirs(str(self.result_dir), exist_ok = True)
 
         self.start_logging()
+
+
+    def _set_paths(self):
+
+        for attr in (
+            'pmt_file',
+            'channel_file',
+            'seq_file',
+            'result_base_dir',
+        ):
+
+            path = getattr(self, attr)
+
+            if isinstance(path, str):
+
+                setattr(self, attr, pl.Path(path))
 
 
     def _set_name(self):
