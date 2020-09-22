@@ -283,6 +283,7 @@ class PmtData(object):
                     ci = None,
                     sort = False,
                     color = self.config.colors[channel],
+                    linewidth = 1.,
                     ax = axes,
                 )
 
