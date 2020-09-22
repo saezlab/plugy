@@ -51,7 +51,7 @@ class PlugyConfig(object):
     colors: dict = field(
         default_factory = lambda: {
             'green': '#5D9731',
-            'blue': '#3A73BA',
+            'uv': '#3A73BA',
             'orange': '#F68026',
         }
     )
@@ -119,8 +119,17 @@ class PlugyConfig(object):
     merge_peaks_distance: float = 0.2
     merge_peaks_by: str = 'center'
     n_bc_adjacent_discards: int = 1
+    # lowest number of barcode plugs separating two cycles
+    # barcode segments with fewer plugs separate samples within cycles
     min_end_cycle_barcodes: int = 12
+    # lowest number of barcode plugs separating 2 samples
+    # if fewer barcode plugs between sample plugs, the sample
+    # counter won't be increased
     min_between_samples_barcodes: int = 2
+    # lowest number of plugs in a sample
+    # if barcode comes without reaching yet this threshold,
+    # the sample counter won't be increased
+    min_plugs_in_sample: int = 3
 
     # if False, the workflow stops after plug identification and
     # quantification, sample and barcode plugs won't be distinguished
@@ -149,6 +158,10 @@ class PlugyConfig(object):
                 # channel for barcode plugs
                 'times': 1.0,
             },
+            'blue_highest_adaptive': {
+                'thresholding_method': 'local',
+                'block_size': 7,
+            }
         }
     )
 
@@ -279,3 +292,8 @@ class PlugyConfig(object):
             (key, value[0])
             for key, value in self.channels.items()
         )
+
+
+    def channel_color(self, channel):
+
+        return self.colors[self.channels[channel][0]]
