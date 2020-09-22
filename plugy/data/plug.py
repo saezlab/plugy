@@ -275,7 +275,7 @@ class PlugData(object):
         threshold = method(barcode, **kwargs)
 
         self.plug_df['barcode'] = (barcode > threshold).flatten()
-        self._barcoding_thresholds['barcode'] = threshold
+        self._barcoding_thresholds['barcode'] = threshold.flatten()
 
         #param = self.config.blue_highest_adaptive_param.copy()
         #param.update(kwargs)
@@ -600,8 +600,8 @@ class PlugData(object):
             plug_patches[plug_type].append(patch)
 
         colors = {
-            'readout': self.config.colors["green"],
-            'barcode': self.config.colors["blue"],
+            'readout': self.config.colors['green'],
+            'barcode': self.config.colors['blue'],
         }
 
         for key, color in colors.items():
@@ -621,7 +621,7 @@ class PlugData(object):
 
         for plug in self.plug_df.itertuples():
 
-            color = self.config.colors["blue" if plug.barcode else "green"]
+            color = self.config.colors['uv' if plug.barcode else 'green']
             axes.axvspan(
                 xmin = plug.start_time,
                 xmax = plug.end_time,
@@ -679,7 +679,8 @@ class PlugData(object):
                 color = color,
                 style = True,
                 dashes = [(2,2)],
-                linewidth = .5,
+                linewidth = 1.,
+                legend = False,
                 ax = axes,
             )
 
@@ -877,9 +878,7 @@ class PlugData(object):
 
             return
 
-        if 'cycle_nr' not in self.plug_df:
-
-            self._set_sample_cycle()
+        self._set_sample_cycle()
 
         self._samples_by_cycle = dict(
             (
