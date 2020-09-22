@@ -273,9 +273,18 @@ class PmtData(object):
         with sns.axes_style("darkgrid", {"xtick.bottom": True,
                                          'xtick.major.size': 1.0,
                                          'xtick.minor.size': 0.5}):
-            sns.lineplot(x = df.time, y = df.green, estimator = None, ci = None, sort = False, color = self.config.colors["green"], ax = axes)
-            sns.lineplot(x = df.time, y = df.orange, estimator = None, ci = None, sort = False, color = self.config.colors["orange"], ax = axes)
-            sns.lineplot(x = df.time, y = df.uv, estimator = None, ci = None, sort = False, color = self.config.colors["blue"], ax = axes)
+
+            for channel in ('green', 'orange', 'uv'):
+
+                sns.lineplot(
+                    x = df.time,
+                    y = df[channel],
+                    estimator = None,
+                    ci = None,
+                    sort = False,
+                    color = self.config.colors[channel],
+                    ax = axes,
+                )
 
             if df.time.max() - df.time.min() > 1000:
                 major_tick_freq = 100
