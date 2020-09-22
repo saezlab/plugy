@@ -61,6 +61,8 @@ class PlugData(object):
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
+    min_between_samples_barcodes: int = 2
+    min_plugs_in_sample: int = 1
     normalize_using_control: bool = False
     normalize_using_media_control_lin_reg: bool = False
     has_barcode: bool = True
@@ -105,7 +107,7 @@ class PlugData(object):
         self._normalize_to_control()
         self._set_sample_param()
         self._set_barcoding()
-        self._set_sample_cycles()
+        self._set_sample_cycle()
 
 
     def detect_samples(self):
@@ -261,33 +263,47 @@ class PlugData(object):
 
     def _set_barcoding_blue_highest_adaptive(self, **kwargs):
 
-        param = self.config.blue_highest_adaptive_param.copy()
-        param.update(kwargs)
+        self._barcoding_thresholds = {}
 
-        barcode_control = (
-            self.plug_df.barcode_peak_median /
-            self.plug_df.control_peak_median
-        ).to_numpy()
-        barcode_control = self.plug_df.barcode_peak_median.to_numpy().copy()
+        method = kwargs.pop('thresholding_method')
+        method = getattr(skimage.filters, 'threshold_%s' % method)
 
-        shape = (1, barcode_control.shape[0])
-        barcode_control.shape = shape
-
-        threshold = skimage.filters.threshold_local(
-            barcode_control,
-            **param,
-        )
-
-        barcode = self.plug_df.barcode_peak_median > threshold.flatten()
-        barcode = barcode.to_numpy()
+        barcode = self.plug_df.barcode_peak_median.to_numpy()
+        shape = (1, barcode.shape[0])
         barcode.shape = shape
 
-        barcode = skimage.morphology.opening(
-            barcode,
-            selem = skimage.morphology.square(2),
-        )
+        threshold = method(barcode, **kwargs)
 
-        self.plug_df['barcode'] = barcode.flatten()
+        self.plug_df['barcode'] = (barcode > threshold).flatten()
+        self._barcoding_thresholds['barcode'] = threshold
+
+        #param = self.config.blue_highest_adaptive_param.copy()
+        #param.update(kwargs)
+
+        #barcode_control = (
+            #self.plug_df.barcode_peak_median /
+            #self.plug_df.control_peak_median
+        #).to_numpy()
+        #barcode_control = self.plug_df.barcode_peak_median.to_numpy().copy()
+
+        #shape = (1, barcode_control.shape[0])
+        #barcode_control.shape = shape
+
+        #threshold = skimage.filters.threshold_local(
+            #barcode_control,
+            #**param,
+        #)
+
+        #barcode = self.plug_df.barcode_peak_median > threshold.flatten()
+        #barcode = barcode.to_numpy()
+        #barcode.shape = shape
+
+        #barcode = skimage.morphology.opening(
+            #barcode,
+            #selem = skimage.morphology.square(2),
+        #)
+
+        #self.plug_df['barcode'] = barcode.flatten()
 
 
     def _normalize_to_control(self):
@@ -320,9 +336,9 @@ class PlugData(object):
         return self.pmt_data.quantify_interval(start_index, end_index)
 
 
-    def _set_sample_cycles(self):
+    def _set_sample_cycle(self):
         """
-        Finds cycles and labels individual samples. Adds new columns to the
+        Enumerates samples and cycles. Adds new columns to the
         :py:attr:`plug_df`: `cycle_nr`, `sample_nr` and `discard`.
         """
 
@@ -342,26 +358,38 @@ class PlugData(object):
         cycle = []
         sample = []
         discard = []
+        # short names
+        bc_bw_samples = self.min_between_samples_barcodes
+        bc_adj_discards = self.n_bc_adjacent_discards
+        bc_cycle_end = self.min_end_cycle_barcodes
+        sm_min_len = self.min_plugs_in_sample
 
         for idx, bc in enumerate(self.plug_df.barcode):
 
             if bc:
+
                 discard.append(True)
                 cycle.append(current_cycle)
                 sample.append(max(sample_in_cycle, 0))
                 bc_peaks += 1
 
             else:
-                # Checking cycle
+
+                # step the cycle counter
+                # if this is the first plug of a sample
                 if bc_peaks > 0 or sample_in_cycle < 0:
 
                     if (
-                        bc_peaks >= self.config.min_between_samples_barcodes
+                        (
+                            bc_peaks >= bc_bw_samples and
+                            sm_peaks >= sm_min_len
+                        )
                         or
                         sample_in_cycle < 0
                     ):
 
                         sample_in_cycle += 1
+                        sm_peaks = 0
 
                         if (
                             bc_peaks >= self.min_end_cycle_barcodes and
@@ -376,15 +404,14 @@ class PlugData(object):
                 sample.append(sample_in_cycle)
                 cycle.append(current_cycle)
 
+                # stepping the within sample plug counter
+                sm_peaks += 1
+
                 # Discarding barcode-adjacent plugs
                 try:
                     if (
-                        self.plug_df.barcode[
-                            idx - self.n_bc_adjacent_discards
-                        ] or
-                        self.plug_df.barcode[
-                            idx + self.n_bc_adjacent_discards
-                        ]
+                        self.plug_df.barcode[idx - bc_adj_discards] or
+                        self.plug_df.barcode[idx + bc_adj_discards]
                     ):
                         discard.append(True)
                     else:
@@ -636,6 +663,27 @@ class PlugData(object):
         return axes
 
 
+    def pmt_plot_add_thresholds(self, axes: plt.Axes):
+
+        if not hasattr(self, '_barcoding_thresholds'):
+
+            return
+
+        for channel, threshold in self._barcoding_thresholds.items():
+
+            color = self.config.channel_color(channel)
+            time = (self.plug_df.start_time + self.plug_df.end_time) / 2
+            sns.lineplot(
+                x = time,
+                y = threshold,
+                color = color,
+                style = True,
+                dashes = [(2,2)],
+                linewidth = .5,
+                ax = axes,
+            )
+
+
     def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:
         """
         Plots pmt data and superimposes filled rectangles for cycles with
@@ -806,7 +854,7 @@ class PlugData(object):
 
                 blue_highest += .05
                 self._set_barcode(blue_highest = blue_highest)
-                self._set_sample_cycles()
+                self._set_sample_cycle()
 
             else:
 
@@ -814,7 +862,7 @@ class PlugData(object):
 
         blue_highest = n_valid_cycles[max(n_valid_cycles.keys())][0]
         self._set_barcode(blue_highest = blue_highest)
-        self._set_sample_cycles()
+        self._set_sample_cycle()
         self._count_samples_by_cycle()
 
         module_logger.info(
@@ -831,7 +879,7 @@ class PlugData(object):
 
         if 'cycle_nr' not in self.plug_df:
 
-            self._set_sample_cycles()
+            self._set_sample_cycle()
 
         self._samples_by_cycle = dict(
             (

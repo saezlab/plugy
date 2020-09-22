@@ -159,6 +159,9 @@ class PlugExperiment(object):
             auto_detect_cycles = self.config.auto_detect_cycles,
             n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
             min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
+            min_between_samples_barcodes =
+                self.config.min_between_samples_barcodes,
+            min_plugs_in_sample = self.config.min_plugs_in_sample,
             normalize_using_control = self.config.normalize_using_control,
             normalize_using_media_control_lin_reg =
                 self.config.normalize_using_media_control_lin_reg,
@@ -205,6 +208,7 @@ class PlugExperiment(object):
             below_peak = False,
         )
         self.plug_data.highlight_samples(axes = pmt_overview_ax)
+        self.plug_data.pmt_plot_add_thresholds(axes = pmt_overview_ax)
 
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(pmt_overview_fig)
