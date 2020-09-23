@@ -154,15 +154,18 @@ class PlugData(object):
 
 
         config = self.config
-        param = config.barcode_param_defaults.get(config.barcode_method, {})
-        param.update(config.barcode_param)
+        param = config.barcoding_param_defaults.get(
+            config.barcoding_method,
+            {},
+        )
+        param.update(config.barcoding_param)
         param.update(kwargs)
 
         param = dict(
             (key, param_range(val))
             for key, val in param.items()
         )
-        self._barcode_param = collections.namedtuple(
+        self._barcoding_param = collections.namedtuple(
             'BarcodeParam',
             sorted(param.keys())
         )
@@ -187,12 +190,12 @@ class PlugData(object):
             for _values in itertools.product(*param.values()):
 
                 _param = dict(zip(param.keys(), _values))
-                self._barcode_param_last = self._barcode_param(
-                    *(_param[f] for f in self._barcode_param._fields)
+                self._barcoding_param_last = self._barcoding_param(
+                    *(_param[f] for f in self._barcoding_param._fields)
                 )
                 tq.set_description(
                     pbar_desc % (
-                        ' [%s]' % misc.ntuple_str(self._barcode_param_last)
+                        ' [%s]' % misc.ntuple_str(self._barcoding_param_last)
                     )
                 )
                 self._set_barcoding_base(**_param)
@@ -216,7 +219,7 @@ class PlugData(object):
 
     def _set_barcoding_base(
             self,
-            method = None,
+            barcoding_method = None,
             **kwargs,
         ):
         """
@@ -232,9 +235,10 @@ class PlugData(object):
             return
 
         config = self.config
-        method = '_set_barcoding_%s' % (method or config.barcode_method)
-        param = config.barcode_param_defaults.get(config.barcode_method, {})
-        param.update(config.barcode_param)
+        method_name = barcoding_method or config.barcoding_method
+        method = '_set_barcoding_%s' % method_name
+        param = config.barcoding_param_defaults.get(method_name, {})
+        param.update(config.barcoding_param)
         param.update(kwargs)
 
         if hasattr(self, method):
@@ -261,23 +265,33 @@ class PlugData(object):
         )
 
 
-    def _set_barcoding_blue_highest_adaptive(self, **kwargs):
+    def _set_barcoding_adaptive(self, **kwargs):
 
         self._barcoding_thresholds = {}
 
         method = kwargs.pop('thresholding_method')
         method = getattr(skimage.filters, 'threshold_%s' % method)
 
-        barcode = self.plug_df.barcode_peak_median.to_numpy()
-        shape = (1, barcode.shape[0])
-        barcode.shape = shape
+        channels = {}
 
-        threshold = method(barcode, **kwargs)
+        for channel in ('barcode', 'control'):
 
-        self.plug_df['barcode'] = (barcode > threshold).flatten()
-        self._barcoding_thresholds['barcode'] = threshold.flatten()
+            channels[channel] = self.plug_df[
+                '%s_peak_median' % channel
+            ].to_numpy()
+            shape = (1, channels[channel].shape[0])
+            channels[channel].shape = shape
 
-        #param = self.config.blue_highest_adaptive_param.copy()
+            threshold = method(channels[channel], **kwargs)
+            self._barcoding_thresholds[channel] = threshold.flatten()
+
+        self.plug_df['barcode'] = np.logical_or(
+            channels['barcode'] > self._barcoding_thresholds['barcode'],
+            channels['control'] < self._barcoding_thresholds['control'],
+        ).flatten()
+
+
+        #param = self.config.adaptive_param.copy()
         #param.update(kwargs)
 
         #barcode_control = (
@@ -810,7 +824,7 @@ class PlugData(object):
             sample_freq_var = sample_freq_var,
         )
 
-        self._barcode_eval[self._barcode_param_last] = result
+        self._barcode_eval[self._barcoding_param_last] = result
 
 
     def _select_best_barcoding(self):
@@ -832,7 +846,7 @@ class PlugData(object):
         :return: pd.DataFrame with the added name, compound_a and b columns
         """
 
-        if not self._has_sequence or self.config.blue_highest_adaptive:
+        if not self._has_sequence or self.config.adaptive:
 
             return
 
