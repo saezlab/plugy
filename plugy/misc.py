@@ -100,6 +100,11 @@ def to_set(value):
         return {value}
 
 
+def prettyfloat(n):
+
+    return '%.02g' % n if isinstance(n, float) else str(n)
+
+
 def dict_str(dct):
 
     if not isinstance(dct, dict):
@@ -107,14 +112,21 @@ def dict_str(dct):
         return str(dct)
 
     return ', '.join(
-        '%s=%s' % (str(key), str(val))
+        '%s=%s' % (str(key), prettyfloat(val))
         for key, val in dct.items()
     )
 
 
-def ntuple_str(nt):
+def ntuple_str(nt, pretty_floats = True):
 
-    return nt.__repr__().split('(')[1][:-1]
+    return (
+        ', '.join(
+            '%s=%s' % (field, prettyfloat(value))
+            for field, value in zip(nt._fields, nt)
+        )
+            if pretty_floats else
+        nt.__repr__().split('(')[1][:-1]
+    )
 
 
 def matplotlib_331_fix():
