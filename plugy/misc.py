@@ -91,7 +91,7 @@ def to_set(value):
 
         return set()
 
-    elif not isinstance(value, basestring) and hasattr(value, '__iter__'):
+    elif not isinstance(value, str) and hasattr(value, '__iter__'):
 
         return set(value)
 

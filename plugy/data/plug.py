@@ -28,6 +28,7 @@ import warnings
 import collections
 import itertools
 import functools
+import inspect
 
 import pathlib as pl
 
@@ -271,10 +272,33 @@ class PlugData(object):
 
         method = kwargs.pop('thresholding_method')
         method = getattr(skimage.filters, 'threshold_%s' % method)
+        method_argnames = set(inspect.signature(method).parameters.keys())
 
         channels = {}
+        channel_names = {'barcode', 'control'}
 
-        for channel in ('barcode', 'control'):
+        for channel in channel_names:
+
+            param = dict(
+                (
+                    key if key0 not in channel_names else key1,
+                    val
+                )
+                for key, val, key0, key1 in
+                (
+                    ([key, val] + key.split('_', maxsplit = 1) + [None])[:4]
+                    for key, val in kwargs.items()
+                )
+                if (
+                    (
+                        key in method_argnames and
+                        '%s_%s' % (channel, key) not in kwargs
+                    ) or (
+                        key1 in method_argnames and
+                        key0 == channel
+                    )
+                )
+            )
 
             channels[channel] = self.plug_df[
                 '%s_peak_median' % channel
@@ -282,7 +306,7 @@ class PlugData(object):
             shape = (1, channels[channel].shape[0])
             channels[channel].shape = shape
 
-            threshold = method(channels[channel], **kwargs)
+            threshold = method(channels[channel], **param)
             self._barcoding_thresholds[channel] = threshold.flatten()
 
         self.plug_df['barcode'] = np.logical_or(
