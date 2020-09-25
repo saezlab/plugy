@@ -256,7 +256,7 @@ class PlugData(object):
             module_logger.error('No such method: `%s`' % method)
 
 
-    def _set_barcoding_blue_highest(self, times: float = None):
+    def _set_barcoding_simple(self, times: float = None):
 
         self.plug_df = self.plug_df.assign(
             barcode = (
@@ -270,13 +270,20 @@ class PlugData(object):
 
         self._barcoding_thresholds = {}
 
-        method = kwargs.pop('thresholding_method')
-        method = getattr(skimage.filters, 'threshold_%s' % method)
+        method_name = kwargs.pop('thresholding_method')
+        method = getattr(skimage.filters, 'threshold_%s' % method_name)
         method_argnames = set(inspect.signature(method).parameters.keys())
+
+        adaptive_method = (
+            kwargs['adaptive_method']
+                if 'adaptive_method' in kwargs else
+            'simple'
+        )
 
         channels = {}
         channel_names = {'barcode', 'control'}
 
+        # adaptive thresholds on blue and orange
         for channel in channel_names:
 
             param = dict(
@@ -300,6 +307,13 @@ class PlugData(object):
                 )
             )
 
+            module_logger.debug(
+                'Calling `%s` with parameters %s' % (
+                    method_name,
+                    misc.dict_str(param),
+                )
+            )
+
             channels[channel] = self.plug_df[
                 '%s_peak_median' % channel
             ].to_numpy()
@@ -309,11 +323,58 @@ class PlugData(object):
             threshold = method(channels[channel], **param)
             self._barcoding_thresholds[channel] = threshold.flatten()
 
-        self.plug_df['barcode'] = np.logical_or(
-            channels['barcode'] > self._barcoding_thresholds['barcode'],
-            channels['control'] < self._barcoding_thresholds['control'],
-        ).flatten()
+        # setting the barcode based on the plugs' values and the blue or
+        # the orange adaptive thresholds: either the blue is above threshold
+        # or the orange is below the threshold
+        if adaptive_method == 'simple':
 
+            barcode_threshold =  self._barcoding_thresholds['barcode']
+            control_threshold = self._barcoding_thresholds['control']
+            self.plug_df['barcode'] = np.logical_or(
+                channels['barcode'] > barcode_threshold,
+                channels['control'] < control_threshold * .9,
+            ).flatten()
+
+        if adaptive_method == 'higher':
+
+            threshold_barcode_norm = (
+                self._barcoding_thresholds['barcode'] /
+                self._barcoding_thresholds['barcode'].max()
+            )
+            threshold_control_norm = (
+                self._barcoding_thresholds['control'] /
+                self._barcoding_thresholds['control'].max()
+            )
+            factor = (
+                kwargs['higher_threshold_factor']
+                    if 'higher_threshold_factor' in kwargs else
+                1.
+            )
+            self.plug_df['barcode'] = (
+                threshold_barcode_norm >
+                threshold_control_norm * factor
+            ).flatten()
+
+        # adaptive threshold on blue:orange ratio
+        param = dict(
+            (key, val)
+            for key, val in kwargs.items()
+            if key in method_argnames
+        )
+        ratio = (
+            self.plug_df.barcode_peak_median.to_numpy() /
+            self.plug_df.control_peak_median.to_numpy()
+        )
+        shape = (1, max(ratio.shape))
+        ratio.shape = shape
+        ratio = ratio / ratio.max() * 10
+        threshold = method(ratio, **param)
+        self._barcoding_thresholds['ratio'] = threshold.flatten()
+        self._barcoding_thresholds['_ratio'] = ratio.flatten()
+
+        if adaptive_method == 'ratio':
+
+            self.plug_df['barcode'] = (ratio > threshold).flatten()
 
         #param = self.config.adaptive_param.copy()
         #param.update(kwargs)
@@ -707,13 +768,18 @@ class PlugData(object):
 
             return
 
+        time = (self.plug_df.start_time + self.plug_df.end_time) / 2
+
         for channel, threshold in self._barcoding_thresholds.items():
 
+            if channel[0] == '_':
+
+                continue
+
             color = self.config.channel_color(channel)
-            time = (self.plug_df.start_time + self.plug_df.end_time) / 2
             sns.lineplot(
                 x = time,
-                y = threshold,
+                y = threshold / threshold.max() * axes.get_ylim()[1] * .95,
                 color = color,
                 style = True,
                 dashes = [(2,2)],
@@ -721,6 +787,16 @@ class PlugData(object):
                 legend = False,
                 ax = axes,
             )
+
+        ratio = self._barcoding_thresholds['_ratio']
+        ratio = ratio / ratio.max() * axes.get_ylim()[1] * .95
+
+        sns.scatterplot(
+            x = time,
+            y = ratio,
+            color = '#CC00CC',
+            ax = axes,
+        )
 
 
     def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:

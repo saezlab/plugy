@@ -142,23 +142,25 @@ class PlugyConfig(object):
     # methods even if the sequence is unknoen
     samples_per_cycle: int = None
     # the name of a method for identifying barcode plugs:
-    # * `blue_highest`: the simplest method, works with not too noisy data:
+    # * `simple`: the simplest method, works with not too noisy data:
     #    plugs are barcode if the channel of the blue value is the highest
-    # * `blue_highest_adaptive`: change the value of the `blue_highest_times`
+    # * `adaptive`: change the value of the `blue_highest_times`
     #    parameter to find the one giving the best result
-    barcoding_method: str = 'blue_highest'
+    barcoding_method: str = 'simple'
     # override parameters for the selected barcode method
     barcoding_param: dict = field(default_factory = dict)
     # default parameters for the barcode methods
     barcoding_param_defaults: dict = field(
         default_factory = lambda: {
-            'blue_highest': {
+            'simple': {
                 # a scaling factor for the `blue_highest` method: the blue
                 # channel must be at least this times higher than the control
                 # channel for barcode plugs
                 'times': 1.0,
             },
             'adaptive': {
+                'adaptive_method': 'simple',
+                'higher_threshold_factor': 1.,
                 'thresholding_method': 'local',
                 'block_size': 7,
             }
@@ -296,4 +298,8 @@ class PlugyConfig(object):
 
     def channel_color(self, channel):
 
-        return self.colors[self.channels[channel][0]]
+        return (
+            self.colors[self.channels[channel][0]]
+                if channel in self.channels else
+            '#000000'
+        )
