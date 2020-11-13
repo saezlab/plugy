@@ -30,15 +30,31 @@ import numpy as np
 
 def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
     """
-    Adds a caption with the current git hash in a human readable form based on the most recent tag.
-    If the repository contains changes that are not committed yet, the keyword "-dirty" is appended to the caption.
+    Adds a caption with the current git hash in a human readable form based
+    on the most recent tag.
+    If the repository contains changes that are not committed yet,
+    the keyword "-dirty" is appended to the caption.
+
     :param fig: matplotlib.pyplot.Figure to add the caption to.
-    :param offset: Determines how many millimeter the caption is offset from the bottom left corner of the figure.
+    :param offset: Determines how many millimeter the caption is offset
+        from the bottom left corner of the figure.
+
     :return: None
     """
-    sha = sp.run(["git", "describe", "--tags", "--long", "--dirty"], capture_output = True, text = True).stdout.strip()
+
+    sha = sp.run(
+        ['git', 'describe', '--tags', '--long', '--dirty'],
+        capture_output = True,
+        text = True
+    ).stdout.strip()
     rel_position = offset / (fig.get_size_inches() * 25.4)
-    fig.text(rel_position[0], rel_position[1], f"Created on {time.ctime()} with braille-kidney {sha}", fontsize = "x-small", fontweight = "light")
+    fig.text(
+        rel_position[0],
+        rel_position[1],
+        f'Created on {time.ctime()} with plugy {sha}',
+        fontsize = 'x-small',
+        fontweight = 'light',
+    )
 
 
 def plot_line(slope: float, intercept: float, axes: plt.Axes):
@@ -75,13 +91,42 @@ def to_set(value):
 
         return set()
 
-    elif not isinstance(value, basestring) and hasattr(value, '__iter__'):
+    elif not isinstance(value, str) and hasattr(value, '__iter__'):
 
         return set(value)
 
     else:
 
         return {value}
+
+
+def prettyfloat(n):
+
+    return '%.02g' % n if isinstance(n, float) else str(n)
+
+
+def dict_str(dct):
+
+    if not isinstance(dct, dict):
+
+        return str(dct)
+
+    return ', '.join(
+        '%s=%s' % (str(key), prettyfloat(val))
+        for key, val in dct.items()
+    )
+
+
+def ntuple_str(nt, pretty_floats = True):
+
+    return (
+        ', '.join(
+            '%s=%s' % (field, prettyfloat(value))
+            for field, value in zip(nt._fields, nt)
+        )
+            if pretty_floats else
+        nt.__repr__().split('(')[1][:-1]
+    )
 
 
 def matplotlib_331_fix():

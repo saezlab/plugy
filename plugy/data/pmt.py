@@ -28,6 +28,7 @@ import pathlib as pl
 
 import pandas as pd
 import numpy as np
+import scipy.signal as sig
 
 import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
@@ -42,18 +43,42 @@ module_logger = logging.getLogger("plugy.data.pmt")
 
 @dataclass
 class PmtData(object):
+
     input_file: pl.Path
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
-    ignore_orange_channel: bool = False
-    ignore_green_channel: bool = False
-    ignore_uv_channel: bool = False
-    auto_gain: bool = False
-    digital_gain_uv: float = 1.0
-    digital_gain_green: float = 1.0
-    digital_gain_orange: float = 1.0
-    bc_override_threshold: float = None
+
+    channels: dict = field(
+        default_factory = lambda: {
+            'barcode': ('uv', 3),
+            'control': ('orange', 2),
+            'readout': ('green', 1),
+        }
+    )
+    ignore_channels: set = field(default_factory = set)
+    fake_gains: dict = field(default_factory = dict)
+    fake_gain_default: float = 1.0
+    fake_gain_adaptive: bool = False
+    barcode_raw_threshold: float = None
+    channels: dict = field(
+        default_factory = lambda: {
+            'barcode': ('uv', 3),
+            'control': ('orange', 2),
+            'readout': ('green', 1),
+        }
+    )
+    peak_min_threshold: float = 0.05
+    peak_max_threshold: float = 2.0
+    peak_min_distance: float = 0.03
+    peak_min_prominence: float = 0
+    peak_max_prominence: float = 10
+    peak_min_width: float = 0.5
+    peak_max_width: float = 1.5
+    width_rel_height: float = 0.5
+    merge_peaks_distance: float = 0.2
+    merge_peaks_by: str = 'center'
+
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
     def __post_init__(self):
@@ -66,13 +91,9 @@ class PmtData(object):
         self.data = self.set_channel_values()
         self.data = self.cut_data()
 
-        if self.auto_gain:
-            self.digital_gain_uv, self.digital_gain_green, self.digital_gain_orange = self.calculate_gain()
-
-        self.data = self.digital_gain()
-
-        if self.bc_override_threshold is not None:
-            self.data = self._override_barcode()
+        self._set_fake_gain_adaptive()
+        self.apply_fake_gain()
+        self._override_barcode()
         # self.data = self.correct_crosstalk()
 
     def read_txt(self) -> pd.DataFrame:
@@ -193,45 +214,53 @@ class PmtData(object):
         time_between_samplings = 1 / self.acquisition_rate
 
         df = self.data.copy()
-        if self.ignore_green_channel:
-            module_logger.info("Setting green channel to 0.0")
-            df = df.assign(green = 0.0)
 
-        if self.ignore_uv_channel:
-            module_logger.info("Setting uv channel to 0.0")
-            df = df.assign(uv = 0.0)
+        for channel in (
+            set(self.config.channel_names.values()) &
+            self.config.ignore_channels
+        ):
 
-        if self.ignore_orange_channel:
-            module_logger.info("Setting orange channel to 0.0")
-            df = df.assign(orange = 0.0)
+            module_logger.info('Setting %s channel to 0.0' % channel)
+            df[channel] = .0
 
         if self.correct_acquisition_time:
+
             module_logger.info("Correcting acquisition time")
             df = df.assign(time = np.linspace(self.data.time[0], self.data.time[0] + time_between_samplings * (len(df) - 1), len(df)))
 
         return df
 
-    def calculate_gain(self):
+    def _set_fake_gain_adaptive(self):
         # for channel in ["uv", "green", "orange"]:
         #     pass
-        raise NotImplementedError
 
-    def digital_gain(self) -> pd.DataFrame:
+        if self.fake_gain_adaptive:
+
+            raise NotImplementedError
+
+    def apply_fake_gain(self):
         """
-        Multiplies the corresponding channels PMT output by the given float (digital_gain_*)
+        Multiplies the corresponding channels PMT output by a factor provided
+        in ``fake_gains``.
         """
         df = self.data
-        if self.digital_gain_uv != 1.0:
-            module_logger.info(f"Applying digital gain for uv channel ({self.digital_gain_uv})")
-            df = df.assign(uv = lambda x: x.uv * self.digital_gain_uv)
-        if self.digital_gain_green != 1.0:
-            module_logger.info(f"Applying digital gain for green channel ({self.digital_gain_green})")
-            df = df.assign(green = lambda x: x.green * self.digital_gain_green)
-        if self.digital_gain_orange != 1.0:
-            module_logger.info(f"Applying digital gain for orange channel ({self.digital_gain_orange})")
-            df = df.assign(orange = lambda x: x.orange * self.digital_gain_orange)
 
-        return df
+        for channel in self.config.channel_names.values():
+
+            fake_gain = (
+                self.fake_gains[channel]
+                    if channel in self.fake_gains else
+                self.fake_gain_default
+            )
+
+            if fake_gain != 1.0:
+
+                module_logger.info(
+                    f"Applying fake gain for {channel} channel: {fake_gain}"
+                )
+                df[channel] = df[channel] * fake_gain
+
+        self.data = df
 
     def plot_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
@@ -246,9 +275,19 @@ class PmtData(object):
         with sns.axes_style("darkgrid", {"xtick.bottom": True,
                                          'xtick.major.size': 1.0,
                                          'xtick.minor.size': 0.5}):
-            sns.lineplot(x = df.time, y = df.green, estimator = None, ci = None, sort = False, color = self.config.colors["green"], ax = axes)
-            sns.lineplot(x = df.time, y = df.orange, estimator = None, ci = None, sort = False, color = self.config.colors["orange"], ax = axes)
-            sns.lineplot(x = df.time, y = df.uv, estimator = None, ci = None, sort = False, color = self.config.colors["blue"], ax = axes)
+
+            for channel in ('green', 'orange', 'uv'):
+
+                sns.lineplot(
+                    x = df.time,
+                    y = df[channel],
+                    estimator = None,
+                    ci = None,
+                    sort = False,
+                    color = self.config.colors[channel],
+                    linewidth = 1.,
+                    ax = axes,
+                )
 
             if df.time.max() - df.time.min() > 1000:
                 major_tick_freq = 100
@@ -277,9 +316,12 @@ class PmtData(object):
 
         return axes
 
+
     def correct_crosstalk(self) -> pd.DataFrame:
         """
-        Implements crosstalk compensation as in Federica's BraDiPluS package (peaksSelection.R)
+        Implements crosstalk compensation as in Federica's BraDiPluS package
+        (peaksSelection.R).
+
         :return: pd.DataFrame with corrected orange channel
         """
         # df = self.data
@@ -289,15 +331,208 @@ class PmtData(object):
         # return df
         raise NotImplementedError
 
-    def _override_barcode(self) -> pd.DataFrame:
+
+    def _override_barcode(self):
         """
-        Overrides values in the barcode channel to 1 if current barcode value > bc_override_threshold
+        Overrides values in the barcode channel to 1 if current barcode
+        value > bc_override_threshold.
         """
-        module_logger.warning(f"Setting barcode channel to 1 for barcode values > {self.bc_override_threshold}")
-        df = self.data
 
-        barcode = self.config.channels["barcode"][0]
+        if self.barcode_raw_threshold:
 
-        df[barcode].loc[df[barcode] > self.bc_override_threshold] = 1
+            module_logger.warning(
+                f"Setting barcode channel to 1 for "
+                f"barcode values > {self.barcode_raw_threshold}"
+            )
 
-        return df
+            barcode = self.config.channels["barcode"][0]
+
+            self.data[barcode].loc[
+                self.data[barcode] > self.barcode_raw_threshold
+            ] = 1.
+
+
+    def detect_peaks(self, merge = None):
+
+        peak_df = pd.DataFrame()
+
+        merge = self.merge_peaks_by if merge is None else merge
+
+        for channel, (channel_color, _) in self.channels.items():
+
+            module_logger.debug(
+                f"Running peak detection for {channel} channel"
+            )
+            peaks, properties = sig.find_peaks(
+                self.data[channel_color],
+                height = (self.peak_min_threshold, self.peak_max_threshold),
+                distance = round(
+                    self.peak_min_distance *
+                    self.acquisition_rate
+                ),
+                prominence = (
+                    self.peak_min_prominence,
+                    self.peak_max_prominence,
+                ),
+                width = (
+                    self.peak_min_width * self.acquisition_rate,
+                    self.peak_max_width * self.acquisition_rate,
+                ),
+                rel_height = self.width_rel_height,
+            )
+
+            properties = pd.DataFrame.from_dict(properties)
+            properties = properties.assign(barcode = channel == 'barcode')
+            peak_df = peak_df.append(properties)
+
+        # Converting ips values to int for indexing later on
+        peak_df.assign(
+            right_ips = round(peak_df.right_ips),
+            left_ips = round(peak_df.left_ips),
+        )
+        peak_df = peak_df.astype({'left_ips': 'int32', 'right_ips': 'int32'})
+
+        self.peak_df = peak_df
+
+        if merge:
+
+            self._merge_peaks(by = merge)
+
+
+    def _merge_peaks(self, by = None):
+        """
+        Merges peaks if merge_peaks_distance is > 0.
+        :param peak_df: DataFrame with peaks as called by detect_peaks()
+        :return: List containing plug data.
+        """
+
+        peak_list = list()
+
+        by = by or self.merge_peaks_by
+        by_center = by == 'center'
+
+        if not by_center or self.merge_peaks_distance:
+
+            module_logger.info(
+                'Merging %splugs %s' % (
+                    'overlapping ' if by != 'center' else '',
+                    'with centers closer than %.02f seconds' % (
+                        self.merge_peaks_distance
+                    )
+                        if by == 'center' else
+                    '',
+                )
+            )
+            i_merge_dist = self.acquisition_rate * self.merge_peaks_distance
+
+            merge_df = self.peak_df
+
+            if by_center:
+
+                merge_df = merge_df.assign(
+                    peak_center = (
+                        self.peak_df.left_ips +
+                        (self.peak_df.right_ips - self.peak_df.left_ips) / 2
+                    )
+                )
+
+            by_column = 'peak_center' if by_center else 'left_ips'
+            merge_df = merge_df.sort_values(by = by_column)
+            merge_df = merge_df.reset_index(drop = True)
+            peaks = merge_df[by_column]
+            rights = merge_df['right_ips']
+
+            # Count through array
+            i = 0
+            while i < len(peaks):
+                # Count neighborhood
+                j = 0
+                max_right = rights[i]
+                while True:
+                    if (
+                        i + j >= len(peaks) or
+                        (
+                            peaks[i + j] - peaks[i] > i_merge_dist
+                                if by_center else
+                            peaks[i + j] > max_right
+                        )
+                    ):
+                        # Merge from the left edge of the first plug (i)
+                        # to the right base of the last plug
+                        # to merge (i + j - 1)
+
+                        left = min(merge_df.left_ips[i:i + j])
+                        right = max(merge_df.right_ips[i:i + j])
+                        peak_list.append(self.quantify_interval(left, right))
+
+                        # Skip to the next unmerged plug
+                        i += j
+                        break
+                    else:
+                        max_right = max(max_right, rights[i + j])
+                        j += 1
+
+        else:
+
+            module_logger.info(
+                'Creating plug list without merging close plugs!'
+            )
+
+            for row in self.peak_df.sort_values(by = "left_ips"):
+
+                plug_list.append(
+                    self.quantify_interval(
+                        row.left_ips,
+                        row.right_ips
+                    )
+                )
+
+         # Build plug_df DataFrame
+        module_logger.debug('Building peak_df DataFrame')
+        channels = [
+            f"{str(key)}_peak_median"
+            for key in self.config.channels.keys()
+        ]
+
+        self.peak_df = pd.DataFrame(
+            peak_list,
+            columns = ['start_time', 'end_time'] + channels,
+        )
+
+
+    def quantify_interval(self, start_index, end_index):
+        """
+        Calculates median for each acquired channel between two data points
+
+        :param start_index: Index of the first datapoint in pmt_data.data
+        :param end_index: Index of the last datapoint in pmt_data.data
+
+        :return: List with start_index end_index and the channels according
+        to the order of config.channels
+        """
+
+        i, j = start_index, end_index
+
+        result = list()
+        result.append(i / self.acquisition_rate + self.data.time.iloc[0])
+        result.append(j / self.acquisition_rate + self.data.time.iloc[0])
+
+        for _, (channel_color, _) in self.channels.items():
+
+            result.append(self.data[channel_color][i:j].median())
+
+        return result
+
+
+    def _detection_issues_message(self):
+
+        return (
+            f"You may want to try:\n"
+            f"\t- Increase `peak_max_width` (currently {self.peak_max_width})"
+            f" if plugs are too short to be detected\n"
+            f"\t- Decrease `width_rel_height` (currently "
+            f"{self.width_rel_height}) if plugs are wider than tall\n"
+            f"\t- Cut the data using the `cut` parameter (currently "
+            f"{self.cut}) to remove parts from the beginning and end "
+            f"which might look like a sample but in fact is not."
+        )

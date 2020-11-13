@@ -125,27 +125,17 @@ class PlugExperiment(object):
             allow_lt4_valves = self.config.allow_lt4_valves,
         )
 
-        self.pmt_data = PmtData(input_file = self.config.pmt_file,
-                                acquisition_rate = self.config.acquisition_rate,
-                                cut = self.config.cut,
-                                correct_acquisition_time = self.config.correct_acquisition_time,
-                                ignore_orange_channel = False,
-                                ignore_green_channel = False,
-                                ignore_uv_channel = False,
-                                digital_gain_uv = self.config.digital_gain_uv,
-                                digital_gain_green = self.config.digital_gain_green,
-                                digital_gain_orange = self.config.digital_gain_orange,
-                                bc_override_threshold=self.config.bc_override_threshold,
-                                config = self.config)
-
-
-    def detect_plugs(self):
-
-        self.plug_data = PlugData(
-            pmt_data = self.pmt_data,
-            plug_sequence = self.plug_sequence,
-            channel_map = self.channel_map,
-            auto_detect_cycles = self.config.auto_detect_cycles,
+        self.pmt_data = PmtData(
+            input_file = self.config.pmt_file,
+            acquisition_rate = self.config.acquisition_rate,
+            cut = self.config.cut,
+            correct_acquisition_time = self.config.correct_acquisition_time,
+            channels = self.config.channels,
+            ignore_channels = self.config.ignore_channels,
+            fake_gains = self.config.fake_gains,
+            fake_gain_default = self.config.fake_gain_default,
+            fake_gain_adaptive = self.config.fake_gain_adaptive,
+            barcode_raw_threshold=self.config.barcode_raw_threshold,
             peak_min_threshold = self.config.peak_min_threshold,
             peak_max_threshold = self.config.peak_max_threshold,
             peak_min_distance = self.config.peak_min_distance,
@@ -155,10 +145,29 @@ class PlugExperiment(object):
             peak_max_width = self.config.peak_max_width,
             width_rel_height = self.config.width_rel_height,
             merge_peaks_distance = self.config.merge_peaks_distance,
+            merge_peaks_by = self.config.merge_peaks_by,
+            config = self.config,
+        )
+
+
+    def detect_plugs(self):
+
+        self.plug_data = PlugData(
+            pmt_data = self.pmt_data,
+            plug_sequence = self.plug_sequence,
+            channel_map = self.channel_map,
+            auto_detect_cycles = self.config.auto_detect_cycles,
             n_bc_adjacent_discards = self.config.n_bc_adjacent_discards,
             min_end_cycle_barcodes = self.config.min_end_cycle_barcodes,
+            min_between_samples_barcodes =
+                self.config.min_between_samples_barcodes,
+            min_plugs_in_sample = self.config.min_plugs_in_sample,
             normalize_using_control = self.config.normalize_using_control,
-            normalize_using_media_control_lin_reg = self.config.normalize_using_media_control_lin_reg,
+            normalize_using_media_control_lin_reg =
+                self.config.normalize_using_media_control_lin_reg,
+            has_barcode = self.config.has_barcode,
+            has_samples_cycles = self.config.has_samples_cycles,
+            samples_per_cycle = self.config.samples_per_cycle,
             config = self.config,
         )
 
@@ -171,33 +180,44 @@ class PlugExperiment(object):
 
         except AssertionError:
             # In case labelling does not work because
-            # the number of called plugs diverges from the expected number.
-            # Plotting fallback pmt overview
+            # the number of samples diverges from the expected number.
+            # Plotting pmt data as a fallback
 
-            module_logger.error(f"Error during plug calling, plotting fallback pmt overview!")
-
-            pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
-            self.pmt_data.plot_pmt_data(pmt_overview_ax)
-
-            self.plug_data.highlight_plugs(
-                axes = pmt_overview_ax,
-                below_peak = False,
+            module_logger.error(
+                'Could not find any cycle with the expected number of '
+                'samples. Potting the PMT data and exiting.'
             )
-            self.plug_data.highlight_samples(axes = pmt_overview_ax)
 
-            if self.config.plot_git_caption:
-                misc.add_git_hash_caption(pmt_overview_fig)
-
-            pmt_overview_fig.tight_layout()
-            png_path = self.config.result_dir.joinpath(f"pmt_overview.png")
-            pmt_overview_fig.savefig(png_path)
-
-            module_logger.info(f"Plotted PMT overview to {png_path}")
+            self.plot_pmt_data()
 
             raise
 
         self.sample_data = self.get_sample_data()
         self.sample_statistics = self.calculate_statistics()
+
+
+    def plot_pmt_data(self):
+
+        qc_dir = self.ensure_qc_dir()
+
+        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
+        self.pmt_data.plot_pmt_data(pmt_overview_ax)
+
+        self.plug_data.highlight_plugs(
+            axes = pmt_overview_ax,
+            below_peak = False,
+        )
+        self.plug_data.highlight_samples(axes = pmt_overview_ax)
+        self.plug_data.pmt_plot_add_thresholds(axes = pmt_overview_ax)
+
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(pmt_overview_fig)
+
+        pmt_overview_fig.tight_layout()
+        png_path = qc_dir.joinpath(f"pmt_overview.png")
+        pmt_overview_fig.savefig(png_path)
+
+        module_logger.info(f"Plotted PMT data to {png_path}")
 
 
     def get_sample_data(self) -> pd.DataFrame:
@@ -300,14 +320,7 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(media_control_fig)
         media_control_fig.savefig(qc_dir.joinpath(f"fs_media_control.{self.config.figure_export_file_type}"))
 
-        # Plotting PMT cycle overview
-        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize = (150, 10))
-        pmt_overview_ax = self.plug_data.plot_cycle_pmt_data(axes = pmt_overview_ax)
-
-        pmt_overview_fig.tight_layout()
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(pmt_overview_fig)
-        pmt_overview_fig.savefig(qc_dir.joinpath(f"pmt_overview.png"))
+        self.plot_pmt_data()
 
         # Plotting plug numbers
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
@@ -324,7 +337,7 @@ class PlugExperiment(object):
         contamination = self.get_contamination()
         if contamination.mean() > self.config.contamination_threshold:
             msg = (
-                f"Contamination over threshold ({contamination.mean()} > "
+                f"Contamination above threshold ({contamination.mean()} > "
                 f"{self.config.contamination_threshold})"
             )
             module_logger.warning(msg)

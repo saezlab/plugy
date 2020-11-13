@@ -24,13 +24,20 @@
 import logging
 import pickle
 import importlib as imp
+import warnings
+import collections
+import itertools
+import functools
+import inspect
 
 import pathlib as pl
 
+import tqdm
+
 import pandas as pd
 import numpy as np
-import scipy.signal as sig
 import scipy.stats as stats
+import skimage.filters
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patch
@@ -47,29 +54,33 @@ module_logger = logging.getLogger("plugy.data.plug")
 
 @dataclass
 class PlugData(object):
+
     pmt_data: pmt.PmtData
     plug_sequence: bd.PlugSequence
     channel_map: bd.ChannelMap
     auto_detect_cycles: bool = True
-    peak_min_threshold: float = 0.05
-    peak_max_threshold: float = 2.0
-    peak_min_distance: float = 0.03
-    peak_min_prominence: float = 0
-    peak_max_prominence: float = 10
-    peak_min_width: float = 0.5
-    peak_max_width: float = 1.5
-    width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
     n_bc_adjacent_discards: int = 1
     min_end_cycle_barcodes: int = 12
+    min_between_samples_barcodes: int = 2
+    min_plugs_in_sample: int = 1
     normalize_using_control: bool = False
     normalize_using_media_control_lin_reg: bool = False
+
+    has_barcode: bool = True
+    has_samples_cycles: bool = True
+    samples_per_cycle: int = None
+
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
 
     def __post_init__(self):
+
         module_logger.info(f"Creating PlugData object")
-        module_logger.debug(f"Configuration: {[f'{k}: {v}' for k, v in self.__dict__.items()]}")
+        module_logger.debug(
+            f"Configuration: "
+            f"{[f'{k}: {v}' for k, v in self.__dict__.items()]}"
+        )
 
         self.detect_plugs()
 
@@ -88,19 +99,25 @@ class PlugData(object):
 
     def detect_plugs(self):
         """
-        Finds plugs using the scipy.signal.find_peaks() method. Merges the plugs afterwards if merge_peaks_distance is > 0
-        :return: DataFrame containing the plug data and a DataFrame containing information about the peaks as called by sig.find_peaks
+        Finds plugs using the scipy.signal.find_peaks() method. Merges the
+        plugs afterwards if merge_peaks_distance is > 0
+
+        :return: DataFrame containing the plug data and a DataFrame
+        containing information about the peaks as called by sig.find_peaks
         """
         module_logger.info("Finding plugs")
         self._detect_peaks()
-        self._merge_peaks()
-        self._set_barcode()
         self._normalize_to_control()
+        self._set_sample_param()
+        self._set_barcoding()
+        self._set_sample_cycle()
 
 
     def detect_samples(self):
 
-        self._call_sample_cycles()
+        self._set_sample_param()
+        self._count_samples_by_cycle()
+        self._discard_cycles()
         self._label_samples()
         self._create_sample_df()
         self._add_z_scores()
@@ -112,107 +129,292 @@ class PlugData(object):
     def _detect_peaks(self):
         """
         Detects peaks using scipy.signal.find_peaks().
-        :return: Returns a DataFrame containing information about the peaks as called by sig.find_peaks
-        """
-        peak_df = pd.DataFrame()
-
-        for channel, (channel_color, _) in self.config.channels.items():
-
-            module_logger.debug(f"Running peak detection for {channel} channel")
-            peaks, properties = sig.find_peaks(self.pmt_data.data[channel_color],
-                                               height = (self.peak_min_threshold,
-                                                       self.peak_max_threshold),
-
-                                               distance = round(self.peak_min_distance *
-                                                              self.pmt_data.acquisition_rate),
-
-                                               prominence = (self.peak_min_prominence,
-                                                           self.peak_max_prominence),
-
-                                               width = (self.peak_min_width * self.pmt_data.acquisition_rate,
-                                                      self.peak_max_width * self.pmt_data.acquisition_rate),
-
-                                               rel_height = self.width_rel_height)
-
-            properties = pd.DataFrame.from_dict(properties)
-            properties = properties.assign(barcode = True if channel == "barcode" else False)
-            peak_df = peak_df.append(properties)
-
-        # Converting ips values to int for indexing later on
-        peak_df.assign(right_ips = round(peak_df.right_ips), left_ips = round(peak_df.left_ips))
-        peak_df = peak_df.astype({"left_ips": "int32", "right_ips": "int32"})
-
-        self.peak_df = peak_df
-
-
-    def _merge_peaks(self):
-        """
-        Merges peaks if merge_peaks_distance is > 0.
-        :param peak_df: DataFrame with peaks as called by detect_peaks()
-        :return: List containing plug data.
+        :return: Returns a DataFrame containing information about the peaks
+        as called by sig.find_peaks
         """
 
-        plug_list = list()
+        self.pmt_data.detect_peaks()
+        self.plug_df = self.pmt_data.peak_df
 
-        if self.merge_peaks_distance > 0:
 
-            module_logger.info(f"Merging plugs with closer centers than {self.merge_peaks_distance} seconds")
-            merge_peaks_samples = self.pmt_data.acquisition_rate * self.merge_peaks_distance
-            merge_df = self.peak_df.assign(
-                plug_center = (
-                    self.peak_df.left_ips +
-                    (self.peak_df.right_ips - self.peak_df.left_ips) / 2
+    def _set_barcoding(self, **kwargs):
+
+
+        def param_range(val):
+
+            if isinstance(val, (tuple, list)):
+
+                if len(val) == 2:
+
+                    step = (val[1] - val[0]) / 20 * .9999999
+                    val = tuple(val) + (step,)
+
+                return np.arange(*val)
+
+            else:
+
+                return (val,)
+
+
+        config = self.config
+        param = config.barcoding_param_defaults.get(
+            config.barcoding_method,
+            {},
+        )
+        param.update(config.barcoding_param)
+        param.update(kwargs)
+
+        param = dict(
+            (key, param_range(val))
+            for key, val in param.items()
+        )
+        self._barcoding_param = collections.namedtuple(
+            'BarcodeParam',
+            sorted(param.keys())
+        )
+        self._barcode_result = collections.namedtuple(
+            'BarcodeResult',
+            [
+                'sample_mismatch',
+                'sample_freq_var',
+            ]
+        )
+        self._barcode_eval = {}
+
+        n_param = functools.reduce(lambda i, j: i * len(j), param.values(), 1)
+        pbar_desc = 'Adjusting barcode detection%s'
+
+        with tqdm.tqdm(
+            total = n_param,
+            dynamic_ncols = True,
+            desc = pbar_desc % '',
+        ) as tq:
+
+            for _values in itertools.product(*param.values()):
+
+                _param = dict(zip(param.keys(), _values))
+                self._barcoding_param_last = self._barcoding_param(
+                    *(_param[f] for f in self._barcoding_param._fields)
                 )
+                tq.set_description(
+                    pbar_desc % (
+                        ' [%s]' % misc.ntuple_str(self._barcoding_param_last)
+                    )
+                )
+                self._set_barcoding_base(**_param)
+                self._evaluate_barcoding()
+                tq.update()
+
+        self._select_best_barcoding()
+        self._set_barcoding_base(**self._barcode_best_param._asdict())
+
+        module_logger.info(
+            'Found %u cycles, %u with the expected number of samples. '
+            'Sample count deviations: %s. '
+            'Best barcode detection parameters: %s.' % (
+                len(self._sample_count_anomaly),
+                list(self._sample_count_anomaly.values()).count(0),
+                misc.dict_str(self._sample_count_anomaly),
+                misc.ntuple_str(self._barcode_best_param),
             )
-            merge_df = merge_df.sort_values(by = "plug_center")
-            merge_df = merge_df.reset_index(drop = True)
-
-            centers = merge_df.plug_center
-
-            # Count through array
-            i = 0
-            while i < len(centers):
-                # Count neighborhood
-                j = 0
-                while True:
-                    if (i + j >= len(centers)) or (centers[i + j] - centers[i] > merge_peaks_samples):
-                        # Merge from the left edge of the first plug (i) to the right base of the last plug to merge (i + j - 1)
-                        plug_list.append(self._get_plug_data_from_index(merge_df.left_ips[i], merge_df.right_ips[i + j - 1]))
-
-                        # Skip to the next unmerged plug
-                        i += j
-                        break
-                    else:
-                        j += 1
-
-        else:
-
-            module_logger.info("Creating plug list with without merging close plugs!")
-            for row in self.peak_df.sort_values(by = "left_ips"):
-                plug_list.append(self._get_plug_data_from_index(row.left_ips, row.right_ips))
-
-         # Build plug_df DataFrame
-        module_logger.debug("Building plug_df DataFrame")
-        channels = [f"{str(key)}_peak_median" for key in self.config.channels.keys()]
-
-        self.plug_df = pd.DataFrame(plug_list, columns = ["start_time", "end_time"] + channels)
+        )
 
 
-    def _set_barcode(self):
+    def _set_barcoding_base(
+            self,
+            barcoding_method = None,
+            **kwargs,
+        ):
         """
         Creates a new boolean column `barcode` in the `plug_df` which is
         `True` if the plug is a barcode.
         """
 
-        # Call barcode plugs
-        module_logger.debug("Calling barcode plugs")
+        if not self.has_barcode:
+
+            module_logger.debug(
+                '`has_barcode` is False, skipping barcode identification.'
+            )
+            return
+
+        config = self.config
+        method_name = barcoding_method or config.barcoding_method
+        method = '_set_barcoding_%s' % method_name
+        param = config.barcoding_param_defaults.get(method_name, {})
+        param.update(config.barcoding_param)
+        param.update(kwargs)
+
+        if hasattr(self, method):
+
+            module_logger.debug('Barcode detection method: %s' % method)
+            module_logger.debug(
+                'Barcode detection parameters: %s' % misc.dict_str(param)
+            )
+            getattr(self, method)(**param)
+            self._evaluate_barcoding()
+
+        else:
+
+            module_logger.error('No such method: `%s`' % method)
+
+
+    def _set_barcoding_simple(self, times: float = None):
 
         self.plug_df = self.plug_df.assign(
             barcode = (
                 self.plug_df.barcode_peak_median >
-                self.plug_df.control_peak_median
+                self.plug_df.control_peak_median * times
             )
         )
+
+
+    def _set_barcoding_adaptive(self, **kwargs):
+
+        self._barcoding_thresholds = {}
+
+        method_name = kwargs.pop('thresholding_method')
+        method = getattr(skimage.filters, 'threshold_%s' % method_name)
+        method_argnames = set(inspect.signature(method).parameters.keys())
+
+        adaptive_method = (
+            kwargs['adaptive_method']
+                if 'adaptive_method' in kwargs else
+            'simple'
+        )
+
+        channels = {}
+        channel_names = {'barcode', 'control'}
+
+        # adaptive thresholds on blue and orange
+        for channel in channel_names:
+
+            param = dict(
+                (
+                    key if key0 not in channel_names else key1,
+                    val
+                )
+                for key, val, key0, key1 in
+                (
+                    ([key, val] + key.split('_', maxsplit = 1) + [None])[:4]
+                    for key, val in kwargs.items()
+                )
+                if (
+                    (
+                        key in method_argnames and
+                        '%s_%s' % (channel, key) not in kwargs
+                    ) or (
+                        key1 in method_argnames and
+                        key0 == channel
+                    )
+                )
+            )
+
+            module_logger.debug(
+                'Calling `%s` with parameters %s' % (
+                    method_name,
+                    misc.dict_str(param),
+                )
+            )
+
+            channels[channel] = self.plug_df[
+                '%s_peak_median' % channel
+            ].to_numpy()
+            shape = (1, channels[channel].shape[0])
+            channels[channel].shape = shape
+
+            threshold = method(channels[channel], **param)
+            self._barcoding_thresholds[channel] = threshold.flatten()
+
+        # setting the barcode based on the plugs' values and the blue or
+        # the orange adaptive thresholds: either the blue is above threshold
+        # or the orange is below the threshold
+        if adaptive_method == 'simple':
+
+            barcode_threshold =  self._barcoding_thresholds['barcode']
+            control_threshold = self._barcoding_thresholds['control']
+            self.plug_df['barcode'] = np.logical_or(
+                channels['barcode'] > barcode_threshold,
+                channels['control'] < control_threshold * .9,
+            ).flatten()
+
+        if adaptive_method in {'higher', 'slope'}:
+
+            threshold_barcode_norm = (
+                self._barcoding_thresholds['barcode'] /
+                self._barcoding_thresholds['barcode'].max()
+            )
+            threshold_control_norm = (
+                self._barcoding_thresholds['control'] /
+                self._barcoding_thresholds['control'].max()
+            )
+
+        if adaptive_method == 'higher':
+
+            factor = (
+                kwargs['higher_threshold_factor']
+                    if 'higher_threshold_factor' in kwargs else
+                1.
+            )
+            self.plug_df['barcode'] = (
+                threshold_barcode_norm >
+                threshold_control_norm * factor
+            ).flatten()
+
+        if adaptive_method == 'slope':
+
+            barcode_slope = np.diff(threshold_barcode_norm.flatten())
+            barcode_slope = np.concatenate([0], barcode_slope)
+            control_slope = np.diff(threshold_control_norm.flatten())
+            control_slope = np.concatenate([0], control_slope)
+
+        # adaptive threshold on blue:orange ratio
+        param = dict(
+            (key, val)
+            for key, val in kwargs.items()
+            if key in method_argnames
+        )
+        ratio = (
+            self.plug_df.barcode_peak_median.to_numpy() /
+            self.plug_df.control_peak_median.to_numpy()
+        )
+        shape = (1, max(ratio.shape))
+        ratio.shape = shape
+        ratio = ratio / ratio.max() * 10
+        threshold = method(ratio, **param)
+        self._barcoding_thresholds['ratio'] = threshold.flatten()
+        self._barcoding_thresholds['_ratio'] = ratio.flatten()
+
+        if adaptive_method == 'ratio':
+
+            self.plug_df['barcode'] = (ratio > threshold).flatten()
+
+        #param = self.config.adaptive_param.copy()
+        #param.update(kwargs)
+
+        #barcode_control = (
+            #self.plug_df.barcode_peak_median /
+            #self.plug_df.control_peak_median
+        #).to_numpy()
+        #barcode_control = self.plug_df.barcode_peak_median.to_numpy().copy()
+
+        #shape = (1, barcode_control.shape[0])
+        #barcode_control.shape = shape
+
+        #threshold = skimage.filters.threshold_local(
+            #barcode_control,
+            #**param,
+        #)
+
+        #barcode = self.plug_df.barcode_peak_median > threshold.flatten()
+        #barcode = barcode.to_numpy()
+        #barcode.shape = shape
+
+        #barcode = skimage.morphology.opening(
+            #barcode,
+            #selem = skimage.morphology.square(2),
+        #)
+
+        #self.plug_df['barcode'] = barcode.flatten()
 
 
     def _normalize_to_control(self):
@@ -231,30 +433,32 @@ class PlugData(object):
             )
 
 
-    def _get_plug_data_from_index(self, start_index, end_index):
+    def quantify_interval(self, start_index, end_index):
         """
         Calculates median for each acquired channel between two data points
+
         :param start_index: Index of the first datapoint in pmt_data.data
         :param end_index: Index of the last datapoint in pmt_data.data
-        :return: List with start_index end_index and the channels according to the order of config.channels
-        """
-        return_list = list()
-        return_list.append(start_index / self.pmt_data.acquisition_rate + self.pmt_data.data.time.iloc[0])
-        return_list.append(end_index / self.pmt_data.acquisition_rate + self.pmt_data.data.time.iloc[0])
-        for _, (channel_color, _) in self.config.channels.items():
-            return_list.append(self.pmt_data.data[channel_color][start_index:end_index].median())
 
-        return return_list
-
-
-    def _call_sample_cycles(self):
-        """
-        Finds cycles and labels individual samples
-        :return: Tuple of pd.DataFrame containing sample data
-        and the input plug_df updated with info which plugs were discarded
+        :return: List with start_index end_index and the channels according
+        to the order of config.channels
         """
 
-        sample_df = self.plug_df
+        return self.pmt_data.quantify_interval(start_index, end_index)
+
+
+    def _set_sample_cycle(self):
+        """
+        Enumerates samples and cycles. Adds new columns to the
+        :py:attr:`plug_df`: `cycle_nr`, `sample_nr` and `discard`.
+        """
+
+        if not self.has_samples_cycles:
+
+            self.plug_df['cycle_nr'] = 0
+            self.plug_df['sample_nr'] = 0
+            self.plug_df['discard'] = False
+            return
 
         # counters
         current_cycle = 0
@@ -265,25 +469,38 @@ class PlugData(object):
         cycle = []
         sample = []
         discard = []
+        # short names
+        bc_bw_samples = self.min_between_samples_barcodes
+        bc_adj_discards = self.n_bc_adjacent_discards
+        bc_cycle_end = self.min_end_cycle_barcodes
+        sm_min_len = self.min_plugs_in_sample
 
         for idx, bc in enumerate(self.plug_df.barcode):
 
             if bc:
+
                 discard.append(True)
                 cycle.append(current_cycle)
                 sample.append(max(sample_in_cycle, 0))
                 bc_peaks += 1
 
             else:
-                # Checking cycle
+
+                # step the cycle counter
+                # if this is the first plug of a sample
                 if bc_peaks > 0 or sample_in_cycle < 0:
 
                     if (
-                        bc_peaks >= self.config.min_between_samples_barcodes or
+                        (
+                            bc_peaks >= bc_bw_samples and
+                            sm_peaks >= sm_min_len
+                        )
+                        or
                         sample_in_cycle < 0
                     ):
 
                         sample_in_cycle += 1
+                        sm_peaks = 0
 
                         if (
                             bc_peaks >= self.min_end_cycle_barcodes and
@@ -298,11 +515,14 @@ class PlugData(object):
                 sample.append(sample_in_cycle)
                 cycle.append(current_cycle)
 
+                # stepping the within sample plug counter
+                sm_peaks += 1
+
                 # Discarding barcode-adjacent plugs
                 try:
                     if (
-                        self.plug_df.barcode[idx - self.n_bc_adjacent_discards] or
-                        self.plug_df.barcode[idx + self.n_bc_adjacent_discards]
+                        self.plug_df.barcode[idx - bc_adj_discards] or
+                        self.plug_df.barcode[idx + bc_adj_discards]
                     ):
                         discard.append(True)
                     else:
@@ -310,12 +530,16 @@ class PlugData(object):
                 except KeyError:
                     discard.append(False)
 
-        self.plug_df = self.plug_df.assign(cycle_nr = cycle, sample_nr = sample, discard = discard)
-
+        self.plug_df = self.plug_df.assign(
+            cycle_nr = cycle,
+            sample_nr = sample,
+            discard = discard,
+        )
 
 
     def _add_z_scores(self):
-        # Calculating z-score on filtered data and inserting it after readout_peak_median (index 5)
+        # Calculating z-score on filtered data and inserting it after
+        # readout_peak_median (index 5)
 
         if len(self.sample_df) > 1:
 
@@ -335,7 +559,10 @@ class PlugData(object):
 
         else:
 
-            module_logger.warning(f"Samples DataFrame contains {len(self.sample_df)} line(s), omitting z-score calculation!")
+            module_logger.warning(
+                f"Samples DataFrame contains {len(self.sample_df)} line(s), "
+                f"omitting z-score calculation!"
+            )
 
 
     def get_media_control_data(self) -> pd.DataFrame:
@@ -359,27 +586,39 @@ class PlugData(object):
         Calculates a linear regression over time of all media control plugs
         The readout_peak_median column is used to calculate the regression
 
-        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of the regression
-                 See https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.linregress.html
-                 for more information about the returned values
+        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of
+        the regression. See https://docs.scipy.org/doc/scipy/reference/
+        generated/scipy.stats.linregress.html for more information about
+        the returned values.
         """
         media_control = self.get_media_control_data()
 
         readout_column = readout_column or self.config.readout_column
 
-        slope, intercept, rvalue, pvalue, stderr = stats.linregress(media_control.start_time, media_control[readout_column])
+        slope, intercept, rvalue, pvalue, stderr = stats.linregress(
+            media_control.start_time,
+            media_control[readout_column],
+        )
 
         return slope, intercept, rvalue, pvalue, stderr
 
 
-    def plot_plug_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
+    def plot_plug_pmt_data(
+            self,
+            axes: plt.Axes,
+            cut: tuple = (None, None),
+        ) -> plt.Axes:
         """
-        Plots pmt data and superimposes rectangles with the called plugs upon the plot
+        Plots pmt data and superimposes rectangles with the called plugs upon
+        the plot
+
         :param axes: plt.Axes object to plot to
-        :param cut: tuple with (start_time, end_time) to subset the plot to a certain time range
+        :param cut: tuple with (start_time, end_time) to subset the plot to
+        a certain time range
+
         :return: plt.Axes object with the plot
         """
-        module_logger.info("Plotting detected peaks")
+
         axes = self.pmt_data.plot_pmt_data(axes, cut = cut)
 
         plug_df = self.plug_df
@@ -393,21 +632,52 @@ class PlugData(object):
             plug_df = plug_df.loc[plug_df.end_time <= cut[1]]
             sample_df = sample_df.loc[sample_df.end_time <= cut[1]]
 
-        # Plotting light green rectangles that indicate the used plug length and plug height
+        # Plotting light green rectangles that indicate
+        # the used plug length and plug height
         bc_patches = list()
         readout_patches = list()
 
         for plug in plug_df.itertuples():
+
             if plug.barcode:
-                bc_patches.append(mpl_patch.Rectangle(xy = (plug.start_time, 0), width = plug.end_time - plug.start_time, height = plug.barcode_peak_median))
+
+                bc_patches.append(
+                    mpl_patch.Rectangle(
+                        xy = (plug.start_time, 0),
+                        width = plug.end_time - plug.start_time,
+                        height = plug.barcode_peak_median,
+                    )
+                )
             # else:
-            #     readout_patches.append(mpl_patch.Rectangle(xy = (plug.start_time, 0), width = plug.end_time - plug.start_time, height = plug.readout_peak_median))
+            #     readout_patches.append(mpl_patch.Rectangle(xy =
+            #     (plug.start_time, 0),
+            #     width = plug.end_time - plug.start_time,
+            #     height = plug.readout_peak_median))
 
         for plug in sample_df.itertuples():
-            readout_patches.append(mpl_patch.Rectangle(xy = (plug.start_time, 0), width = plug.end_time - plug.start_time, height = plug.readout_peak_median))
 
-        axes.add_collection(mpl_coll.PatchCollection(bc_patches, facecolors = self.config.colors["blue"], alpha = 0.4))
-        axes.add_collection(mpl_coll.PatchCollection(readout_patches, facecolors = self.config.colors["green"], alpha = 0.4))
+            readout_patches.append(
+                mpl_patch.Rectangle(
+                    xy = (plug.start_time, 0),
+                    width = plug.end_time - plug.start_time,
+                    height = plug.readout_peak_median,
+                )
+            )
+
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                bc_patches,
+                facecolors = self.config.colors["blue"],
+                alpha = 0.4,
+            )
+        )
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                readout_patches,
+                facecolors = self.config.colors["green"],
+                alpha = 0.4,
+            )
+        )
 
         return axes
 
@@ -441,8 +711,8 @@ class PlugData(object):
             plug_patches[plug_type].append(patch)
 
         colors = {
-            'readout': self.config.colors["green"],
-            'barcode': self.config.colors["blue"],
+            'readout': self.config.colors['green'],
+            'barcode': self.config.colors['blue'],
         }
 
         for key, color in colors.items():
@@ -462,7 +732,7 @@ class PlugData(object):
 
         for plug in self.plug_df.itertuples():
 
-            color = self.config.colors["blue" if plug.barcode else "green"]
+            color = self.config.colors['uv' if plug.barcode else 'green']
             axes.axvspan(
                 xmin = plug.start_time,
                 xmax = plug.end_time,
@@ -497,17 +767,57 @@ class PlugData(object):
             axes.text(
                 x = sample.start_time,
                 y = ymax - .1,
-                s = '%u/%u' % sample.Index,
+                s = '%u/%u' % (sample.Index[0] + 1, sample.Index[1] + 1),
                 size = 'xx-large',
             )
 
         return axes
 
 
+    def pmt_plot_add_thresholds(self, axes: plt.Axes):
+
+        if not hasattr(self, '_barcoding_thresholds'):
+
+            return
+
+        time = (self.plug_df.start_time + self.plug_df.end_time) / 2
+
+        for channel, threshold in self._barcoding_thresholds.items():
+
+            if channel[0] == '_':
+
+                continue
+
+            color = self.config.channel_color(channel)
+            print('color: ', color, 'channel: ', channel)
+            sns.lineplot(
+                x = time,
+                y = threshold / threshold.max() * axes.get_ylim()[1] * .95,
+                color = color,
+                style = True,
+                dashes = [(2,2)],
+                linewidth = 1.,
+                legend = False,
+                ax = axes,
+            )
+
+        ratio = self._barcoding_thresholds['_ratio']
+        ratio = ratio / ratio.max() * axes.get_ylim()[1] * .95
+
+        sns.scatterplot(
+            x = time,
+            y = ratio,
+            color = '#CC00CC',
+            ax = axes,
+        )
+
+
     def plot_cycle_pmt_data(self, axes: plt.Axes) -> plt.Axes:
         """
-        Plots pmt data and superimposes filled rectangles for cycles with correct numbers of samples and
+        Plots pmt data and superimposes filled rectangles for cycles with
+        correct numbers of samples and
         unfilled rectangles for discarded cycles
+
         :param axes: plt.Axes object to plot to
         :return: plt.Axes object with the plot
         """
@@ -516,111 +826,329 @@ class PlugData(object):
 
         used_cycle_patches = list()
         discarded_cycle_patches = list()
-        patch_height = self.pmt_data.data[["green", "orange", "uv"]].max().max()
+        patch_height = (
+            self.pmt_data.data[["green", "orange", "uv"]].max().max()
+        )
 
         for used_cycle in self.sample_df.groupby("cycle_nr"):
             cycle_start_time = used_cycle[1].start_time.min()
             cycle_end_time = used_cycle[1].end_time.max()
-            used_cycle_patches.append(mpl_patch.Rectangle(xy = (cycle_start_time, 0), width = cycle_end_time - cycle_start_time, height = patch_height))
+            used_cycle_patches.append(
+                mpl_patch.Rectangle(
+                    xy = (cycle_start_time, 0),
+                    width = cycle_end_time - cycle_start_time,
+                    height = patch_height,
+                )
+            )
 
         for detected_cycle in self.plug_df.groupby("cycle_nr"):
             cycle_start_time = detected_cycle[1].start_time.min()
             cycle_end_time = detected_cycle[1].end_time.max()
-            discarded_cycle_patches.append(mpl_patch.Rectangle(xy = (cycle_start_time, 0), width = cycle_end_time - cycle_start_time, height = patch_height))
+            discarded_cycle_patches.append(
+                mpl_patch.Rectangle(
+                    xy = (cycle_start_time, 0),
+                    width = cycle_end_time - cycle_start_time,
+                    height = patch_height,
+                )
+            )
 
-            axes.text(x = (cycle_end_time - cycle_start_time) / 2 + cycle_start_time, y = 0.9 * patch_height, s = f"Cycle {detected_cycle[0]}", horizontalalignment = "center")
+            axes.text(
+                x = (
+                    (cycle_end_time - cycle_start_time) / 2 +
+                    cycle_start_time
+                ),
+                y = 0.9 * patch_height,
+                s = f"Cycle {detected_cycle[0]}",
+                horizontalalignment = "center",
+            )
 
-        axes.add_collection(mpl_coll.PatchCollection(used_cycle_patches, facecolors = "green", alpha = 0.4))
-        axes.add_collection(mpl_coll.PatchCollection(discarded_cycle_patches, edgecolors = "red", facecolors = "none", alpha = 0.4))
-
-        # for cycle in self.sample_df.cycle_nr.unique():
-        #     cycle_start_time = self.sample_df.loc[self.sample_df.cycle_nr == cycle].start_time.min()
-        #     cycle_end_time = self.sample_df.loc[self.sample_df.cycle_nr == cycle].end_time.max()
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                used_cycle_patches,
+                facecolors = "green",
+                alpha = 0.4,
+            )
+        )
+        axes.add_collection(
+            mpl_coll.PatchCollection(
+                discarded_cycle_patches,
+                edgecolors = "red",
+                facecolors = "none",
+                alpha = 0.4,
+            )
+        )
 
         return axes
 
 
-    def _label_samples(self):
+    def _set_sample_param(self):
         """
-        Labels sample_df with associated names and compounds according to the ChannelMap in the PlugSequence
-        :param sample_df: pd.DataFrame with sample_nr column to associate names and compounds
-        :return: pd.DataFrame with the added name, compound_a and b columns
+        Sets up the parameters for counting and possibly labeling samples.
         """
 
         # Label samples in case channel map and plug sequence are provided
-        if (
-            not isinstance(self.channel_map, bd.ChannelMap) or
-            not isinstance(self.plug_sequence, bd.PlugSequence)
-        ):
+        self._has_sequence = (
+            isinstance(self.channel_map, bd.ChannelMap) and
+            isinstance(self.plug_sequence, bd.PlugSequence)
+        )
 
-            module_logger.warning(
-                "Channel map and/or plug sequence not properly specified, "
-                "skipping labeling of samples!"
-            )
+        self.sample_sequence = (
+            self.plug_sequence.get_samples(channel_map = self.channel_map)
+                if self._has_sequence else
+            None
+        )
+        self.expected_samples = (
+            len(self.sample_sequence.sequence)
+                if self._has_sequence else
+            self.samples_per_cycle
+        )
+
+
+    def _ensure_sample_param(self):
+
+        if not hasattr(self, 'expected_samples'):
+
+            self._set_sample_param()
+
+
+    def _evaluate_barcoding(self):
+
+        self._ensure_sample_param()
+        self._count_samples_by_cycle()
+        self._evaluate_barcoding_base()
+
+
+    def _evaluate_barcoding_base(self):
+
+        sample_mismatch = sum(
+            abs(a)
+            for a in self._sample_count_anomaly.values()
+        )
+        sample_freq_var = 0
+
+        for cycle_nr in self.plug_df.cycle_nr.unique():
+
+            this_cycle = self.plug_df[self.plug_df.cycle_nr == cycle_nr]
+            start_times = this_cycle.groupby('sample_nr').min('start_time')
+            sample_freq_var += start_times['start_time'].std()
+
+        result = self._barcode_result(
+            sample_mismatch = sample_mismatch,
+            sample_freq_var = sample_freq_var,
+        )
+
+        self._barcode_eval[self._barcoding_param_last] = result
+
+
+    def _select_best_barcoding(self):
+
+        self._barcode_best_param = min(
+            self._barcode_eval,
+            key = self._barcode_eval.get,
+        )
+
+
+    def _adjust_sample_detection(self):
+        """
+        Labels sample_df with associated names and compounds according to the
+        ChannelMap in the PlugSequence
+
+        :param sample_df: pd.DataFrame with sample_nr column to associate
+        names and compounds
+
+        :return: pd.DataFrame with the added name, compound_a and b columns
+        """
+
+        if not self._has_sequence or self.config.adaptive:
+
             return
 
-        labelled_df = self.plug_df
-        sample_sequence = self.plug_sequence.get_samples(channel_map = self.channel_map)
-        labelling_possible = True
-        discarded_cycles = list()
+        blue_highest = self.config.blue_highest
+        n_valid_cycles = collections.defaultdict(list)
 
-        for cycle in labelled_df.groupby("cycle_nr"):
+        while True:
 
-            # cycle[1] is the group DataFrame, cycle[0] is the current cycle_nr
-            found_samples = len(cycle[1].sample_nr.unique())
-            expected_samples = len(sample_sequence.sequence)
+            self._count_samples_by_cycle()
+            self._get_valid_cycles()
+            n_valid_cycles[len(self.valid_cycles)].append(blue_highest)
 
-            if found_samples != expected_samples:
+            if (
+                any(
+                    0 < abs(d) < 4
+                    for d in self._sample_count_anomaly.values()
+                ) and
+                blue_highest < 1.5
+            ):
 
-                log_msg = f"Cycle {cycle[0]} detected between {cycle[1].start_time.min()} - {cycle[1].end_time.max()} contains {'less' if found_samples < expected_samples else 'more'} samples ({found_samples}) than expected ({expected_samples})"
-                if self.auto_detect_cycles:
-                    module_logger.info(log_msg)
-                    module_logger.info(f"Discarding Cycle {cycle[0]}")
-                    labelled_df.loc[labelled_df.cycle_nr == cycle[0], "discard"] = True
-                    discarded_cycles.append(cycle[0])
-                else:
-                    module_logger.critical(log_msg)
-                    labelling_possible = False
+                blue_highest += .05
+                self._set_barcode(blue_highest = blue_highest)
+                self._set_sample_cycle()
 
-        check_msg = "\n".join([f"Check:",
-                               f"\tIncrease peak_max_width (currently {self.peak_max_width}) if plugs are too short to be detected",
-                               f"\tDecrease width_rel_height (currently {self.width_rel_height}) if plugs are wider than tall",
-                               f"\tCut of PMT data (currently {self.pmt_data.cut}) being precisely at the start of the first actual sample (not the barcode)"])
+            else:
 
-        if not labelling_possible:
-            raise AssertionError("\n".join([f"Number of found and expected_samples have to match for all cycles", check_msg]))
+                break
 
-        # discarded_cycles = labelled_df.cycle_nr.unique()
-        assert len(discarded_cycles) < len(labelled_df.cycle_nr.unique()), "\n".join([f"Did not detect any cycle with the proper number of samples", check_msg])
+        blue_highest = n_valid_cycles[max(n_valid_cycles.keys())][0]
+        self._set_barcode(blue_highest = blue_highest)
+        self._set_sample_cycle()
+        self._count_samples_by_cycle()
 
-        module_logger.info("Labelling samples with compound names")
-        labelled_df["name"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.get_sample_name(nr, sample_sequence))
-        labelled_df["compound_a"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[0])
-        labelled_df["compound_b"] = labelled_df.loc[~labelled_df.discard].sample_nr.apply(lambda nr: self.channel_map.get_compounds(sample_sequence.sequence[nr].open_valves)[1])
+        module_logger.info(
+            f"Adjusted `blue_highest` "
+            f"to {blue_highest}."
+        )
 
-        self.plug_df = labelled_df
+
+    def _count_samples_by_cycle(self):
+
+        if not self.expected_samples:
+
+            return
+
+        self._set_sample_cycle()
+
+        self._samples_by_cycle = dict(
+            (
+                cycle_nr,
+                cycle.sample_nr.nunique()
+            )
+            for cycle_nr, cycle in self.plug_df.groupby('cycle_nr')
+        )
+
+        self._sample_count_anomaly = dict(
+            (
+                cycle_nr,
+                n_samples - self.expected_samples
+            )
+            for cycle_nr, n_samples in self._samples_by_cycle.items()
+        )
+
+
+    def _discard_cycles(self):
+
+        for cycle_nr, cycle in self.plug_df.groupby('cycle_nr'):
+
+            diff = self._sample_count_anomaly[cycle_nr]
+
+            if diff:
+
+                log_msg = (
+                    f"Cycle {cycle_nr} detected between "
+                    f"{cycle.start_time.min()}-{cycle.end_time.max()} "
+                    f"contains {self._samples_by_cycle[cycle_nr]} samples, "
+                    f"{'less' if diff < 0 else 'more'} than "
+                    f"expected ({self.expected_samples})."
+                )
+                module_logger.info(log_msg)
+                module_logger.info(f"Discarding cycle {cycle_nr}.")
+
+
+                with warnings.catch_warnings():
+
+                    warnings.simplefilter('ignore')
+                    self.plug_df.discard[
+                        self.plug_df.cycle_nr == cycle_nr
+                    ] = True
+
+        self._get_valid_cycles()
+        self.n_cycles = len(self._samples_by_cycle)
+
+        message = (
+            self.pmt_data._detection_issues_message()
+                if hasattr(self, 'pmt_data') else
+            ''
+        )
+
+        if not self.valid_cycles:
+
+            module_logger.critical(
+                f"None of the {self.n_cycles} cycles is valid."
+            )
+
+            if message:
+
+                module_logger.info(message)
+
+        elif len(self.valid_cycles) != self.n_cycles:
+
+            module_logger.info(
+                f"Out of {self.n_cycles} only "
+                f"{len(self.valid_cycles)} are valid."
+            )
+
+            if not self.auto_detect_cycles:
+
+                module_logger.critical(
+                    f"All cycles must have the expected number of samples."
+                )
+                self.valid_cycles = ()
+
+            if message:
+
+                module_logger.info(message)
+
+            if not self.auto_detect_cycles:
+
+                self.valid
+
+
+    def _get_valid_cycles(self):
+
+        self.valid_cycles = [
+            cycle_nr
+            for cycle_nr, diff in self._sample_count_anomaly.items()
+            if not diff
+        ]
+
+
+    def _label_samples(self):
+
+        assert self.valid_cycles, 'No valid cycles available.'
+
+        module_logger.info('Labelling samples with compound names')
+
+        df = self.plug_df
+        seq = self.sample_sequence
+
+        df['name'] = df.loc[~df.discard].sample_nr.apply(
+            lambda nr: self.get_sample_name(nr, seq)
+        )
+        df['compound_a'] = df.loc[~df.discard].sample_nr.apply(
+            lambda nr: self.channel_map.get_compounds(
+                seq.sequence[nr].open_valves
+            )[0]
+        )
+        df['compound_b'] = df.loc[~df.discard].sample_nr.apply(
+            lambda nr: self.channel_map.get_compounds(
+                seq.sequence[nr].open_valves
+            )[1]
+        )
 
 
     def _create_sample_df(self):
 
         sample_df = self.plug_df.loc[self.plug_df.discard == False]
-        self.sample_df = sample_df.drop(columns = ["discard", "barcode"])
+        self.sample_df = sample_df.drop(columns = ['discard', 'barcode'])
 
 
-    def get_sample_name(self, sample_nr: int, sample_sequence: bd.PlugSequence):
+    def get_sample_name(
+            self,
+            sample_nr: int,
+            sample_sequence: bd.PlugSequence,
+        ):
         """
         Returns a unified naming string for a sample.
         Concatenation of both compounds or single compound or cell control
         :param sample_nr: Sample number
         :param sample_sequence: bd.PlugSequence object to get open valves from
         """
-        compounds = self.channel_map.get_compounds(sample_sequence.sequence[sample_nr].open_valves)
+        compounds = self.channel_map.get_compounds(
+            sample_sequence.sequence[sample_nr].open_valves
+        )
         compounds = [compound for compound in compounds if compound != "FS"]
+        compounds = ' + '.join(compounds) or 'Cell Control'
 
-        if len(compounds) == 0:
-            return "Cell Control"
-        else:
-            return " + ".join(compounds)
+        return compounds
 
 
     def plot_sample_cycles(self):
@@ -642,21 +1170,38 @@ class PlugData(object):
 
         for idx_y, name in enumerate(names):
             for idx_x, cycle in enumerate(cycles):
-                module_logger.debug(f"Plotting sample {idx_y + 1} of {len(names)}, cycle {idx_x + 1} of {len(cycles)}")
-                sample_cycle_ax[idx_y][idx_x] = self.plot_sample(name = name, cycle_nr = cycle, axes = sample_cycle_ax[idx_y][idx_x])
+                module_logger.debug(
+                    f"Plotting sample {idx_y + 1} of {len(names)}, "
+                    f"cycle {idx_x + 1} of {len(cycles)}"
+                )
+                sample_cycle_ax[idx_y][idx_x] = self.plot_sample(
+                    name = name,
+                    cycle_nr = cycle,
+                    axes = sample_cycle_ax[idx_y][idx_x],
+                )
                 sample_cycle_ax[idx_y][idx_x].set_ylim((0, y_max))
 
         sample_cycle_fig.tight_layout()
+
         return sample_cycle_fig, sample_cycle_ax
 
 
-    def plot_sample(self, name: str, cycle_nr: int, axes: plt.Axes, offset: int = 10) -> plt.Axes:
+    def plot_sample(
+            self,
+            name: str,
+            cycle_nr: int,
+            axes: plt.Axes,
+            offset: int = 10,
+        ) -> plt.Axes:
         """
         Plots the PMT traces for a particular drug and cycle and
-        :param name: Name of the drug combination/valve as listed in the PlugSequence
+
+        :param name: Name of the drug combination/valve as listed in the
+        PlugSequence
         :param cycle_nr: Number of the cycle
         :param axes: The plt.Axes object to draw on
         :param offset: How many seconds to plot left and right of the plugs
+
         :return: The plt.Axes object with the plot
         """
         peak_data = self.sample_df[(self.sample_df.cycle_nr == cycle_nr) & (self.sample_df.name == name)]

@@ -43,34 +43,78 @@ class PlugyConfig(object):
     result_subdirs: bool = False
     timestamp_result_subdirs: bool = False
 
+<<<<<<< HEAD
     # General config
     name: str = None
+=======
+    ## General config
+    name: str = None
+    # file type for saving the figures
+>>>>>>> 46-improve-sample-and-cycle-detection
     figure_export_file_type: str = "svg"
-    colors: dict = field(default_factory = lambda: {"green": "#5D9731", "blue": "#3A73BA", "orange": "#F68026"})
+    # colors for representing channels on the figures
+    colors: dict = field(
+        default_factory = lambda: {
+            'green': '#5D9731',
+            'uv': '#3A73BA',
+            'orange': '#F68026',
+        }
+    )
+    # run the entire workflow
     run: bool = True
+<<<<<<< HEAD
     init: bool = True
     plugs: bool = True
+=======
+    # run the initial steps: set up the objects and load the data
+    init: bool = True
+    # run the plug detection
+    plugs: bool = True
+    # label of the control channels in the channel layout
+>>>>>>> 46-improve-sample-and-cycle-detection
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {"FS", "neg Ctr"}
     )
+    # do not raise an error if the quality control fails
+    # but proceed with quantification and visualization
+    # of the results
     ignore_qc_result: bool = False
+    # whether to write log messages also to the STDOUT
+    # or only to the log file
     log_to_stdout: bool = True
 
     # sequence settings
     allow_lt4_valves: bool = False
 
-    # PMT configuration
-    channels: dict = field(default_factory = lambda: {"barcode": ("uv", 3), "control": ("orange", 2), "readout": ("green", 1)})
+    ## PMT configuration
+    # function, name and column index of the channels
+    channels: dict = field(
+        default_factory = lambda: {
+            'barcode': ('uv', 3),
+            'control': ('orange', 2),
+            'readout': ('green', 1),
+        }
+    )
+    # PMT acquisition rate in Hz
     acquisition_rate: int = 300
+    # crop the data by removing the segments before the first
+    # and after the second element of this tuple (in seconds)
     cut: tuple = (None, None)
+
+    # set the acquisition times by a linear interpolation
+    # based on the `acquisition_rate`
     correct_acquisition_time: bool = True
-    ignore_orange_channel: bool = False
-    ignore_green_channel: bool = False
-    ignore_uv_channel: bool = False
-    digital_gain_uv: float = 1.0
-    digital_gain_green: float = 1.0
-    digital_gain_orange: float = 1.0
-    bc_override_threshold: float = None
+    # set the value of the channels listed here to zero
+    ignore_channels: set = field(default_factory = set)
+    # scale certain channels by a constant factor
+    fake_gains: dict = field(default_factory = dict)
+    # a default scaling factor for the remaining channels
+    fake_gain_default: float = 1.0
+    # I don't know what this intended to be,
+    # raises NotImplementedError
+    fake_gain_adaptive: bool = False
+    # above this value set the value of the barcode channel to 1.0
+    barcode_raw_threshold: float = None
 
     # Plug Calling
     auto_detect_cycles: bool = True
@@ -83,9 +127,55 @@ class PlugyConfig(object):
     peak_max_width: float = 1.5
     width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
+    merge_peaks_by: str = 'center'
     n_bc_adjacent_discards: int = 1
+    # lowest number of barcode plugs separating two cycles
+    # barcode segments with fewer plugs separate samples within cycles
     min_end_cycle_barcodes: int = 12
+    # lowest number of barcode plugs separating 2 samples
+    # if fewer barcode plugs between sample plugs, the sample
+    # counter won't be increased
     min_between_samples_barcodes: int = 2
+    # lowest number of plugs in a sample
+    # if barcode comes without reaching yet this threshold,
+    # the sample counter won't be increased
+    min_plugs_in_sample: int = 3
+
+    # if False, the workflow stops after plug identification and
+    # quantification, sample and barcode plugs won't be distinguished
+    has_barcode: bool = True
+    # if False, plug detection stops after identification of barcode plugs
+    # and no sample and cycle numbers will be assigned to the plugs
+    has_samples_cycles: bool = True
+    # the number of samples within one cycle; no need to provide if sequence
+    # file is available; otherwise it helps in evaluating barcode detection
+    # methods even if the sequence is unknoen
+    samples_per_cycle: int = None
+    # the name of a method for identifying barcode plugs:
+    # * `simple`: the simplest method, works with not too noisy data:
+    #    plugs are barcode if the channel of the blue value is the highest
+    # * `adaptive`: change the value of the `blue_highest_times`
+    #    parameter to find the one giving the best result
+    barcoding_method: str = 'simple'
+    # override parameters for the selected barcode method
+    barcoding_param: dict = field(default_factory = dict)
+    # default parameters for the barcode methods
+    barcoding_param_defaults: dict = field(
+        default_factory = lambda: {
+            'simple': {
+                # a scaling factor for the `blue_highest` method: the blue
+                # channel must be at least this times higher than the control
+                # channel for barcode plugs
+                'times': 1.0,
+            },
+            'adaptive': {
+                'adaptive_method': 'simple',
+                'higher_threshold_factor': 1.,
+                'thresholding_method': 'local',
+                'block_size': 7,
+            }
+        }
+    )
 
     # Analysis
     normalize_using_control: bool = False
@@ -110,6 +200,7 @@ class PlugyConfig(object):
     def __post_init__(self):
         # Creating result dir for each individual run
 
+        self._set_paths()
         self._set_name()
 
         current_time = time.strftime("%Y%m%d_%H%M")
@@ -132,6 +223,22 @@ class PlugyConfig(object):
         os.makedirs(str(self.result_dir), exist_ok = True)
 
         self.start_logging()
+
+
+    def _set_paths(self):
+
+        for attr in (
+            'pmt_file',
+            'channel_file',
+            'seq_file',
+            'result_base_dir',
+        ):
+
+            path = getattr(self, attr)
+
+            if isinstance(path, str):
+
+                setattr(self, attr, pl.Path(path))
 
 
     def _set_name(self):
@@ -187,4 +294,22 @@ class PlugyConfig(object):
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
 
-        self.start_logging()
+        logger.addHandler(file_handler)
+
+
+    @property
+    def channel_names(self):
+
+        return dict(
+            (key, value[0])
+            for key, value in self.channels.items()
+        )
+
+
+    def channel_color(self, channel):
+
+        return (
+            self.colors[self.channels[channel][0]]
+                if channel in self.channels else
+            '#000000'
+        )

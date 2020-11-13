@@ -14,5 +14,7 @@ setup(
                       'statsmodels',
                       'scipy',
                       'pandas',
-                      'numpy']
+                      'numpy',
+                      'scikit-image',
+                      ]
 )
