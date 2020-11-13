@@ -46,3 +46,15 @@
 * No longer need to manually start the logging, it happens automatically
 * No need to define paths with `pathlib`, you can simply provide them as
   strings
+* It is possible to apply an independent second color scale to one
+  compound on the heatmap; this is necessary because the positive
+  control sometimes gives much higher signal than the drug compounds.
+  This is controlled by the new config parameter `heatmap_second_scale`,
+  by default it is set to `pos_ctrl`.
+* We created a way to merge multiple experiments. Briefly, the first
+  experiment will be the main one and all the subsequent ones should be
+  merged (appended) to this one. It means first you need to create the
+  second, third, etc experiments and run them only until the sample
+  identification. Then you create the first experiment, and with the
+  new config parameter `append` you provide all the subsequent
+  experiments. It sounds complicated, but we will show an example.
