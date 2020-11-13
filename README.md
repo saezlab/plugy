@@ -27,29 +27,25 @@ conda install pip git
 pip install git+https://git.embl.de/grp-merten/plugy@master
 ```
 
-Importing modules
-```python
-# Handling file paths
-import pathlib as pl
+Importing the modules
 
+```python
 # Importing plugy modules
 import plugy.exp as exp
 import plugy.data.config as config
 ```
 
-Running Plugy
+Setting up Plugy
 
-Creating configuration & setting up logging
-This will automatically create result directories for each individual run.
-The `misc.start_logging` function will cause `plugy` to display INFO and higher level 
-messages on screen and log every message to a log file in the result directory.
 ```python
-plugy_config = config.PlugyConfig(pmt_file=pl.Path("data/pmt_data.txt.gz"),
-                                  seq_file=pl.Path("data/sequence.csv"),
-                                  channel_file=pl.Path("data/channel_map.csv"),
-                                  auto_detect_cycles=True,
-                                  peak_max_width=2.5,
-                                  figure_export_file_type="png")
+plugy_config = config.PlugyConfig(
+    pmt_file = 'data/pmt_data.txt.gz',
+    seq_file = 'data/sequence.csv',
+    channel_file = 'data/channel_map.csv',
+    auto_detect_cycles = True,
+    peak_max_width = 2.5,
+    figure_export_file_type = 'png',
+)
 
 ```
 
@@ -58,10 +54,12 @@ Running the analysis
 ```python
 plug_exp = exp.PlugExperiment(plugy_config)
 ```
+
 If you want to interact with the data use the contents of the plug_exp object. 
-It contains all the plug, pmt, channel and sequence data that was used in the analysis. 
- 
+It contains all the plug, pmt, channel and sequence data that was used in the analysis.
+
 For example, this would give you a DataFrame containing the statistics to each sample:
+
 ```python
 plug_exp.sample_statistics
 ```

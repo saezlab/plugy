@@ -43,3 +43,6 @@
   with log messages. We always have the log messages in the log file.
   - `log_to_stdout`: we keep the old behaviour, if you want to make it
     silent set this option to `False`
+* No longer need to manually start the logging, it happens automatically
+* No need to define paths with `pathlib`, you can simply provide them as
+  strings
