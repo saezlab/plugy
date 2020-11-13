@@ -335,7 +335,7 @@ class PlugData(object):
                 channels['control'] < control_threshold * .9,
             ).flatten()
 
-        if adaptive_method == 'higher':
+        if adaptive_method in {'higher', 'slope'}:
 
             threshold_barcode_norm = (
                 self._barcoding_thresholds['barcode'] /
@@ -345,6 +345,9 @@ class PlugData(object):
                 self._barcoding_thresholds['control'] /
                 self._barcoding_thresholds['control'].max()
             )
+
+        if adaptive_method == 'higher':
+
             factor = (
                 kwargs['higher_threshold_factor']
                     if 'higher_threshold_factor' in kwargs else
@@ -354,6 +357,13 @@ class PlugData(object):
                 threshold_barcode_norm >
                 threshold_control_norm * factor
             ).flatten()
+
+        if adaptive_method == 'slope':
+
+            barcode_slope = np.diff(threshold_barcode_norm.flatten())
+            barcode_slope = np.concatenate([0], barcode_slope)
+            control_slope = np.diff(threshold_control_norm.flatten())
+            control_slope = np.concatenate([0], control_slope)
 
         # adaptive threshold on blue:orange ratio
         param = dict(
@@ -777,6 +787,7 @@ class PlugData(object):
                 continue
 
             color = self.config.channel_color(channel)
+            print('color: ', color, 'channel: ', channel)
             sns.lineplot(
                 x = time,
                 y = threshold / threshold.max() * axes.get_ylim()[1] * .95,
