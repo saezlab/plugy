@@ -210,6 +210,11 @@ class PlugData(object):
         self._select_best_barcoding()
         self._set_barcoding_base(**self._barcode_best_param._asdict())
 
+        self._sample_cycle_message()
+
+
+    def _sample_cycle_message(self):
+
         module_logger.info(
             'Found %u cycles, %u with the expected number of samples. '
             'Sample count deviations: %s. '
@@ -1004,13 +1009,15 @@ class PlugData(object):
         )
 
 
-    def _count_samples_by_cycle(self):
+    def _count_samples_by_cycle(self, update = True):
 
         if not self.expected_samples:
 
             return
 
-        self._set_sample_cycle()
+        if update:
+
+            self._set_sample_cycle()
 
         self._samples_by_cycle = dict(
             (
@@ -1498,7 +1505,7 @@ class PlugData(object):
             col = 'cycle_nr' if by_cycle else None,
             height = 5,
             aspect = (
-                (.5 * len(cycles) if by_cycle else 1) *
+                (.55 * len(cycles) if by_cycle else 1) *
                 aspect_correction
             ),
         )
@@ -1542,11 +1549,15 @@ class PlugData(object):
                     second_scale_data.columns != self.heatmap_second_scale
                 ] = np.nan
 
-                annot_second_scale = annotation_df.copy()
-                annot_second_scale.loc[
-                    :,
-                    annotation_df.columns != self.heatmap_second_scale
-                ] = ''
+                annot_second_scale = None
+
+                if annotation_df is not None:
+
+                    annot_second_scale = annotation_df.copy()
+                    annot_second_scale.loc[
+                        :,
+                        annotation_df.columns != self.heatmap_second_scale
+                    ] = ''
 
             ax = grid.axes.flat[i]
 
@@ -1619,3 +1630,55 @@ class PlugData(object):
             sample_df = sample_df.assign(readout_media_norm_z_score=stats.zscore(sample_df.readout_media_norm))
 
             self.sample_df = sample_df
+
+
+    def append(
+            self,
+            plug_df: pd.DataFrame,
+            sample_df: pd.DataFrame = None,
+            offset: float = 1.,
+        ):
+
+        # if PlugExperiment provided
+        if hasattr(plug_df, 'plug_data'):
+
+            plug_df = plug_df.plug_data
+
+        # if PlugData provided
+        if hasattr(plug_df, 'plug_df'):
+
+            if sample_df is None and hasattr(plug_df, 'sample_df'):
+
+                sample_df = plug_df.sample_df
+
+            plug_df = plug_df.plug_df
+
+        self.plug_df = self.concat_dfs(self.plug_df, plug_df, offset)
+
+        if sample_df is not None and hasattr(self, 'sample_df'):
+
+            self.sample_df = self.concat_dfs(
+                self.sample_df,
+                sample_df,
+                offset,
+            )
+
+        if self.has_barcode:
+
+            self._count_samples_by_cycle(update = False)
+            self._sample_cycle_message()
+
+
+    @staticmethod
+    def concat_dfs(df1: pd.DataFrame, df2: pd.DataFrame, offset: float = 1.):
+
+        tmax = df1.end_time.max()
+        cmax = df1.cycle_nr.max()
+
+        df2 = df2.copy()
+        df2.start_time = df2.start_time + tmax + offset
+        df2.end_time = df2.end_time + tmax + offset
+        df2.cycle_nr = df2.cycle_nr - df2.cycle_nr.min() + cmax + 1
+
+        return pd.concat([df1, df2]).reset_index()
+

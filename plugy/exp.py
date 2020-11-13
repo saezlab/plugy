@@ -88,9 +88,12 @@ class PlugExperiment(object):
 
             self.detect_plugs()
 
-        if self.config.run:
+        if self.config.run or self.config.samples:
 
             self.detect_samples()
+
+        if self.config.run:
+
             self.qc()
             self.drug_combination_analysis()
             self.close_figures()
@@ -194,7 +197,34 @@ class PlugExperiment(object):
             raise
 
         self.sample_data = self.get_sample_data()
+        self.append_experiments()
         self.sample_statistics = self.calculate_statistics()
+
+
+    def append_experiments(self, experiments: list = None):
+        """
+        Merges one or more other experiments by concatenating the plug and
+        sample data frames. The time and cycle values will be modified in a
+        way that the merged experiments follow each other without overlap.
+        """
+
+        experiments = (
+            self.config.append
+                if experiments is None else
+            experiments
+        )
+
+        if not isinstance(experiments, (tuple, list)):
+
+            experiments = tuple(experiments)
+
+        for exp in experiments:
+
+            if not isinstance(exp, tuple):
+
+                exp = (exp,)
+
+            self.plug_data.append(*exp)
 
 
     def plot_pmt_data(self):

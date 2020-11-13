@@ -61,6 +61,8 @@ class PlugyConfig(object):
     init: bool = True
     # run the plug detection
     plugs: bool = True
+    # run the sample detection
+    samples: bool = True
     # label of the control channels in the channel layout
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {'FS', 'neg Ctr'}
@@ -166,6 +168,8 @@ class PlugyConfig(object):
             }
         }
     )
+
+    append: list = field(default_factory = list)
 
     # Analysis
     normalize_using_control: bool = False
