@@ -168,6 +168,7 @@ class PlugExperiment(object):
             has_barcode = self.config.has_barcode,
             has_samples_cycles = self.config.has_samples_cycles,
             samples_per_cycle = self.config.samples_per_cycle,
+            heatmap_second_scale = self.config.heatmap_second_scale,
             config = self.config,
         )
 

@@ -71,6 +71,8 @@ class PlugData(object):
     has_samples_cycles: bool = True
     samples_per_cycle: int = None
 
+    heatmap_second_scale: str = 'pos_ctrl'
+
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
 
@@ -1484,11 +1486,21 @@ class PlugData(object):
 
         cycles = self.sample_df.cycle_nr.unique() if by_cycle else (None,)
 
+        second_scale = (
+            self.heatmap_second_scale in set(self.sample_df.compound_a) or
+            self.heatmap_second_scale in set(self.sample_df.compound_b)
+        )
+
+        aspect_correction = 1.33 if second_scale else 1.0
+
         grid = sns.FacetGrid(
             data = self.sample_df,
             col = 'cycle_nr' if by_cycle else None,
             height = 5,
-            aspect = .5 * len(cycles) if by_cycle else 1,
+            aspect = (
+                (.5 * len(cycles) if by_cycle else 1) *
+                aspect_correction
+            ),
         )
 
         for i, cycle in enumerate(cycles):
@@ -1521,6 +1533,21 @@ class PlugData(object):
                     replace(np.nan, '')
                 )
 
+            if second_scale:
+
+                second_scale_data = data.copy()
+                data[self.heatmap_second_scale] = np.nan
+                second_scale_data.loc[
+                    :,
+                    second_scale_data.columns != self.heatmap_second_scale
+                ] = np.nan
+
+                annot_second_scale = annotation_df.copy()
+                annot_second_scale.loc[
+                    :,
+                    annotation_df.columns != self.heatmap_second_scale
+                ] = ''
+
             ax = grid.axes.flat[i]
 
             sns.heatmap(
@@ -1530,6 +1557,17 @@ class PlugData(object):
                 ax = ax,
                 **kwargs
             )
+
+            if second_scale:
+
+                sns.heatmap(
+                    second_scale_data,
+                    annot = annot_second_scale,
+                    cmap = 'viridis',
+                    fmt = '',
+                    ax = ax,
+                    **kwargs
+                )
 
             cycle_str = ('\nCycle #%u' % cycle) if by_cycle else ''
             unit_str = 'z-score' if 'z_score' in column_to_plot else 'AU'

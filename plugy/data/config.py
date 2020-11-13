@@ -181,6 +181,8 @@ class PlugyConfig(object):
     drug_comb_heatmap_scale_max: float = None
     drug_comb_heatmap_scale_min: float = None
 
+    heatmap_second_scale: str = 'pos_ctrl'
+
     # QC
     contamination_threshold: float = 0.03
 
