@@ -43,15 +43,10 @@ class PlugyConfig(object):
     result_subdirs: bool = False
     timestamp_result_subdirs: bool = False
 
-<<<<<<< HEAD
-    # General config
-    name: str = None
-=======
     ## General config
     name: str = None
     # file type for saving the figures
->>>>>>> 46-improve-sample-and-cycle-detection
-    figure_export_file_type: str = "svg"
+    figure_export_file_type: str = 'svg'
     # colors for representing channels on the figures
     colors: dict = field(
         default_factory = lambda: {
@@ -62,18 +57,13 @@ class PlugyConfig(object):
     )
     # run the entire workflow
     run: bool = True
-<<<<<<< HEAD
-    init: bool = True
-    plugs: bool = True
-=======
     # run the initial steps: set up the objects and load the data
     init: bool = True
     # run the plug detection
     plugs: bool = True
     # label of the control channels in the channel layout
->>>>>>> 46-improve-sample-and-cycle-detection
     control_label: typing.Union[set, str] = field(
-        default_factory = lambda: {"FS", "neg Ctr"}
+        default_factory = lambda: {'FS', 'neg Ctr'}
     )
     # do not raise an error if the quality control fails
     # but proceed with quantification and visualization

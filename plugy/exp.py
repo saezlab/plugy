@@ -263,13 +263,20 @@ class PlugExperiment(object):
 
     def plot_plug_count_hist(self, axes: plt.Axes):
         """
-        Plots the distribution of plug number divergence from the expected number by sample
+        Plots the distribution of plug number divergence from the expected
+        number by sample
+
         :param axes: plt.Axes object to draw on
+
         :return: plt.Axes object with the plot
         """
-        axes = sns.countplot(self.sample_data.plug_count_divergence, ax = axes)
-        axes.set_ylabel("Counts")
-        axes.set_xlabel("Plug count divergence per sample")
+
+        axes = sns.countplot(
+            x = self.sample_data.plug_count_divergence,
+            ax = axes,
+        )
+        axes.set_ylabel('Counts')
+        axes.set_xlabel('Plug count divergence per sample')
 
         return axes
 
@@ -344,7 +351,7 @@ class PlugExperiment(object):
             qc_issues.append(msg)
 
         contamination_hist_fig, contamination_hist_ax = plt.subplots()
-        sns.distplot(contamination, kde = True, ax = contamination_hist_ax)
+        sns.histplot(contamination, kde = True, ax = contamination_hist_ax)
         contamination_hist_ax.set_title("Relative barcode contamination")
         contamination_hist_ax.set_xlabel(r"Relative contamination $\left[\frac{\overline{barcode_{median}}}{\overline{control_{median}}}\right]$")
         contamination_hist_ax.set_ylabel("Counts")

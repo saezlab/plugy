@@ -667,14 +667,14 @@ class PlugData(object):
         axes.add_collection(
             mpl_coll.PatchCollection(
                 bc_patches,
-                facecolors = self.config.colors["blue"],
+                facecolors = self.config.colors['uv'],
                 alpha = 0.4,
             )
         )
         axes.add_collection(
             mpl_coll.PatchCollection(
                 readout_patches,
-                facecolors = self.config.colors["green"],
+                facecolors = self.config.colors['green'],
                 alpha = 0.4,
             )
         )
@@ -821,6 +821,7 @@ class PlugData(object):
         :param axes: plt.Axes object to plot to
         :return: plt.Axes object with the plot
         """
+
         module_logger.info("Plotting cycle data")
         axes = self.pmt_data.plot_pmt_data(axes = axes, cut = (None, None))
 
@@ -831,6 +832,7 @@ class PlugData(object):
         )
 
         for used_cycle in self.sample_df.groupby("cycle_nr"):
+
             cycle_start_time = used_cycle[1].start_time.min()
             cycle_end_time = used_cycle[1].end_time.max()
             used_cycle_patches.append(
@@ -842,6 +844,7 @@ class PlugData(object):
             )
 
         for detected_cycle in self.plug_df.groupby("cycle_nr"):
+
             cycle_start_time = detected_cycle[1].start_time.min()
             cycle_end_time = detected_cycle[1].end_time.max()
             discarded_cycle_patches.append(
@@ -1469,15 +1472,14 @@ class PlugData(object):
 
             annotation_df = annotation_df.reset_index()
             annotation_df = annotation_df.pivot(
-                "compound_a",
-                "compound_b",
+                'compound_a',
+                'compound_b',
                 annotation_column,
             )
             annotation_df = (
                 annotation_df.
-                replace(True, "*").
-                replace(False, "").
-                replace(np.nan, "")
+                replace(True, '*').
+                replace(False, '')
             )
 
         cycles = self.sample_df.cycle_nr.unique() if by_cycle else (None,)
@@ -1514,7 +1516,10 @@ class PlugData(object):
 
             if annotation_df is not None:
 
-                annotation_df = annotation_df.reindex_like(data)
+                annotation_df = (
+                    annotation_df.reindex_like(data).
+                    replace(np.nan, '')
+                )
 
             ax = grid.axes.flat[i]
 
