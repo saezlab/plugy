@@ -247,6 +247,7 @@ class PlugExperiment(object):
         pmt_overview_fig.tight_layout()
         png_path = qc_dir.joinpath(f"pmt_overview.png")
         pmt_overview_fig.savefig(png_path)
+        plt.clf()
 
         module_logger.info(f"Plotted PMT data to {png_path}")
 
@@ -356,7 +357,12 @@ class PlugExperiment(object):
         media_control_fig.tight_layout()
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(media_control_fig)
-        media_control_fig.savefig(qc_dir.joinpath(f"fs_media_control.{self.config.figure_export_file_type}"))
+        media_control_fig.savefig(
+            qc_dir.joinpath(
+                f"fs_media_control.{self.config.figure_export_file_type}"
+            )
+        )
+        plt.clf()
 
         self.plot_pmt_data()
 
@@ -367,7 +373,12 @@ class PlugExperiment(object):
         plug_count_hist_fig.tight_layout()
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(plug_count_hist_fig)
-        plug_count_hist_fig.savefig(qc_dir.joinpath(f"plug_count_hist.{self.config.figure_export_file_type}"))
+        plug_count_hist_fig.savefig(
+            qc_dir.joinpath(
+                f"plug_count_hist.{self.config.figure_export_file_type}"
+            )
+        )
+        plt.clf()
 
         self.plot_length_bias()
 
@@ -388,7 +399,12 @@ class PlugExperiment(object):
         contamination_hist_ax.set_ylabel("Counts")
         misc.add_git_hash_caption(contamination_hist_fig)
         contamination_hist_fig.tight_layout()
-        contamination_hist_fig.savefig(qc_dir.joinpath(f"contamination_hist.{self.config.figure_export_file_type}"))
+        contamination_hist_fig.savefig(
+            qc_dir.joinpath(
+                f"contamination_hist.{self.config.figure_export_file_type}"
+            )
+        )
+        plt.clf()
 
         contamination_fig, contamination_ax = plt.subplots(2, 3, sharex = "all", sharey = "all", figsize = (30, 20))
         for idx_y, channel in enumerate(["readout_peak_median", "control_peak_median"]):
@@ -401,7 +417,12 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(contamination_fig)
         contamination_fig.tight_layout()
-        contamination_fig.savefig(qc_dir.joinpath(f"contamination.{self.config.figure_export_file_type}"))
+        contamination_fig.savefig(
+            qc_dir.joinpath(
+                f"contamination.{self.config.figure_export_file_type}"
+            )
+        )
+        plt.clf()
 
         # Plotting control
         control_fig = plt.figure(figsize = (40, 20), constrained_layout = False)
@@ -428,7 +449,12 @@ class PlugExperiment(object):
         control_fig.tight_layout()
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(control_fig)
-        control_fig.savefig(qc_dir.joinpath(f"control_fluorescence.{self.config.figure_export_file_type}"))
+        control_fig.savefig(
+            qc_dir.joinpath(
+                f"control_fluorescence.{self.config.figure_export_file_type}"
+            )
+        )
+        plt.clf()
 
         self.plot_sample_cycles()
 
@@ -473,7 +499,12 @@ class PlugExperiment(object):
             if self.config.plot_git_caption:
                 misc.add_git_hash_caption(length_bias_plot.fig)
             length_bias_plot.fig.tight_layout()
-            length_bias_plot.fig.savefig(qc_dir.joinpath(f"length_bias.{self.config.figure_export_file_type}"))
+            length_bias_plot.fig.savefig(
+                qc_dir.joinpath(
+                    f"length_bias.{self.config.figure_export_file_type}"
+                )
+            )
+            plt.clf()
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error("Failed to plot length bias")
@@ -493,6 +524,7 @@ class PlugExperiment(object):
             sample_cycle_fig.savefig(
                 qc_dir.joinpath("sample_cycle_overview.png")
             )
+            plt.clf()
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error("Failed to plot sample cycles")
@@ -571,6 +603,7 @@ class PlugExperiment(object):
         path = self.config.result_dir.joinpath(f"drug_comb_z_violins{'_by-cycle' if by_cycle else ''}.{self.config.figure_export_file_type}")
         module_logger.info(f"Saving violin plots to {path}")
         grid.savefig(path)
+        plt.clf()
 
 
     def z_scores_heatmap(self, by_cycle: bool = False):
@@ -603,6 +636,7 @@ class PlugExperiment(object):
         )
         module_logger.info(f"Saving heatmap(s) to {path}")
         grid.savefig(path)
+        plt.clf()
 
 
     def close_figures(self):
