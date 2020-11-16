@@ -79,12 +79,17 @@ class PlugExperiment(object):
 
     def main(self):
 
-        if self.config.run or self.config.plugs or self.config.init:
+        if (
+            self.config.run or
+            self.config.plugs or
+            self.config.init or
+            self.config.samples
+        ):
 
             self.setup()
             self.load()
 
-        if self.config.run or self.config.plugs:
+        if self.config.run or self.config.plugs or self.config.samples:
 
             self.detect_plugs()
 

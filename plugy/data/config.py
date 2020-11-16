@@ -58,11 +58,11 @@ class PlugyConfig(object):
     # run the entire workflow
     run: bool = True
     # run the initial steps: set up the objects and load the data
-    init: bool = True
+    init: bool = False
     # run the plug detection
-    plugs: bool = True
+    plugs: bool = False
     # run the sample detection
-    samples: bool = True
+    samples: bool = False
     # label of the control channels in the channel layout
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {'FS', 'neg Ctr'}
