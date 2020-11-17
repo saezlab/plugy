@@ -36,9 +36,9 @@ from dataclasses import dataclass, field
 class PlugyConfig(object):
 
     # File Paths
-    pmt_file: pl.Path = None
-    seq_file: pl.Path = None
-    channel_file: pl.Path = None
+    pmt_file: typing.Union[pl.Path, str] = 'fluorescence.txt'
+    seq_file: typing.Union[pl.Path, str] = 'sequence.csv'
+    channel_file: typing.Union[pl.Path, str] = 'channels.csv'
     result_base_dir: pl.Path = pl.Path.cwd().joinpath("results")
     result_subdirs: bool = False
     timestamp_result_subdirs: bool = False
@@ -46,7 +46,7 @@ class PlugyConfig(object):
     ## General config
     name: str = None
     # file type for saving the figures
-    figure_export_file_type: str = 'svg'
+    figure_export_file_type: str = 'png'
     # colors for representing channels on the figures
     colors: dict = field(
         default_factory = lambda: {
@@ -70,7 +70,7 @@ class PlugyConfig(object):
     # do not raise an error if the quality control fails
     # but proceed with quantification and visualization
     # of the results
-    ignore_qc_result: bool = False
+    ignore_qc_result: bool = True
     # whether to write log messages also to the STDOUT
     # or only to the log file
     log_to_stdout: bool = True
@@ -116,7 +116,7 @@ class PlugyConfig(object):
     peak_min_prominence: float = 0
     peak_max_prominence: float = 10
     peak_min_width: float = 0.5
-    peak_max_width: float = 1.5
+    peak_max_width: float = 2.5
     width_rel_height: float = 0.5
     merge_peaks_distance: float = 0.2
     merge_peaks_by: str = 'center'
@@ -172,10 +172,10 @@ class PlugyConfig(object):
     append: list = field(default_factory = list)
 
     # Analysis
-    normalize_using_control: bool = False
+    normalize_using_control: bool = True
     normalize_using_media_control_lin_reg: bool = True
     readout_column: str = "readout_peak_median"
-    readout_analysis_column: str = "readout_peak_z_score"
+    readout_analysis_column: str = "readout_per_control_z_score"
 
     # Plotting config
     seaborn_context: str = "notebook"
