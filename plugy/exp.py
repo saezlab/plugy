@@ -176,21 +176,6 @@ class PlugExperiment(object):
 
     def setup(self):
 
-        self.check_config()
-
-        # if not self.config.result_base_dir.exists():
-        #     self.config.result_base_dir.mkdir()
-
-        # assert \
-        #     not self.config.result_dir.exists(), \
-        #     (
-        #         f"Automatically generated result directory name already exists"
-        #         f" {self.config.result_dir.name}, "
-        #         f"please retry in a couple of seconds"
-        #     )
-
-        # self.config.result_dir.mkdir()
-
         sns.set_context(self.config.seaborn_context)
         sns.set_style(self.config.seaborn_style)
 
@@ -386,34 +371,6 @@ class PlugExperiment(object):
         axes.set_xlabel('Plug count divergence per sample')
 
         return axes
-
-
-    def check_config(self):
-        """
-        Checks if pmt_file, seq_file and config_file exist as specified in the PlugyConfig
-        """
-        files_to_check = {"pmt_file": self.config.pmt_file, "seq_file": self.config.seq_file, "config_file": self.config.channel_file}
-        errors = list()
-
-        for name, file in files_to_check.items():
-            try:
-                # If file is per default None
-                assert isinstance(file, pl.Path), f"{name} was not specified as pathlib.Path object (is of {type(file)}) in PlugyConfig but is mandatory for PlugExperiment"
-
-                # If file exists
-                try:
-                    file.exists(), f"{name} specified in PlugyConfig {file.absolute()} does not exist but is mandatory for PlugExperiment"
-                except AssertionError as error:
-                    errors.append(error)
-
-            except AssertionError as error:
-                errors.append(error)
-
-        if len(errors) > 0:
-            for error in errors:
-                module_logger.critical(error.args[0])
-
-            raise AssertionError("One or more file paths are not properly specified, see the log for more information!")
 
 
     def quality_control(self):
