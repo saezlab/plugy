@@ -262,6 +262,7 @@ class PlugyConfig(object):
 
                     msg = 'File not found: %s; `%s`' % (attr, path)
                     module_logger.critical(msg)
+                    path = None
 
                     if attr == 'pmt_file':
 
@@ -275,14 +276,15 @@ class PlugyConfig(object):
 
                     msg = 'Input file `%s`: %s' % (attr, path)
                     module_logger.info(msg)
+                    path = pl.Path(path)
 
-                setattr(self, attr, pl.Path(path))
+                setattr(self, attr, path)
 
 
     @staticmethod
     def _find_file(path):
 
-        if isinstance(path, re.Pattern):
+        if hasattr(path, 'pattern'):
 
             _dir, fname = os.path.split(path.pattern)
 
@@ -295,11 +297,7 @@ class PlugyConfig(object):
                     path = this_path
                     break
 
-            if hasattr(path, 'pattern'):
-
-                path = path.pattern
-
-        return path
+        return path.pattern if hasattr(path, 'pattern') else path
 
 
     def _set_name(self):
