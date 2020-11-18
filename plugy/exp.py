@@ -358,7 +358,8 @@ class PlugExperiment(object):
 
         qc_dir = self.ensure_qc_dir()
 
-        fig, ax = plt.subplots(figsize=(10, 3))
+        width = len(self.pmt_data.peak_df) / 20 + 3
+        fig, ax = plt.subplots(figsize=(width, 3))
         self.pmt_data.plot_peak_sequence(ax)
         fig.tight_layout()
 

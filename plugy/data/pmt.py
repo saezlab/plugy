@@ -394,15 +394,24 @@ class PmtData(object):
                 y = df['%s_peak_median' % channel],
                 color = self.config.channel_color(channel),
                 ax = axes,
+                s = 50,
             )
 
         axes.set_facecolor('white')
         axes.grid(b = True, which = 'major', color = 'k', linewidth = 1.0)
         axes.grid(b = True, which = 'minor', color = 'k', linewidth = 0.5)
-        axes.xaxis.set_minor_locator(mpl_ticker.MultipleLocator(2))
+
+        if len(df) > 100:
+
+            axes.xaxis.set_major_locator(mpl_ticker.MultipleLocator(20))
+
+        axes.xaxis.set_minor_locator(
+            mpl_ticker.MultipleLocator(5 if len(df) > 50 else 2)
+        )
         axes.tick_params(labelsize = 'xx-large')
         axes.set_xlabel('Plug sequence', size = 'x-large')
         axes.set_ylabel('Fluorescence [AU]', size = 'x-large')
+        axes.set_xlim((-5, len(df) + 5))
 
         return axes
 
