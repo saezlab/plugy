@@ -25,6 +25,7 @@ import logging
 import re
 import gzip
 import pathlib as pl
+import importlib as imp
 
 import pandas as pd
 import numpy as np
@@ -37,6 +38,7 @@ import seaborn as sns
 
 from dataclasses import dataclass, field
 from ..data.config import PlugyConfig
+from .. import misc
 
 module_logger = logging.getLogger("plugy.data.pmt")
 
@@ -96,6 +98,19 @@ class PmtData(object):
         self._override_barcode()
         # self.data = self.correct_crosstalk()
 
+
+    def reload(self):
+        """
+        Reloads the object from the module level.
+        """
+
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+
+
     def read_txt(self) -> pd.DataFrame:
         """
         Reads input_file
@@ -124,6 +139,7 @@ class PmtData(object):
         else:
             raise FileNotFoundError(f"Input file ({self.input_file.absolute()}) does not exist! Check the path!")
 
+
     def parse_header(self, file) -> dict:
         """
         Parses the LabView header and extracts information in form of a dict
@@ -136,6 +152,7 @@ class PmtData(object):
         info["end_of_header"] = self.find_data(file)
         info["decimal_separator"] = self.detect_decimal_separator(file)
         return info
+
 
     @staticmethod
     def detect_decimal_separator(file) -> str:
@@ -174,6 +191,7 @@ class PmtData(object):
 
         return idx
 
+
     def cut_data(self, **kwargs) -> pd.DataFrame:
         """
         Returns data between time range specified in cut
@@ -206,6 +224,7 @@ class PmtData(object):
 
         return df
 
+
     def set_channel_values(self) -> pd.DataFrame:
         """
         Sets & corrects values in the multichannel acquisition data.
@@ -217,7 +236,7 @@ class PmtData(object):
 
         for channel in (
             set(self.config.channel_names.values()) &
-            self.config.ignore_channels
+            misc.to_set(self.config.ignore_channels)
         ):
 
             module_logger.info('Setting %s channel to 0.0' % channel)
@@ -230,6 +249,7 @@ class PmtData(object):
 
         return df
 
+
     def _set_fake_gain_adaptive(self):
         # for channel in ["uv", "green", "orange"]:
         #     pass
@@ -237,6 +257,7 @@ class PmtData(object):
         if self.fake_gain_adaptive:
 
             raise NotImplementedError
+
 
     def apply_fake_gain(self):
         """
@@ -261,6 +282,7 @@ class PmtData(object):
                 df[channel] = df[channel] * fake_gain
 
         self.data = df
+
 
     def plot_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
         """
