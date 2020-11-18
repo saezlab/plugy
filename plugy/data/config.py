@@ -23,6 +23,7 @@
 
 import os
 import sys
+import re
 import time
 import pathlib as pl
 import typing
@@ -32,14 +33,21 @@ import hashlib
 from dataclasses import dataclass, field
 
 
+module_logger = logging.getLogger('plugy.data.config')
+
+
 @dataclass
 class PlugyConfig(object):
 
     # File Paths
-    pmt_file: typing.Union[pl.Path, str] = 'fluorescence.txt'
-    seq_file: typing.Union[pl.Path, str] = 'sequence.csv'
-    channel_file: typing.Union[pl.Path, str] = 'channels.csv'
-    result_base_dir: pl.Path = pl.Path.cwd().joinpath("results")
+    pmt_file: typing.Union[pl.Path, str, re.Pattern] = \
+        re.compile(r'(?:fluor|exp)(?:[-\w ]*)?(?:\.txt)?', re.IGNORECASE)
+    seq_file: typing.Union[pl.Path, str, re.Pattern] = \
+        re.compile(r'seq(?:[-\w ]*)?(?:\.[tc]sv)?', re.IGNORECASE)
+    channel_file: typing.Union[pl.Path, str, re.Pattern] = \
+        re.compile(r'channel(?:[-\w ]*)?(?:\.[tc]sv)?', re.IGNORECASE)
+    result_base_dir: typing.Union[pl.Path, str] = \
+        pl.Path.cwd().joinpath('results')
     result_subdirs: bool = False
     timestamp_result_subdirs: bool = False
 
@@ -196,14 +204,26 @@ class PlugyConfig(object):
     def __post_init__(self):
         # Creating result dir for each individual run
 
+
+        self._set_result_dir()
+        self.start_logging()
         self._set_paths()
         self._set_name()
 
-        current_time = time.strftime("%Y%m%d_%H%M")
+
+    def _set_result_dir(self):
+
+        self.result_base_dir = (
+            pl.Path(self.result_base_dir)
+                if isinstance(self.result_base_dir, str) else
+            self.result_base_dir
+        )
 
         self.result_dir = self.result_base_dir
 
         if self.result_subdirs:
+
+            current_time = time.strftime("%Y%m%d_%H%M")
 
             subdir = (
                 f"{os.path.splitext(self.pmt_file.name)[0]}_{current_time}"
@@ -218,8 +238,6 @@ class PlugyConfig(object):
 
         os.makedirs(str(self.result_dir), exist_ok = True)
 
-        self.start_logging()
-
 
     def _set_paths(self):
 
@@ -232,9 +250,52 @@ class PlugyConfig(object):
 
             path = getattr(self, attr)
 
-            if isinstance(path, str):
+            if not isinstance(path, pl.Path):
+
+                path = self._find_file(path = path)
+
+                if not os.path.exists(path):
+
+                    msg = 'File not found: %s; `%s`' % (attr, path)
+                    module_logger.critical(msg)
+
+                    if attr == 'pmt_file':
+
+                        raise FileNotFoundError(msg)
+
+                    else:
+
+                        setattr(self, attr, None)
+
+                else:
+
+                    msg = 'Input file `%s`: %s' % (attr, path)
+                    module_logger.info(msg)
 
                 setattr(self, attr, pl.Path(path))
+
+
+    @staticmethod
+    def _find_file(path):
+
+        if isinstance(path, re.Pattern):
+
+            _dir, fname = os.path.split(path.pattern)
+
+            for f in os.listdir(_dir or '.'):
+
+                this_path = os.path.join(_dir, f)
+
+                if path.match(this_path):
+
+                    path = this_path
+                    break
+
+            if hasattr(path, 'pattern'):
+
+                path = path.pattern
+
+        return path
 
 
     def _set_name(self):
@@ -284,8 +345,8 @@ class PlugyConfig(object):
             logger.addHandler(stream_handler)
 
         file_handler = logging.FileHandler(
-            self.result_dir.joinpath("plugy_run.log"),
-            mode="a"
+            self.result_dir.joinpath('plugy.log'),
+            mode = 'a'
         )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
