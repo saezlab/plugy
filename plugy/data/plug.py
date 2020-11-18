@@ -657,11 +657,7 @@ class PlugData(object):
                         height = plug.barcode_peak_median,
                     )
                 )
-            # else:
-            #     readout_patches.append(mpl_patch.Rectangle(xy =
-            #     (plug.start_time, 0),
-            #     width = plug.end_time - plug.start_time,
-            #     height = plug.readout_peak_median))
+
 
         for plug in sample_df.itertuples():
 
@@ -691,7 +687,7 @@ class PlugData(object):
         return axes
 
 
-    def highlight_plugs(self, axes: plt.Axes, below_peak: bool = True):
+    def highlight_plugs(self, axes: plt.Axes, below_peak: bool = False):
 
         if below_peak:
 
@@ -753,6 +749,10 @@ class PlugData(object):
 
 
     def highlight_samples(self, axes: plt.Axes):
+
+        if 'sample_nr' not in self.plug_df.columns:
+
+            return axes
 
         samples = self.plug_df.groupby(
             ['cycle_nr', 'sample_nr']
