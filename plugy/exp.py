@@ -350,6 +350,27 @@ class PlugExperiment(object):
         module_logger.info(f"Plotted PMT data to {png_path}")
 
 
+    def plot_plug_sequence(self):
+        """
+        Creates a compact plot of the detected peaks: x axis is the sequence
+        of the peaks, y axis is the median intensity of the channels.
+        """
+
+        qc_dir = self.ensure_qc_dir()
+
+        fig, ax = plt.subplots(figsize=(10, 3))
+        self.pmt_data.plot_peak_sequence(ax)
+        fig.tight_layout()
+
+        path = qc_dir.joinpath(
+            f"plug_sequence.{self.config.figure_export_file_type}"
+        )
+        fig.savefig(path)
+        plt.clf()
+
+        module_logger.info(f"Plotted plug sequence to {path}")
+
+
     def get_sample_data(self) -> pd.DataFrame:
         """
         Generates sample_data df that groups plugs for each sample and cycle calculating their median

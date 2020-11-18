@@ -33,6 +33,7 @@ import scipy.signal as sig
 
 import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
+import matplotlib.ticker as mpl_ticker
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -284,14 +285,24 @@ class PmtData(object):
         self.data = df
 
 
-    def plot_pmt_data(self, axes: plt.Axes, cut: tuple = (None, None)) -> plt.Axes:
+    def plot_pmt_data(
+            self,
+            axes: plt.Axes,
+            cut: tuple = (None, None),
+        ) -> plt.Axes:
         """
-        Plots the raw PMT data to the specified axes object
-        :param axes: plt.Axes object to draw on
-        :param cut: Tuple to specify upper and lower time bounds for the pmt data to be plotted (lower, upper)
-        :return: The axes object with the plot
+        Plots the raw PMT data to the specified axes object.
+
+        :param axes:
+            plt.Axes object to draw on
+        :param cut:
+            Tuple to specify upper and lower time bounds for the pmt
+            data to be plotted (lower, upper)
+
+        :return:
+            The axes object with the plot
         """
-        module_logger.debug(f"Plotting PMT data")
+        module_logger.debug('Plotting PMT data')
         df = self.cut_data(cut = cut)
 
         with sns.axes_style("darkgrid", {"xtick.bottom": True,
@@ -318,9 +329,26 @@ class PmtData(object):
                 major_tick_freq = 10
                 minor_tick_freq = 1
 
-            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), major_tick_freq), minor = False)
-            axes.set_xticks(range(int(round(df.time.min())), int(round(df.time.max())), minor_tick_freq), minor = True)
-            axes.set_xlim(left = int(round(df.time.min())), right = int(round(df.time.max())))
+            axes.set_xticks(
+                range(
+                    int(round(df.time.min())),
+                    int(round(df.time.max())),
+                    major_tick_freq
+                ),
+                minor = False,
+            )
+            axes.set_xticks(
+                range(
+                    int(round(df.time.min())),
+                    int(round(df.time.max())),
+                    minor_tick_freq
+                ),
+                minor = True,
+            )
+            axes.set_xlim(
+                left = int(round(df.time.min())),
+                right = int(round(df.time.max())),
+            )
 
             axes.grid(b = True, which = "major", color = "k", linewidth = 1.0)
             axes.grid(b = True, which = "minor", color = "k", linewidth = 0.5)
@@ -335,6 +363,46 @@ class PmtData(object):
                 x = 0,
             )
             axes.set_ylabel("Fluorescence [AU]", size = "xx-large")
+
+        return axes
+
+
+    def plot_peak_sequence(
+            self,
+            axes: plt.Axes,
+            cut: tuple = (None, None),
+        ) -> plt.Axes:
+        """
+        Creates a compact plot of the detected peaks: x axis is the sequence
+        of the peaks, y axis is the median intensity of the channels.
+        """
+
+        module_logger.debug('Plotting peak sequence')
+        df = self.peak_df
+
+        for channel in ('barcode', 'control', 'readout'):
+
+            if (
+                self.config.channel_names[channel] in
+                self.config.ignore_channels
+            ):
+
+                continue
+
+            sns.scatterplot(
+                x = np.arange(1, len(df) + 1),
+                y = df['%s_peak_median' % channel],
+                color = self.config.channel_color(channel),
+                ax = axes,
+            )
+
+        axes.set_facecolor('white')
+        axes.grid(b = True, which = 'major', color = 'k', linewidth = 1.0)
+        axes.grid(b = True, which = 'minor', color = 'k', linewidth = 0.5)
+        axes.xaxis.set_minor_locator(mpl_ticker.MultipleLocator(2))
+        axes.tick_params(labelsize = 'xx-large')
+        axes.set_xlabel('Plug sequence', size = 'x-large')
+        axes.set_ylabel('Fluorescence [AU]', size = 'x-large')
 
         return axes
 
