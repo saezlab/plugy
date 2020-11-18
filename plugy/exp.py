@@ -182,34 +182,72 @@ class PlugExperiment(object):
 
     def load(self):
 
-        self.channel_map = ChannelMap(self.config.channel_file)
-        self.plug_sequence = PlugSequence.from_csv_file(
-            self.config.seq_file,
-            allow_lt4_valves = self.config.allow_lt4_valves,
+        self.load_channel_map()
+        self.load_plug_sequence()
+        self.load_pmt_data()
+
+
+    def load_channel_map(self):
+
+        self.channel_map = (
+
+            ChannelMap(self.config.channel_file)
+
+            if self.config.channel_file else
+
+            None
+
         )
 
-        self.pmt_data = PmtData(
-            input_file = self.config.pmt_file,
-            acquisition_rate = self.config.acquisition_rate,
-            cut = self.config.cut,
-            correct_acquisition_time = self.config.correct_acquisition_time,
-            channels = self.config.channels,
-            ignore_channels = self.config.ignore_channels,
-            fake_gains = self.config.fake_gains,
-            fake_gain_default = self.config.fake_gain_default,
-            fake_gain_adaptive = self.config.fake_gain_adaptive,
-            barcode_raw_threshold=self.config.barcode_raw_threshold,
-            peak_min_threshold = self.config.peak_min_threshold,
-            peak_max_threshold = self.config.peak_max_threshold,
-            peak_min_distance = self.config.peak_min_distance,
-            peak_min_prominence = self.config.peak_min_prominence,
-            peak_max_prominence = self.config.peak_max_prominence,
-            peak_min_width = self.config.peak_min_width,
-            peak_max_width = self.config.peak_max_width,
-            width_rel_height = self.config.width_rel_height,
-            merge_peaks_distance = self.config.merge_peaks_distance,
-            merge_peaks_by = self.config.merge_peaks_by,
-            config = self.config,
+
+    def load_plug_sequence(self):
+
+        self.plug_sequence = (
+
+            PlugSequence.from_csv_file(
+                self.config.seq_file,
+                allow_lt4_valves = self.config.allow_lt4_valves,
+            )
+
+            if self.config.seq_file else
+
+            None
+
+        )
+
+
+    def load_pmt_data(self):
+
+        self.pmt_data = (
+
+            PmtData(
+                input_file = self.config.pmt_file,
+                acquisition_rate = self.config.acquisition_rate,
+                cut = self.config.cut,
+                correct_acquisition_time = self.config.correct_acquisition_time,
+                channels = self.config.channels,
+                ignore_channels = self.config.ignore_channels,
+                fake_gains = self.config.fake_gains,
+                fake_gain_default = self.config.fake_gain_default,
+                fake_gain_adaptive = self.config.fake_gain_adaptive,
+                barcode_raw_threshold=self.config.barcode_raw_threshold,
+                peak_min_threshold = self.config.peak_min_threshold,
+                peak_max_threshold = self.config.peak_max_threshold,
+                peak_min_distance = self.config.peak_min_distance,
+                peak_min_prominence = self.config.peak_min_prominence,
+                peak_max_prominence = self.config.peak_max_prominence,
+                peak_min_width = self.config.peak_min_width,
+                peak_max_width = self.config.peak_max_width,
+                width_rel_height = self.config.width_rel_height,
+                merge_peaks_distance = self.config.merge_peaks_distance,
+                merge_peaks_by = self.config.merge_peaks_by,
+                config = self.config,
+            )
+
+            if self.config.pmt_file else
+
+            None
+
         )
 
 

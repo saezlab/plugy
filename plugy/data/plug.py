@@ -215,16 +215,18 @@ class PlugData(object):
 
     def _sample_cycle_message(self):
 
-        module_logger.info(
-            'Found %u cycles, %u with the expected number of samples. '
-            'Sample count deviations: %s. '
-            'Best barcode detection parameters: %s.' % (
-                len(self._sample_count_anomaly),
-                list(self._sample_count_anomaly.values()).count(0),
-                misc.dict_str(self._sample_count_anomaly),
-                misc.ntuple_str(self._barcode_best_param),
+        if self.has_samples_cycles:
+
+            module_logger.info(
+                'Found %u cycles, %u with the expected number of samples. '
+                'Sample count deviations: %s. '
+                'Best barcode detection parameters: %s.' % (
+                    len(self._sample_count_anomaly),
+                    list(self._sample_count_anomaly.values()).count(0),
+                    misc.dict_str(self._sample_count_anomaly),
+                    misc.ntuple_str(self._barcode_best_param),
+                )
             )
-        )
 
 
     def _set_barcoding_base(
@@ -930,22 +932,28 @@ class PlugData(object):
 
     def _evaluate_barcoding_base(self):
 
-        sample_mismatch = sum(
-            abs(a)
-            for a in self._sample_count_anomaly.values()
-        )
-        sample_freq_var = 0
+        if self.has_samples_cycles:
 
-        for cycle_nr in self.plug_df.cycle_nr.unique():
+            sample_mismatch = sum(
+                abs(a)
+                for a in self._sample_count_anomaly.values()
+            )
+            sample_freq_var = 0
 
-            this_cycle = self.plug_df[self.plug_df.cycle_nr == cycle_nr]
-            start_times = this_cycle.groupby('sample_nr').min('start_time')
-            sample_freq_var += start_times['start_time'].std()
+            for cycle_nr in self.plug_df.cycle_nr.unique():
 
-        result = self._barcode_result(
-            sample_mismatch = sample_mismatch,
-            sample_freq_var = sample_freq_var,
-        )
+                this_cycle = self.plug_df[self.plug_df.cycle_nr == cycle_nr]
+                start_times = this_cycle.groupby('sample_nr').min('start_time')
+                sample_freq_var += start_times['start_time'].std()
+
+            result = self._barcode_result(
+                sample_mismatch = sample_mismatch,
+                sample_freq_var = sample_freq_var,
+            )
+
+        else:
+
+            result = (0, 0)
 
         self._barcode_eval[self._barcoding_param_last] = result
 
