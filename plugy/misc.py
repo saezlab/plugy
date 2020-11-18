@@ -76,6 +76,17 @@ def to_int(value):
     return int(float(value))
 
 
+def to_tuple(value):
+
+    return (
+        value
+            if isinstance(value, tuple) else
+        ()
+            if value is None else
+        (value,)
+    )
+
+
 def to_set(value):
     """
     Makes sure the object `value` is a set, if it is a list converts

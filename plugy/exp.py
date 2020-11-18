@@ -24,6 +24,7 @@
 import sys
 import logging
 import pathlib as pl
+import collections
 import importlib as imp
 import traceback
 
@@ -49,7 +50,13 @@ module_logger = logging.getLogger("plugy.data.exp")
 @dataclass
 class PlugExperiment(object):
     config: PlugyConfig = field(default_factory = PlugyConfig)
-    ignore_qc_result: bool = False
+    ignore_qc_result: bool = None
+    run: bool = None
+    init: bool = None
+    plugs: bool = None
+    samples: bool = None
+    qc: bool = None
+    analysis: bool = None
 
     def __post_init__(self):
         module_logger.info('Initializing PlugExperiment')
@@ -57,12 +64,11 @@ class PlugExperiment(object):
         for k, v in self.config.__dict__.items():
             module_logger.debug(f"{k}: {v}")
 
-        self.ignore_qc_result = (
-            self.ignore_qc_result or
-            self.config.ignore_qc_result
-        )
+        self._set_workflow_param()
 
-        self.main()
+        if self.run:
+
+            self.main()
 
 
     def reload(self):
@@ -77,31 +83,95 @@ class PlugExperiment(object):
         setattr(self, '__class__', new)
 
 
-    def main(self):
-
-        if (
-            self.config.run or
-            self.config.plugs or
-            self.config.init or
-            self.config.samples
+    def main(
+            self,
+            init: bool = None,
+            plugs: bool = None,
+            samples: bool = None,
+            qc: bool = None,
+            analysis: bool = None,
         ):
 
-            self.setup()
-            self.load()
+        steps = collections.OrderedDict()
 
-        if self.config.run or self.config.plugs or self.config.samples:
+        for attr in ('init', 'plugs', 'samples', 'qc', 'analysis'):
 
-            self.detect_plugs()
+            call = locals()[attr]
+            instance = getattr(self, attr)
 
-        if self.config.run or self.config.samples:
+            steps[attr] = call if call is not None else instance
 
-            self.detect_samples()
+        if not any(steps.values()):
 
-        if self.config.run:
+            if self.config.has_samples_cycles:
 
-            self.qc()
-            self.drug_combination_analysis()
-            self.close_figures()
+                steps['qc'] = True
+                steps['analysis'] = True
+
+            elif self.config.has_barcode:
+
+                steps['samples'] = True
+
+            else:
+
+                steps['plugs'] = True
+
+        if steps['analysis'] or steps['qc']:
+
+            steps['samples'] = True
+
+        if steps['samples']:
+
+            steps['plugs'] = True
+
+        if steps['plugs']:
+
+            steps['init'] = True
+
+        module_logger.debug('Main: %s' % misc.dict_str(steps))
+
+        for step, enabled in steps.items():
+
+            if enabled:
+
+                getattr(self, '_%s' % step)()
+
+
+    def _init(self):
+
+        self.setup()
+        self.load()
+
+
+    def _plugs(self):
+
+        self.detect_plugs()
+
+
+    def _samples(self):
+
+        self.detect_samples()
+
+
+    def _qc(self):
+
+        self.quality_control()
+
+
+    def _analysis(self):
+
+        self.drug_combination_analysis()
+        self.close_figures()
+
+
+    def _set_workflow_param(self):
+
+        for attr in ('ignore_qc_result', 'run', 'init', 'plugs', 'samples'):
+
+            here = getattr(self, attr)
+            from_config = getattr(self.config, attr)
+
+            setattr(self, attr, here if here is not None else from_config)
 
 
     def setup(self):
@@ -346,7 +416,7 @@ class PlugExperiment(object):
             raise AssertionError("One or more file paths are not properly specified, see the log for more information!")
 
 
-    def qc(self):
+    def quality_control(self):
         """
         Produces multiple QC plots and metrics to evaluate the technical quality of the PlugExperiment
         :return: True if quality is sufficient, False otherwise

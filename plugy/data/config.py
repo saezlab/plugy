@@ -64,13 +64,17 @@ class PlugyConfig(object):
         }
     )
     # run the entire workflow
-    run: bool = True
+    run: bool = False
     # run the initial steps: set up the objects and load the data
-    init: bool = False
+    init: bool = None
     # run the plug detection
-    plugs: bool = False
+    plugs: bool = None
     # run the sample detection
-    samples: bool = False
+    samples: bool = None
+    # run the quality control
+    qc: bool = None
+    # run the analysis
+    analysis: bool = None
     # label of the control channels in the channel layout
     control_label: typing.Union[set, str] = field(
         default_factory = lambda: {'FS', 'neg Ctr'}
