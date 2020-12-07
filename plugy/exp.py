@@ -435,16 +435,28 @@ class PlugExperiment(object):
 
     def quality_control(self):
         """
-        Produces multiple QC plots and metrics to evaluate the technical quality of the PlugExperiment
-        :return: True if quality is sufficient, False otherwise
+        Produces multiple QC plots and metrics to evaluate the technical
+        quality of the PlugExperiment
+
+        :return:
+            True if quality is sufficient, False otherwise
         """
+
         qc_issues = []
         qc_dir = self.ensure_qc_dir()
 
         # Plotting media control readout over experiment time
-        media_control_fig, media_control_ax = plt.subplots(ncols = 2, figsize = (20, 10))
-        media_control_ax[0] = self.plug_data.plot_media_control_evolution(axes = media_control_ax[0])
-        media_control_ax[1] = self.plug_data.plot_media_control_evolution(axes = media_control_ax[1], by_sample = True)
+        media_control_fig, media_control_ax = plt.subplots(
+            ncols = 2,
+            figsize = (20, 10),
+        )
+        media_control_ax[0] = self.plug_data.plot_media_control_evolution(
+            axes = media_control_ax[0],
+        )
+        media_control_ax[1] = self.plug_data.plot_media_control_evolution(
+            axes = media_control_ax[1],
+            by_sample = True,
+        )
 
         media_control_fig.tight_layout()
         if self.config.plot_git_caption:
@@ -487,7 +499,11 @@ class PlugExperiment(object):
         contamination_hist_fig, contamination_hist_ax = plt.subplots()
         sns.histplot(contamination, kde = True, ax = contamination_hist_ax)
         contamination_hist_ax.set_title("Relative barcode contamination")
-        contamination_hist_ax.set_xlabel(r"Relative contamination $\left[\frac{\overline{barcode_{median}}}{\overline{control_{median}}}\right]$")
+        contamination_hist_ax.set_xlabel(
+            r"Relative contamination "
+            r"$\left[\frac{\overline{barcode_{median}}}"
+            r"{\overline{control_{median}}}\right]$"
+        )
         contamination_hist_ax.set_ylabel("Counts")
         misc.add_git_hash_caption(contamination_hist_fig)
         contamination_hist_fig.tight_layout()
@@ -498,16 +514,42 @@ class PlugExperiment(object):
         )
         plt.clf()
 
-        contamination_fig, contamination_ax = plt.subplots(2, 3, sharex = "all", sharey = "all", figsize = (30, 20))
-        for idx_y, channel in enumerate(["readout_peak_median", "control_peak_median"]):
-            contamination_ax[idx_y][2] = self.plug_data.plot_contamination(channel_x = "barcode_peak_median", channel_y = channel, hue = "start_time", filtered = True, axes = contamination_ax[idx_y][2])
+        contamination_fig, contamination_ax = plt.subplots(
+            2, 3,
+            sharex = "all",
+            sharey = "all",
+            figsize = (30, 20),
+        )
+
+        for idx_y, channel in enumerate(
+            ["readout_peak_median", "control_peak_median"]
+        ):
+            contamination_ax[idx_y][2] = self.plug_data.plot_contamination(
+                channel_x = "barcode_peak_median",
+                channel_y = channel,
+                hue = "start_time",
+                filtered = True,
+                axes = contamination_ax[idx_y][2],
+            )
             contamination_ax[idx_y][2].set_title("Filtered")
+
             for idx_x, hue in enumerate(["start_time", "barcode"]):
-                contamination_ax[idx_y][idx_x] = self.plug_data.plot_contamination(channel_x = "barcode_peak_median", channel_y = channel, hue = hue, filtered = False, axes = contamination_ax[idx_y][idx_x])
+
+                contamination_ax[idx_y][idx_x] = (
+                    self.plug_data.plot_contamination(
+                        channel_x = "barcode_peak_median",
+                        channel_y = channel,
+                        hue = hue,
+                        filtered = False,
+                        axes = contamination_ax[idx_y][idx_x],
+                    )
+                )
                 contamination_ax[idx_y][idx_x].set_title("Unfiltered")
 
         if self.config.plot_git_caption:
+
             misc.add_git_hash_caption(contamination_fig)
+
         contamination_fig.tight_layout()
         contamination_fig.savefig(
             qc_dir.joinpath(
@@ -517,18 +559,39 @@ class PlugExperiment(object):
         plt.clf()
 
         # Plotting control
-        control_fig = plt.figure(figsize = (40, 20), constrained_layout = False)
+        control_fig = plt.figure(
+            figsize = (40, 20),
+            constrained_layout = False,
+        )
         control_fig_gs = control_fig.add_gridspec(nrows = 2, ncols = 4)
         control_ax_sample_dist = control_fig.add_subplot(control_fig_gs[0, :])
-        control_ax_control_regression = control_fig.add_subplot(control_fig_gs[1, 0])
+        control_ax_control_regression = (
+            control_fig.add_subplot(control_fig_gs[1, 0])
+        )
         control_ax_cycle_dist = control_fig.add_subplot(control_fig_gs[1, 1])
-        control_ax_readout_correlation = control_fig.add_subplot(control_fig_gs[1, 2])
-        control_ax_control_heatmap = control_fig.add_subplot(control_fig_gs[1, 3])
+        control_ax_readout_correlation = (
+            control_fig.add_subplot(control_fig_gs[1, 2])
+        )
+        control_ax_control_heatmap = (
+            control_fig.add_subplot(control_fig_gs[1, 3])
+        )
 
-        control_ax_control_regression = self.plug_data.plot_control_regression(control_ax_control_regression)
-        control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(control_ax_cycle_dist)
-        control_ax_sample_dist = self.plug_data.plot_control_sample_dist(control_ax_sample_dist)
-        control_ax_readout_correlation = self.plug_data.plot_control_readout_correlation(control_ax_readout_correlation)
+        control_ax_control_regression = (
+            self.plug_data.plot_control_regression(
+                control_ax_control_regression
+            )
+        )
+        control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(
+            control_ax_cycle_dist
+        )
+        control_ax_sample_dist = self.plug_data.plot_control_sample_dist(
+            control_ax_sample_dist
+        )
+        control_ax_readout_correlation = (
+            self.plug_data.plot_control_readout_correlation(
+                control_ax_readout_correlation
+            )
+        )
 
         grid = self.plug_data.plot_compound_heatmap(
             column_to_plot = 'control_peak_median',
@@ -628,22 +691,46 @@ class PlugExperiment(object):
         """
         module_logger.info("Calculating statistics")
         media_data = self.plug_data.get_media_control_data()
-        compound_data = self.plug_data.sample_df[~self.plug_data.sample_df.isin(media_data)].dropna()
+        compound_data = self.plug_data.sample_df[
+            ~self.plug_data.sample_df.isin(media_data)
+        ].dropna()
 
         group_columns = ["compound_a", "compound_b", "name"]
-        sample_stats = compound_data.groupby(by = group_columns)[self.config.readout_analysis_column].agg([np.mean, np.std])
+        sample_stats = compound_data.groupby(by = group_columns)[
+            self.config.readout_analysis_column
+        ].agg([np.mean, np.std])
 
         p_values = list()
+
         for combination, values in compound_data.groupby(by = group_columns):
-            p_values.append(stats.ranksums(x = values[self.config.readout_analysis_column],
-                                           y = media_data[self.config.readout_analysis_column])[1])
+
+            p_values.append(
+                stats.ranksums(
+                    x = values[self.config.readout_analysis_column],
+                    y = media_data[self.config.readout_analysis_column]
+                )[1]
+            )
 
         sample_stats = sample_stats.assign(pval = p_values)
-        significance, p_adjusted, _, alpha_corr_bonferroni = statsmod.multipletests(pvals = sample_stats.reset_index().pval, alpha = self.config.alpha, method = "bonferroni")
-        sample_stats = sample_stats.assign(p_adjusted = p_adjusted, significant = significance)
+        significance, p_adjusted, _, alpha_corr_bonferroni = (
+            statsmod.multipletests(
+                pvals = sample_stats.reset_index().pval,
+                alpha = self.config.alpha,
+                method = "bonferroni",
+            )
+        sample_stats = sample_stats.assign(
+            p_adjusted = p_adjusted,
+            significant = significance,
+        )
 
         # Renaming columns to avoid shadowing mean function
-        sample_stats.columns = ["mean_z_score", "std_z_score", "pval", "p_adjusted", "significant"]
+        sample_stats.columns = [
+            "mean_z_score",
+            "std_z_score",
+            "pval",
+            "p_adjusted",
+            "significant",
+        ]
 
         # # Reindex based on sample_df from plug.PlugData object
         # sample_stats = sample_stats.reindex(self.plug_data.sample_df.name.unique())
@@ -666,7 +753,10 @@ class PlugExperiment(object):
 
         # Overview violin plot with z-scores
 
-        grid = self.plug_data.plot_compound_violins(column_to_plot=self.config.readout_analysis_column, by_cycle = by_cycle)
+        grid = self.plug_data.plot_compound_violins(
+            column_to_plot = self.config.readout_analysis_column,
+            by_cycle = by_cycle,
+        )
 
         ax = grid.axes[0][0]
         # Getting y coordinates for asterisk from axis dimensions
@@ -676,12 +766,20 @@ class PlugExperiment(object):
         statistics = self.sample_statistics.reset_index()
         statistics = statistics.drop(["compound_a", "compound_b"], axis = 1)
         statistics = statistics.set_index("name")
-        statistics = statistics.reindex(self.plug_data.sample_df.name.unique())
+        statistics = statistics.reindex(
+            self.plug_data.sample_df.name.unique()
+        )
 
         for idx, sample in enumerate(self.plug_data.sample_df.name.unique()):
             if sample != "Cell Control":
                 if statistics.significant[idx]:
-                    ax.annotate("*", xy = (idx, y_max), xycoords = "data", textcoords = "data", ha = "center")
+                    ax.annotate(
+                        "*",
+                        xy = (idx, y_max),
+                        xycoords = "data",
+                        textcoords = "data",
+                        ha = "center",
+                    )
 
         if not by_cycle:
 
@@ -692,7 +790,10 @@ class PlugExperiment(object):
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(grid.fig)
 
-        path = self.config.result_dir.joinpath(f"drug_comb_z_violins{'_by-cycle' if by_cycle else ''}.{self.config.figure_export_file_type}")
+        path = self.config.result_dir.joinpath(
+            f"drug_comb_z_violins{'_by-cycle' if by_cycle else ''}."
+            f"{self.config.figure_export_file_type}"
+        )
         module_logger.info(f"Saving violin plots to {path}")
         grid.savefig(path)
         plt.clf()
