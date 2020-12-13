@@ -718,6 +718,7 @@ class PlugExperiment(object):
                 alpha = self.config.alpha,
                 method = "bonferroni",
             )
+        )
         sample_stats = sample_stats.assign(
             p_adjusted = p_adjusted,
             significant = significance,
