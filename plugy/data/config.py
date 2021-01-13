@@ -76,9 +76,7 @@ class PlugyConfig(object):
     # run the analysis
     analysis: bool = None
     # label of the control channels in the channel layout
-    control_label: typing.Union[set, str] = field(
-        default_factory = lambda: {'FS', 'neg Ctr'}
-    )
+    control_label: typing.Union[set, str] = 'FS'
     # do not raise an error if the quality control fails
     # but proceed with quantification and visualization
     # of the results
