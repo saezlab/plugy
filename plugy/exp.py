@@ -47,7 +47,7 @@ from dataclasses import dataclass, field
 module_logger = logging.getLogger("plugy.data.exp")
 
 
-@dataclass
+@dataclass(init = False)
 class PlugExperiment(object):
     config: PlugyConfig = field(default_factory = PlugyConfig)
     ignore_qc_result: bool = None
@@ -57,6 +57,35 @@ class PlugExperiment(object):
     samples: bool = None
     qc: bool = None
     analysis: bool = None
+
+
+    def __init__(
+            self,
+            config: PlugyConfig = None,
+            ignore_qc_result: bool = None,
+            run: bool = None,
+            init: bool = None,
+            plugs: bool = None,
+            qc: bool = None,
+            analysis: bool = None,
+            **kwargs
+        ):
+
+        self.config = config if config else PlugyConfig(**kwargs)
+
+        for attr in (
+            'run', 'init', 'plugs', 'qc', 'analysis', 'ignore_qc_result'
+        ):
+
+            from_call = locals()[attr]
+            value = (
+                getattr(self.config, attr)
+                    if from_call is None else
+                from_call
+            )
+
+            setattr(self, attr, value)
+
 
     def __post_init__(self):
         module_logger.info('Initializing PlugExperiment')
