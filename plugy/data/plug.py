@@ -456,7 +456,7 @@ class PlugData(object):
         return self.pmt_data.quantify_interval(start_index, end_index)
 
 
-    def _set_sample_cycle(self):
+    def _set_sample_cycle(self, debug = False):
         """
         Enumerates samples and cycles. Adds new columns to the
         :py:attr:`plug_df`: `cycle_nr`, `sample_nr` and `discard`.
@@ -484,7 +484,34 @@ class PlugData(object):
         bc_cycle_end = self.min_end_cycle_barcodes
         sm_min_len = self.min_plugs_in_sample
 
+        if debug:
+
+            print(
+                'bc_bw_samples=%u, bc_adj_discards=%u '
+                'bc_cycle_end=%u, sm_min_len=%u' % (
+                    bc_bw_samples,
+                    bc_adj_discards,
+                    bc_cycle_end,
+                    sm_min_len,
+                )
+            )
+
         for idx, bc in enumerate(self.plug_df.barcode):
+
+            if debug:
+
+                print(
+                    'plug=%u, '
+                    'current_cycle=%u, sample_in_cycle=%u, '
+                    'sm_peaks=%u, bc_peaks=%u, barcode=%s' % (
+                        idx,
+                        current_cycle,
+                        sample_in_cycle,
+                        sm_peaks,
+                        bc_peaks,
+                        str(bc),
+                    )
+                )
 
             if bc:
 
@@ -503,6 +530,11 @@ class PlugData(object):
                         (
                             bc_peaks >= bc_bw_samples and
                             sm_peaks >= sm_min_len
+                        )
+                        or
+                        (
+                            bc_peaks >= self.min_end_cycle_barcodes and
+                            sample_in_cycle > 0
                         )
                         or
                         sample_in_cycle < 0
