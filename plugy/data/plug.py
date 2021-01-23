@@ -534,22 +534,31 @@ class PlugData(object):
                         or
                         (
                             bc_peaks >= self.min_end_cycle_barcodes and
-                            sample_in_cycle > 0
+                            (current_cycle or sm_peaks)
                         )
                         or
                         sample_in_cycle < 0
                     ):
 
                         sample_in_cycle += 1
-                        sm_peaks = 0
 
                         if (
                             bc_peaks >= self.min_end_cycle_barcodes and
-                            sample_in_cycle > 0
+                            # I hope this won't mess up the behaviour
+                            # in any other scenario
+                            # was like this before:
+                            # sample_in_cycle > 0
+                            # and possibly this will be better:
+                            (
+                                current_cycle or
+                                sm_peaks
+                            )
                         ):
 
                             current_cycle += 1
                             sample_in_cycle = 0
+
+                        sm_peaks = 0
 
                     bc_peaks = 0
 
