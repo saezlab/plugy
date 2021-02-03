@@ -27,7 +27,10 @@ import itertools
 import logging
 import pathlib as pl
 import warnings
+from typing import Union
 from dataclasses import dataclass
+
+from plugy import misc
 
 module_logger = logging.getLogger("plugy.data.bd")
 
@@ -36,9 +39,12 @@ Sample = coll.namedtuple("Sample", ["open_duration", "n_replicates", "name", "op
 
 @dataclass
 class ChannelMap(object):
-    input_file: pl.Path
+    input_file: Union[pl.Path, str]
+    label_mapping: dict = None
 
     def __post_init__(self):
+
+        self.input_file = pl.Path(self.input_file)
         module_logger.info(f"Creating ChannelMap object from file {self.input_file.absolute()}")
         module_logger.debug(f"Configuration:")
         for k, v in self.__dict__.items():
@@ -70,9 +76,9 @@ class ChannelMap(object):
 
                 if str(v).startswith("CELLS"):
                     self.cells.append(k)
-                elif str(v).startswith("SUBSTRATE"):
+                elif str(v).lower().startswith("sub"):
                     self.substrate.append(k)
-                elif str(v).startswith("BC"):
+                elif str(v).startswith("BC") or str(v).lower().startswith('barc'):
                     self.bc.append(k)
                 elif str(v).startswith("FS"):
                     self.media.append(k)
@@ -117,13 +123,16 @@ class ChannelMap(object):
 
 
 class PlugSequence(object):
+
     @classmethod
-    def from_csv_file(cls, input_file: pl.Path, **kwargs):
+    def from_csv_file(cls, input_file: Union[pl.Path, str], **kwargs):
         """
         Reads a "Samples on Demand v5" compatible csv file and creates a PlugSequence object from it.
         :param input_file: File path to read from
         :return: PlugSequence object
         """
+
+        input_file = pl.Path(input_file)
         module_logger.info(f"Reading PlugSequence from {input_file.absolute()}")
         sequence = list()
         with input_file.open("r") as f:
@@ -303,3 +312,87 @@ class PlugSequence(object):
                 filtered_samples.append(sample)
 
         return PlugSequence(tuple(filtered_samples))
+
+
+class RotaryValveSequence(object):
+
+
+    def __init__(
+            self,
+            infile: str,
+            channel_map: ChannelMap = None,
+            oil_valve: Union[str,int] = None,
+        ):
+
+        self.infile = infile
+        self.channel_map = channel_map
+        self.oil_valve = oil_valve
+        self.raw = []
+        self.sequence = []
+        self.main()
+
+
+    def main(self):
+
+        self.read()
+        self.process()
+
+
+    def read(self):
+
+        RotaryValveStep = collections.namedtuple(
+            'RotaryValveStep',
+            ['start_time', 'length', 'flow_rate', 'valve']
+        )
+        t = 0
+        seq = []
+
+        module_logger.info(
+            'Reading rotary valve sequence from `%s`' % self.infile
+        )
+
+        with open(self.infile, 'r') as fp:
+
+            _ = fp.readline()
+
+            for line in fp:
+
+                line = line.strip().split(';')
+
+                length = int(line[0])
+
+                if line[2]:
+
+                    seq.append(
+                        RotaryValveStep(
+                            start_time = t,
+                            length = length,
+                            flow_rate = int(line[1]),
+                            valve = line[2],
+                        )
+                    )
+
+                t += length
+
+        self.raw = seq
+
+
+    def process(self):
+
+        RotaryValveSample = collections.namedtuple(
+            'RotaryValveSample',
+            [
+                'start_time',
+                'end_time',
+                'lengths',
+                'flow_rates',
+                'valves',
+                'components',
+            ],
+        )
+
+        self.sequence = []
+
+        for step in self.raw:
+
+            pass
