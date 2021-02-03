@@ -375,11 +375,12 @@ class PlugSequence(object):
                         f"not used on the chip ({sample.open_valves})"
                     )
 
-    def save_csv(self, path: pl.Path):
+    def save_csv(self, path: Union[str, pl.Path]):
         """
         Saves the PlugSequence as a csv file that is compatible to "Samples on Demand v5"
         :param path: Path to write to
         """
+        path = pl.Path(path)
         module_logger.info(f"Writing sequence to file {path.absolute()}")
         with path.open("w", newline="\r\n") as f:
             f.write("\n")
