@@ -50,6 +50,17 @@ class ChannelMap(object):
         for k, v in self.__dict__.items():
             module_logger.debug(f"{k}: {v}")
 
+        self.label_startswith = {
+            'cells': {'cell'},
+            'substrate': {'sub'},
+            'bc': {'bc', 'barc'},
+            'media': {'fs', 'frees', 'medi'},
+        }
+        self.label_mapping = dict(
+            (k, misc.to_set(v))
+            for k, v in (self.label_mapping or {}).items()
+        )
+
         self.cells = list()
         self.substrate = list()
         self.media = list()
@@ -69,25 +80,55 @@ class ChannelMap(object):
                 try:
                     k = int(k)
                 except ValueError:
-                    raise ValueError(f"Channel has to be an int you specified {k}")
+                    raise ValueError(
+                        f"Channel has to be an int you specified {k}"
+                    )
 
                 if k not in range(9, 25):
-                    raise ValueError(f"Channel out of BD range (9-24) you specified channel {k}")
+                    raise ValueError(
+                        f"Channel out of BD range (9-24) "
+                        f"you specified channel {k}"
+                    )
 
-                if str(v).startswith("CELLS"):
-                    self.cells.append(k)
-                elif str(v).lower().startswith("sub"):
-                    self.substrate.append(k)
-                elif str(v).startswith("BC") or str(v).lower().startswith('barc'):
-                    self.bc.append(k)
-                elif str(v).startswith("FS"):
-                    self.media.append(k)
+                channel_type = self._match_channel_label(v)
+
+                if hasattr(self, channel_type):
+
+                    getattr(self, channel_type).append(k)
+
                 else:
-                    self.drugs.append(k)
+
+                    raise ValueError(
+                        f"Could not find out what type of channel is {str(v)}"
+                        f". Please rename the channel or define the channel "
+                        f"type in the `label_mapping` argument."
+                    )
 
                 mapping[k] = v
 
         return mapping
+
+
+    def _match_channel_label(self, label):
+
+        label = str(label)
+
+        for channel_type, kws in self.label_mapping.items():
+
+            if label in kws:
+
+                return channel_type
+
+        for channel_type, kws in self.label_startswith.items():
+
+            for kw in kws:
+
+                if label.lower().startswith(kw):
+
+                    return channel_type
+
+        return 'drugs'
+
 
     def get_compounds(self, open_valves):
         compounds = list()
