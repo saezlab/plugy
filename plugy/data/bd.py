@@ -8,7 +8,7 @@
 # This file is part of the `plugy` python module
 #
 # Copyright
-# 2018-2020
+# 2018-2021
 # EMBL, Heidelberg University
 #
 # File author(s): Dénes Türei (turei.denes@gmail.com)
@@ -45,7 +45,10 @@ class ChannelMap(object):
     def __post_init__(self):
 
         self.input_file = pl.Path(self.input_file)
-        module_logger.info(f"Creating ChannelMap object from file {self.input_file.absolute()}")
+        module_logger.info(
+            f"Creating ChannelMap object from "
+            f"file {self.input_file.absolute()}"
+        )
         module_logger.debug(f"Configuration:")
         for k, v in self.__dict__.items():
             module_logger.debug(f"{k}: {v}")
@@ -152,7 +155,8 @@ class ChannelMap(object):
 
     def get_compound_list(self):
         """
-        Retrieves a list of the compounds used in the experiment including the media
+        Retrieves a list of the compounds used in the experiment including
+        the media
         :return: list containing the names of the compounds
         """
         compounds = list()
@@ -168,7 +172,8 @@ class PlugSequence(object):
     @classmethod
     def from_csv_file(cls, input_file: Union[pl.Path, str], **kwargs):
         """
-        Reads a "Samples on Demand v5" compatible csv file and creates a PlugSequence object from it.
+        Reads a "Samples on Demand v5" compatible csv file and creates a
+            PlugSequence object from it.
         :param input_file: File path to read from
         :return: PlugSequence object
         """
@@ -183,13 +188,31 @@ class PlugSequence(object):
                     continue
                 else:
                     # noinspection PyCallByClass
-                    sequence.append(Sample(open_duration=float(row[0]), n_replicates=int(row[1]), name=row[2], open_valves=[int(i) for i in row[3:]]))
+                    sequence.append(
+                        Sample(
+                            open_duration=float(row[0]),
+                            n_replicates=int(row[1]),
+                            name=row[2],
+                            open_valves=[int(i) for i in row[3:]]
+                        )
+                    )
 
         return cls(sequence=tuple(sequence), **kwargs)
 
     # noinspection PyCallByClass
     @classmethod
-    def from_channel_map(cls, channel_map: ChannelMap, n_replicates: int = 12, n_control: int = 12, n_barcode: int = 5, n_cycle_bc: int = 15, open_duration: int = 1, generate_barcodes: bool = True, **kwargs):
+    def from_channel_map(
+            cls,
+            channel_map: ChannelMap,
+            n_replicates: int = 12,
+            n_control: int = 12,
+            n_barcode: int = 5,
+            n_cycle_bc: int = 15,
+            open_duration: int = 1,
+            generate_barcodes: bool = True,
+            barcode_drug: int = None,
+            **kwargs
+        ):
         """
         Generates a PlugSequence object from a ChannelMap
         :param channel_map: ChannelMap to generate the PlugSequence from
@@ -197,8 +220,11 @@ class PlugSequence(object):
         :param n_control: Number of replicates for the cell only controls
         :param n_barcode: Number of barcodes between samples
         :param n_cycle_bc: Number of barcodes at the beginning and end of a cylcle
-        :param open_duration: How long the braille valves should be opened per plug in seconds
-        :param generate_barcodes: If barcodes should be encoded in the Sequence. Set to False if barcodes should be generated using "Samples on Demand v5"
+        :param open_duration: How long the braille valves should be opened
+            per plug in seconds
+        :param generate_barcodes: If barcodes should be encoded in the
+            Sequence. Set to False if barcodes should be generated using
+            "Samples on Demand v5"
         :return: PlugSequence object
         """
         module_logger.info(f"Creating PlugSequence from ChannelMap")
@@ -208,25 +234,52 @@ class PlugSequence(object):
         samples = list()
 
         # Generate templates
-        control = Sample(open_duration=open_duration, n_replicates=n_control,
-                         name="Cell Control", open_valves=channel_map.cells + channel_map.substrate + channel_map.media)
-        barcode = Sample(open_duration=open_duration, n_replicates=n_barcode,
-                         name="Barcode", open_valves=channel_map.media + channel_map.bc)
-
-        cycle_bc = Sample(open_duration=open_duration, n_replicates=n_cycle_bc,
-                          name="Cycle Barcode", open_valves=channel_map.media + channel_map.bc)
+        control = Sample(
+            open_duration = open_duration,
+            n_replicates = n_control,
+            name = "Cell Control",
+            open_valves = (
+                channel_map.cells +
+                channel_map.substrate +
+                channel_map.media
+            )
+        )
+        barcode = Sample(
+            open_duration = open_duration,
+            n_replicates = n_barcode,
+            name = "Barcode",
+            open_valves = channel_map.media + channel_map.bc
+        )
+        cycle_bc = Sample(
+            open_duration = open_duration,
+            n_replicates = n_cycle_bc,
+            name = "Cycle Barcode",
+            open_valves = channel_map.media + channel_map.bc
+        )
 
         if len(channel_map.bc) == 1:
-            barcode_substitute = channel_map.drugs[-1]
-            module_logger.warning(f"Single barcode channel detected, substituting last drug valve ({barcode_substitute}) for missing barcode")
+            barcode_substitute = barcode_drug or channel_map.drugs[0]
+            module_logger.warning(
+                'Single barcode channel available, using `%s` instead.' %
+                channel_map.map[barcode_substitute]
+            )
             barcode.open_valves.append(barcode_substitute)
             cycle_bc.open_valves.append(barcode_substitute)
 
         individual_drugs = list()
         for drug in channel_map.drugs:
-            individual_drugs.append(Sample(open_duration=open_duration, n_replicates=n_replicates,
-                                           name=channel_map.map[drug],
-                                           open_valves=channel_map.cells + channel_map.substrate + [channel_map.media[0]] + [drug]))
+            individual_drugs.append(
+                Sample(
+                    open_duration = open_duration,
+                    n_replicates = n_replicates,
+                    name = channel_map.map[drug],
+                    open_valves = (
+                        channel_map.cells +
+                        channel_map.substrate +
+                        [channel_map.media[0]] + [drug]
+                    )
+                )
+            )
             if generate_barcodes:
                 individual_drugs.append(barcode)
 
@@ -237,15 +290,29 @@ class PlugSequence(object):
             samples.append(barcode)
         samples = samples + individual_drugs
 
-        for idx, combination in enumerate(itertools.combinations(channel_map.drugs, 2)):
+        for idx, combination in enumerate(
+            itertools.combinations(channel_map.drugs, 2)
+        ):
             if idx % 10 == 0:
                 samples.append(control)
                 if generate_barcodes:
                     samples.append(barcode)
 
-            samples.append(Sample(open_duration=open_duration, n_replicates=n_replicates,
-                                  name=f"{channel_map.map[combination[0]]} + {channel_map.map[combination[1]]}",
-                                  open_valves=channel_map.cells + channel_map.substrate + list(combination)))
+            samples.append(
+                Sample(
+                    open_duration = open_duration,
+                    n_replicates = n_replicates,
+                    name = (
+                        f"{channel_map.map[combination[0]]} + "
+                        f"{channel_map.map[combination[1]]}"
+                    ),
+                    open_valves = (
+                        channel_map.cells +
+                        channel_map.substrate +
+                        list(combination)
+                    )
+                )
+            )
             if generate_barcodes:
                 samples.append(barcode)
 
@@ -283,17 +350,30 @@ class PlugSequence(object):
 
         for idx, sample in enumerate(self.sequence):
             if not isinstance(sample, Sample):
-                raise TypeError(f"Samples in the plug sequence have to be of class Sample, you specified {type(sample)} in sample {idx}")
+                raise TypeError(
+                    f"Samples in the plug sequence have to be of class "
+                    f"Sample, you specified {type(sample)} in sample {idx}"
+                )
 
             if len(sample.open_valves) < 4 and not self.allow_lt4_valves:
-                warnings.warn(f"Less than 4 valves open ({len(sample.open_valves)}) in sample {idx}")
+                warnings.warn(
+                    f"Less than 4 valves open ({len(sample.open_valves)}) "
+                    f"in sample {idx}"
+                )
 
             elif len(sample.open_valves) > 4:
-                raise ValueError(f"Sample {idx} found with more than 4 valves open ({len(sample.open_valves)}), THIS WILL DESTROY THE CHIP!")
+                raise ValueError(
+                    f"Sample {idx} found with more than 4 valves open "
+                    f"({len(sample.open_valves)}), "
+                    f"THIS MIGHT DAMAGE THE CHIP!"
+                )
 
             for valve in sample.open_valves:
                 if valve not in range(9, 25):
-                    raise ValueError(f"Sample {idx} contains valves that are not used on the chip ({sample.open_valves})")
+                    raise ValueError(
+                        f"Sample {idx} contains valves that are "
+                        f"not used on the chip ({sample.open_valves})"
+                    )
 
     def save_csv(self, path: pl.Path):
         """
@@ -304,13 +384,20 @@ class PlugSequence(object):
         with path.open("w", newline="\r\n") as f:
             f.write("\n")
             for sample in self.sequence:
-                f.write(f"{str(sample.open_duration)},{str(sample.n_replicates)},{str(sample.name)},{','.join([str(i) for i in sample.open_valves])}")
+                f.write(
+                    f"{str(sample.open_duration)},"
+                    f"{str(sample.n_replicates)},"
+                    f"{str(sample.name)},"
+                    f"{','.join([str(i) for i in sample.open_valves])}"
+                )
                 f.write("\n")
 
     def get_samples(self, **kwargs):
         """
-        Filters barcodes out of the plug sequence and returns a PlugSequence object without barcodes
-        :param kwargs: channel_map: optionally overrides the ChannelMap object that might be already present in the PlugSequence object
+        Filters barcodes out of the plug sequence and returns a PlugSequence
+            object without barcodes
+        :param kwargs: channel_map: optionally overrides the ChannelMap object
+            that might be already present in the PlugSequence object
         :return: tuple containing Samples filtered
         """
 
@@ -318,12 +405,19 @@ class PlugSequence(object):
             if isinstance(kwargs["channel_map"], ChannelMap):
                 c_map = kwargs["channel_map"]
             else:
-                raise TypeError(f"channel_map of type {type(kwargs['channel_map'])} but has to be type ChannelMap")
+                raise TypeError(
+                    f"channel_map of type {type(kwargs['channel_map'])} but "
+                    f"has to be type ChannelMap"
+                )
         else:
             try:
                 c_map = self.channel_map
             except AttributeError:
-                raise AttributeError("No ChannelMap object specified or found to get sample information from! You can specify one with the channel_map keyword argument.")
+                raise AttributeError(
+                    "No ChannelMap object specified or found to get sample "
+                    "information from! You can specify one with the "
+                    "channel_map keyword argument."
+                )
 
         filtered_samples = list()
 
