@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='plugy',
-    version='v0.5.0',
+    version='v0.6.0',
     packages=['plugy', 'plugy.data', 'plugy.test'],
     url='https://github.com/saezlab/plugy',
     license='GPLv3',
