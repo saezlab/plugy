@@ -299,6 +299,9 @@ class PlugExperiment(object):
             has_samples_cycles = self.config.has_samples_cycles,
             samples_per_cycle = self.config.samples_per_cycle,
             heatmap_second_scale = self.config.heatmap_second_scale,
+            heatmap_override_scale = self.config.heatmap_override_scale,
+            heatmap_override_second_scale =
+                self.config.heatmap_override_second_scale,
             config = self.config,
         )
 
@@ -842,8 +845,6 @@ class PlugExperiment(object):
         grid = self.plug_data.plot_compound_heatmap(
             column_to_plot = self.config.readout_analysis_column,
             annotation_df = statistics,
-            vmin = self.config.drug_comb_heatmap_scale_min,
-            vmax = self.config.drug_comb_heatmap_scale_max,
             by_cycle = by_cycle,
         )
 

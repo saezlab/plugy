@@ -72,6 +72,8 @@ class PlugData(object):
     samples_per_cycle: int = None
 
     heatmap_second_scale: str = 'pos_ctrl'
+    heatmap_override_scale: tuple = None
+    heatmap_override_second_scale: tuple = None
 
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
@@ -1610,15 +1612,24 @@ class PlugData(object):
 
             ax = grid.axes.flat[i]
 
+            vmin, vmax = self.heatmap_override_scale or (None, None)
+
             sns.heatmap(
                 data,
                 annot = annotation_df,
                 fmt = "",
                 ax = ax,
+                vmin = vmin,
+                vmax = vmax,
                 **kwargs
             )
 
             if second_scale:
+
+                vmin, vmax = (
+                    self.heatmap_override_second_scale or
+                    (None, None)
+                )
 
                 sns.heatmap(
                     second_scale_data,
@@ -1626,6 +1637,8 @@ class PlugData(object):
                     cmap = 'viridis',
                     fmt = '',
                     ax = ax,
+                    vmin = vmin,
+                    vmax = vmax,
                     **kwargs
                 )
 

@@ -192,10 +192,9 @@ class PlugyConfig(object):
     seaborn_style: str = "darkgrid"
     plot_git_caption: bool = True
 
-    drug_comb_heatmap_scale_max: float = None
-    drug_comb_heatmap_scale_min: float = None
-
     heatmap_second_scale: str = 'pos_ctrl'
+    heatmap_override_scale: tuple = None
+    heatmap_override_second_scale: tuple = None
 
     # QC
     contamination_threshold: float = 0.03
