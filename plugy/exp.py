@@ -627,8 +627,6 @@ class PlugExperiment(object):
 
         grid = self.plug_data.plot_compound_heatmap(
             column_to_plot = 'control_peak_median',
-            vmin = self.config.drug_comb_heatmap_scale_min,
-            vmax = self.config.drug_comb_heatmap_scale_max,
         )
 
         control_fig.axes[-1] = grid.axes.flat[0]
