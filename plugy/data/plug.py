@@ -1379,12 +1379,13 @@ class PlugData(object):
                 s = self.scatter_dot_size * 10,
             )
             misc.plot_line(slope, intercept, axes)
-            axes.text(
+            label = axes.text(
                 0.1,
                 0.9,
                 f'R²: {round(rvalue, 2)}',
                 transform = axes.transAxes,
             )
+            label.set_bbox(dict(facecolor = 'white', alpha = 0.8))
             axes.set_xlabel('Experiment Time [s]')
 
         axes.set_title('FS media control plug fluorescence')

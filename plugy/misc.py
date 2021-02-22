@@ -52,7 +52,7 @@ def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
         rel_position[0],
         rel_position[1],
         f'Created on {time.ctime()} with plugy {sha}',
-        fontsize = 'x-small',
+        fontsize = 'xx-small',
         fontweight = 'light',
     )
 

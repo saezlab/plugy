@@ -377,6 +377,8 @@ class PlugExperiment(object):
 
     def plot_pmt_data(self):
 
+        return None
+
         qc_dir = self.ensure_qc_dir()
 
         pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
@@ -484,9 +486,10 @@ class PlugExperiment(object):
         axes = sns.countplot(
             x = self.sample_data.plug_count_divergence,
             ax = axes,
+            color = self.config.palette[0],
         )
-        axes.set_ylabel('Counts')
-        axes.set_xlabel('Plug count divergence per sample')
+        axes.set_ylabel('Number of samples')
+        axes.set_xlabel('Plug count deviation')
 
         return axes
 
@@ -538,7 +541,9 @@ class PlugExperiment(object):
 
         # Plotting plug numbers
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
-        plug_count_hist_ax = self.plot_plug_count_hist(axes = plug_count_hist_ax)
+        plug_count_hist_ax = self.plot_plug_count_hist(
+            axes = plug_count_hist_ax,
+        )
 
         plug_count_hist_fig.tight_layout()
         if self.config.plot_git_caption:
@@ -562,15 +567,23 @@ class PlugExperiment(object):
             module_logger.warning(msg)
             qc_issues.append(msg)
 
-        contamination_hist_fig, contamination_hist_ax = plt.subplots()
-        sns.histplot(contamination, kde = True, ax = contamination_hist_ax)
+        contamination_hist_fig, contamination_hist_ax = plt.subplots(
+            figsize = (8, 6.2),
+        )
+        sns.histplot(
+            contamination,
+            kde = True,
+            ax = contamination_hist_ax,
+            color = self.config.palette[0],
+            line_kws = {'color': self.config.palette[0]},
+        )
         contamination_hist_ax.set_title("Relative barcode contamination")
         contamination_hist_ax.set_xlabel(
-            r"Relative contamination "
+            "Barcode signal in sample plugs\n"
             r"$\left[\frac{\overline{barcode_{median}}}"
             r"{\overline{control_{median}}}\right]$"
         )
-        contamination_hist_ax.set_ylabel("Counts")
+        contamination_hist_ax.set_ylabel("Number of sample plugs")
         misc.add_git_hash_caption(contamination_hist_fig)
         contamination_hist_fig.tight_layout()
         contamination_hist_fig.savefig(
@@ -676,6 +689,8 @@ class PlugExperiment(object):
         plt.clf()
 
         self.plot_sample_cycles()
+
+        plt.close('all')
 
         qc_successful = not qc_issues
         qc_fail_msg = (

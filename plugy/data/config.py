@@ -191,7 +191,7 @@ class PlugyConfig(object):
     seaborn_context: str = "notebook"
     seaborn_context_dict: dict = field(
         default_factory = lambda: {
-            'grid.linewidth': .5,
+            'grid.linewidth': .9,
         }
     )
     seaborn_style: str = "whitegrid"
