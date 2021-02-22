@@ -27,6 +27,7 @@ import pathlib as pl
 import collections
 import importlib as imp
 import traceback
+import typing
 
 import numpy as np
 import pandas as pd
@@ -57,6 +58,8 @@ class PlugExperiment(object):
     samples: bool = None
     qc: bool = None
     analysis: bool = None
+    font_scale: typing.Union[float, int] = 2
+    scatter_dot_size: typing.Union[float, int] = 10
 
 
     def __init__(
@@ -168,7 +171,7 @@ class PlugExperiment(object):
 
     def _init(self):
 
-        self.setup()
+        self.seaborn_setup()
         self.load()
 
 
@@ -200,13 +203,25 @@ class PlugExperiment(object):
             here = getattr(self, attr)
             from_config = getattr(self.config, attr)
 
-            setattr(self, attr, here if here is not None else from_config)
+            setattr(
+                self,
+                attr,
+                here if here is not None else from_config
+            )
 
 
-    def setup(self):
+    def seaborn_setup(self):
 
-        sns.set_context(self.config.seaborn_context)
-        sns.set_style(self.config.seaborn_style)
+
+        sns.set_context(
+            self.config.seaborn_context,
+            font_scale = self.font_scale,
+            rc = self.config.seaborn_context_dict,
+        )
+        sns.set_style(
+            self.config.seaborn_style,
+            rc = self.config.seaborn_style_dict,
+        )
 
 
     def load(self):
@@ -302,6 +317,9 @@ class PlugExperiment(object):
             heatmap_override_scale = self.config.heatmap_override_scale,
             heatmap_override_second_scale =
                 self.config.heatmap_override_second_scale,
+            palette = self.config.palette,
+            font_scale = self.font_scale,
+            scatter_dot_size = self.scatter_dot_size,
             config = self.config,
         )
 
@@ -439,8 +457,16 @@ class PlugExperiment(object):
         used_plugs = self.plug_data.plug_df.loc[self.plug_data.plug_df.cycle_nr.isin(self.plug_data.sample_df.cycle_nr.unique()) & self.plug_data.plug_df.barcode == 1]
         barcode_mean = used_plugs.loc[used_plugs.barcode].barcode_peak_median.mean()
         control_mean = self.plug_data.sample_df.control_peak_median.mean()
-        norm_df = self.plug_data.sample_df.assign(norm_barcode = self.plug_data.sample_df.barcode_peak_median / barcode_mean,
-                                                  norm_control = self.plug_data.sample_df.control_peak_median / control_mean)
+        norm_df = self.plug_data.sample_df.assign(
+            norm_barcode = (
+                self.plug_data.sample_df.barcode_peak_median /
+                barcode_mean
+            ),
+            norm_control = (
+                self.plug_data.sample_df.control_peak_median /
+                control_mean
+            )
+        )
 
         return norm_df.norm_barcode / norm_df.norm_control
 
@@ -474,25 +500,33 @@ class PlugExperiment(object):
             True if quality is sufficient, False otherwise
         """
 
+        self.seaborn_setup()
+
         qc_issues = []
         qc_dir = self.ensure_qc_dir()
 
         # Plotting media control readout over experiment time
         media_control_fig, media_control_ax = plt.subplots(
             ncols = 2,
-            figsize = (20, 10),
+            figsize = (18, 9),
         )
-        media_control_ax[0] = self.plug_data.plot_media_control_evolution(
-            axes = media_control_ax[0],
+        media_control_ax[0] = (
+            self.plug_data.plot_media_control_evolution(
+                axes = media_control_ax[0],
+            )
         )
-        media_control_ax[1] = self.plug_data.plot_media_control_evolution(
-            axes = media_control_ax[1],
-            by_sample = True,
+        media_control_ax[1] = (
+            self.plug_data.plot_media_control_evolution(
+                axes = media_control_ax[1],
+                by_sample = True,
+            )
         )
 
         media_control_fig.tight_layout()
+
         if self.config.plot_git_caption:
             misc.add_git_hash_caption(media_control_fig)
+
         media_control_fig.savefig(
             qc_dir.joinpath(
                 f"fs_media_control.{self.config.figure_export_file_type}"

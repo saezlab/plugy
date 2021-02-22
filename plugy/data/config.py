@@ -189,7 +189,20 @@ class PlugyConfig(object):
 
     # Plotting config
     seaborn_context: str = "notebook"
-    seaborn_style: str = "darkgrid"
+    seaborn_context_dict: dict = field(
+        default_factory = lambda: {
+            'grid.linewidth': .5,
+        }
+    )
+    seaborn_style: str = "whitegrid"
+    seaborn_style_dict: dict = field(
+        default_factory = lambda: {
+            'axes.edgecolor': '#000000',
+            'grid.color': '#000000',
+        }
+    )
+    font_scale: typing.Union[float, int] = 2
+    scatter_dot_size: typing.Union[float, int] = 10
     plot_git_caption: bool = True
 
     heatmap_second_scale: str = 'pos_ctrl'
@@ -201,6 +214,15 @@ class PlugyConfig(object):
 
     # Statistics
     alpha: float = 0.05
+
+    # Palette for plotting
+    palette: tuple = (
+        '#7264B9',
+        '#5B205F',
+        '#9E1639',
+        '#ED0772',
+        '#D22027',
+    )
 
     def __post_init__(self):
         # Creating result dir for each individual run

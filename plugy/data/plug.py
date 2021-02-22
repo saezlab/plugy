@@ -29,6 +29,7 @@ import collections
 import itertools
 import functools
 import inspect
+import typing
 
 import pathlib as pl
 
@@ -74,6 +75,10 @@ class PlugData(object):
     heatmap_second_scale: str = 'pos_ctrl'
     heatmap_override_scale: tuple = None
     heatmap_override_second_scale: tuple = None
+
+    palette: tuple = None
+    font_scale: typing.Union[float, int] = 2
+    scatter_dot_size: typing.Union[float, int] = 10
 
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
@@ -126,14 +131,17 @@ class PlugData(object):
         self._create_sample_df()
         self._add_z_scores()
         self._media_lin_reg_norm()
-        self._check_sample_df_column(self.config.readout_analysis_column)
+        self._check_sample_df_column(
+            self.config.readout_analysis_column
+        )
         self._check_sample_df_column(self.config.readout_column)
 
 
     def _detect_peaks(self):
         """
         Detects peaks using scipy.signal.find_peaks().
-        :return: Returns a DataFrame containing information about the peaks
+        :return: Returns a DataFrame containing information about
+            the peaks
         as called by sig.find_peaks
         """
 
@@ -185,7 +193,11 @@ class PlugData(object):
         )
         self._barcode_eval = {}
 
-        n_param = functools.reduce(lambda i, j: i * len(j), param.values(), 1)
+        n_param = functools.reduce(
+            lambda i, j: i * len(j),
+            param.values(),
+            1
+        )
         pbar_desc = 'Adjusting barcode detection%s'
 
         with tqdm.tqdm(
@@ -653,6 +665,19 @@ class PlugData(object):
         )
 
         return slope, intercept, rvalue, pvalue, stderr
+
+
+    def seaborn_setup(self):
+
+        sns.set_context(
+            self.config.seaborn_context,
+            font_scale = self.config.font_scale,
+            rc = self.config.seaborn_context_dict,
+        )
+        sns.set_style(
+            self.config.seaborn_style,
+            rc = self.config.seaborn_style_dict,
+        )
 
 
     def plot_plug_pmt_data(
@@ -1300,34 +1325,70 @@ class PlugData(object):
 
 
     # QC Plots
-    def plot_media_control_evolution(self, axes: plt.Axes, by_sample = False) -> plt.Axes:
+    def plot_media_control_evolution(
+        self,
+        axes: plt.Axes,
+        by_sample = False,
+    ) -> plt.Axes:
         """
-        Plots a scatter plot with readout medians for the media control over
-        the experiment time.
-        
+        Plots a scatter plot with readout medians for the media control
+        over the experiment time.
+
         :param axes: plt.Axes object to draw on
         :param by_sample: True to plot swarmplot by sample number
         :return: plt.Axes object with the plot
         """
+
+        self.seaborn_setup()
+
         if self.normalize_using_control:
-            readout_column = "readout_per_control"
+            readout_column = 'readout_per_control'
+            ylab = 'Readout normalized to control'
         else:
-            readout_column = "readout_peak_median"
+            readout_column = 'readout_peak_median'
+            ylab = 'Readout median'
 
         plot_data = self.get_media_control_data()
 
         if by_sample:
-            axes = sns.swarmplot(x = "sample_nr", y = readout_column, data = plot_data, ax = axes, hue = "cycle_nr", dodge = True)
-            axes.set_xlabel("Sample Number")
-        else:
-            slope, intercept, rvalue, _, _ = self.get_media_control_lin_reg(readout_column)
-            axes = sns.scatterplot(x = "start_time", y = readout_column, data = plot_data, ax = axes)
-            misc.plot_line(slope, intercept, axes)
-            axes.text(0.1, 0.9, f"R²: {round(rvalue, 2)}", transform=axes.transAxes)
-            axes.set_xlabel("Experiment Time [s]")
 
-        axes.set_title("FS media control plug fluorescence")
-        axes.set_ylabel(readout_column)
+            axes = sns.swarmplot(
+                x = 'sample_nr',
+                y = readout_column,
+                data = plot_data,
+                ax = axes,
+                hue = 'cycle_nr',
+                dodge = True,
+                palette = list(self.palette),
+                size = self.scatter_dot_size,
+            )
+            axes.set_xlabel('Sample Number')
+            axes.get_legend().set_title('Cycle')
+
+        else:
+
+            slope, intercept, rvalue, _, _ = (
+                self.get_media_control_lin_reg(readout_column)
+            )
+            axes = sns.scatterplot(
+                x = 'start_time',
+                y = readout_column,
+                data = plot_data,
+                ax = axes,
+                color = self.palette[0],
+                s = self.scatter_dot_size * 10,
+            )
+            misc.plot_line(slope, intercept, axes)
+            axes.text(
+                0.1,
+                0.9,
+                f'R²: {round(rvalue, 2)}',
+                transform = axes.transAxes,
+            )
+            axes.set_xlabel('Experiment Time [s]')
+
+        axes.set_title('FS media control plug fluorescence')
+        axes.set_ylabel(ylab)
         return axes
 
 

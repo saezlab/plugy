@@ -68,7 +68,7 @@ def plot_line(slope: float, intercept: float, axes: plt.Axes):
     """
     x_values = np.array(axes.get_xlim())
     y_values = intercept + slope * x_values
-    axes.plot(x_values, y_values, '--')
+    axes.plot(x_values, y_values, '--', c = '#D22027')
 
 
 def to_int(value):
