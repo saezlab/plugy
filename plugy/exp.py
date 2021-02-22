@@ -572,10 +572,15 @@ class PlugExperiment(object):
         )
         sns.histplot(
             contamination,
-            kde = True,
             ax = contamination_hist_ax,
             color = self.config.palette[0],
-            line_kws = {'color': self.config.palette[0]},
+            stat = 'density',
+        )
+        sns.kdeplot(
+            contamination,
+            ax = contamination_hist_ax,
+            color = self.config.palette[1],
+            linewidth = 2,
         )
         contamination_hist_ax.set_title("Relative barcode contamination")
         contamination_hist_ax.set_xlabel(
@@ -597,7 +602,7 @@ class PlugExperiment(object):
             2, 3,
             sharex = "all",
             sharey = "all",
-            figsize = (30, 20),
+            figsize = (18, 12),
         )
 
         for idx_y, channel in enumerate(
@@ -611,6 +616,7 @@ class PlugExperiment(object):
                 axes = contamination_ax[idx_y][2],
             )
             contamination_ax[idx_y][2].set_title("Filtered")
+            contamination_ax[idx_y][2].get_legend().set_title('Time [s]')
 
             for idx_x, hue in enumerate(["start_time", "barcode"]):
 
@@ -623,7 +629,16 @@ class PlugExperiment(object):
                         axes = contamination_ax[idx_y][idx_x],
                     )
                 )
+
                 contamination_ax[idx_y][idx_x].set_title("Unfiltered")
+
+                leg_title = 'Time [s]' if hue == 'start_time' else 'Plug type'
+                legend = contamination_ax[idx_y][idx_x].get_legend()
+                legend.set_title(leg_title)
+
+                if hue == 'barcode':
+                    for t, l in zip(legend.texts, ['Sample', 'Barcode']):
+                        t.set_text(l)
 
         if self.config.plot_git_caption:
 
