@@ -41,7 +41,11 @@ class PlugyConfig(object):
 
     # File Paths
     pmt_file: typing.Union[pl.Path, str, re.Pattern] = \
-        re.compile(r'(?:fluor|exp)(?:[-\w ]*)?(?:\.txt)?', re.IGNORECASE)
+        re.compile(
+            r'(?:fluor|exp)(?:[-\w ]*)?'
+            r'(?:\.txt)(?:\.gz)?',
+            re.IGNORECASE
+        )
     seq_file: typing.Union[pl.Path, str, re.Pattern] = \
         re.compile(r'seq(?:[-\w ]*)?(?:\.[tc]sv)?', re.IGNORECASE)
     channel_file: typing.Union[pl.Path, str, re.Pattern] = \
