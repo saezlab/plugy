@@ -1402,9 +1402,10 @@ class PlugData(object):
 
     def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
         """
-        Plots each plugs fluorescence over its length grouped by valve. Also fits a linear regression to show if there
-        is a correlation between the readout and the plug length indicating non ideal mixing.
-        
+        Plots each plugs fluorescence over its length grouped by valve.
+        Also fits a linear regression to show if there is a correlation
+        between the readout and the plug length indicating non ideal mixing.
+
         :param col_wrap: After how many subplots the column should be wrapped.
         :return: sns.FacetGrid object with the subplots
         """
@@ -1421,9 +1422,16 @@ class PlugData(object):
             col = "name",
             data = df,
             col_wrap = col_wrap,
+            scatter_kws = {
+                'color': self.palette[0],
+            },
+            line_kws = {
+                'color': self.palette[1],
+            },
         )
-        length_bias_plot.set_xlabels("Length")
+        length_bias_plot.set_xlabels("Plug length [s]")
         length_bias_plot.set_ylabels("Fluorescence [AU]")
+        length_bias_plot.set_titles('{col_name}')
 
         length_bias_plot.set(
             ylim = (0, df.readout_peak_median.max()),

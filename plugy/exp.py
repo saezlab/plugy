@@ -377,8 +377,6 @@ class PlugExperiment(object):
 
     def plot_pmt_data(self):
 
-        return None
-
         qc_dir = self.ensure_qc_dir()
 
         pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
@@ -690,8 +688,10 @@ class PlugExperiment(object):
 
 
     def plot_length_bias(self):
+        """
+        Creates a figure of readout signal vs. plug length by sample.
+        """
 
-        # Plotting length bias
         try:
             qc_dir = self.ensure_qc_dir()
             length_bias_plot = self.plug_data.plot_length_bias(col_wrap = 8)
@@ -700,16 +700,21 @@ class PlugExperiment(object):
             length_bias_plot.fig.tight_layout()
             length_bias_plot.fig.savefig(
                 qc_dir.joinpath(
-                    f"length_bias.{self.config.figure_export_file_type}"
+                    f'length_bias.{self.config.figure_export_file_type}'
                 )
             )
             plt.clf()
         except:
             traceback.print_exc(file = sys.stdout)
-            module_logger.error("Failed to plot length bias")
+            module_logger.error('Failed to plot length bias')
 
 
     def plot_control(self):
+        """
+        Creates a composite figure to investigate if the control channel
+        shows a bias with other variables or correlation with the readout
+        channel.
+        """
 
         self.seaborn_setup(font_scale = self.config.font_scale * .7)
 
