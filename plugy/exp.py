@@ -982,3 +982,106 @@ class PlugExperiment(object):
     def close_figures(self):
 
         plt.close('all')
+
+
+    def pmt_data_to_excel(
+            self,
+            name = None,
+            sheet_name = 'PMT_data',
+            **kwargs,
+        ):
+
+        self._to_excel(
+            df = self.pmt_data.data,
+            fname = fname,
+            sheet_name = sheet_name,
+            fname_suffix = 'pmt',
+            label = 'PMT data',
+            **kwargs,
+        )
+
+
+    def raw_plugs_to_excel(
+            self,
+            fname = None,
+            sheet_name = 'Plugs_raw',
+            **kwargs,
+        ):
+
+        self._to_excel(
+            df = self.plug_data.plug_df,
+            fname = fname,
+            sheet_name = sheet_name,
+            fname_suffix = 'plugs_raw',
+            label = 'raw plug data',
+            **kwargs,
+        )
+
+
+    def plugs_to_excel(self, fname = None, sheet_name = 'Plugs', **kwargs):
+
+        self._to_excel(
+            df = self.plug_data.sample_df,
+            fname = fname,
+            sheet_name = sheet_name,
+            fname_suffix = 'plugs',
+            label = 'plug data',
+            **kwargs,
+        )
+
+
+    def samples_to_excel(
+            self,
+            fname = None,
+            sheet_name = 'Samples',
+            **kwargs,
+        ):
+
+        self._to_excel(
+            df = self.sample_data,
+            fname = fname,
+            sheet_name = sheet_name,
+            fname_suffix = 'samples',
+            label = 'sample data',
+            **kwargs,
+        )
+
+
+    def stats_to_excel(
+            self,
+            fname = None,
+            sheet_name = 'Statistics',
+            **kwargs,
+        ):
+
+        self._to_excel(
+            df = self.sample_statistics,
+            fname = fname,
+            sheet_name = sheet_name,
+            fname_suffix = 'stats',
+            label = 'sample statistics',
+            **kwargs,
+        )
+
+
+    def _to_excel(
+            self,
+            df,
+            fname = None,
+            fname_suffix = None,
+            label = 'data',
+            sheet_name = 'Sheet1',
+            **kwargs,
+        ):
+
+        fname = (
+            fname or
+            '%s_%s.xlsx' % (self.pmt_data.input_file.stem, fname_suffix)
+        )
+
+        if 'index' not in kwargs:
+
+            kwargs['index'] = isinstance(df.index, pd.MultiIndex)
+
+        df.to_excel(fname, sheet_name = sheet_name, **kwargs)
+        module_logger.info('Exported %s to %s' % (label, fname))
