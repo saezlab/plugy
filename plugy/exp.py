@@ -210,12 +210,12 @@ class PlugExperiment(object):
             )
 
 
-    def seaborn_setup(self):
+    def seaborn_setup(self, font_scale = None):
 
 
         sns.set_context(
             self.config.seaborn_context,
-            font_scale = self.font_scale,
+            font_scale = font_scale or self.font_scale,
             rc = self.config.seaborn_context_dict,
         )
         sns.set_style(
@@ -652,57 +652,7 @@ class PlugExperiment(object):
         )
         plt.clf()
 
-        # Plotting control
-        control_fig = plt.figure(
-            figsize = (40, 20),
-            constrained_layout = False,
-        )
-        control_fig_gs = control_fig.add_gridspec(nrows = 2, ncols = 4)
-        control_ax_sample_dist = control_fig.add_subplot(control_fig_gs[0, :])
-        control_ax_control_regression = (
-            control_fig.add_subplot(control_fig_gs[1, 0])
-        )
-        control_ax_cycle_dist = control_fig.add_subplot(control_fig_gs[1, 1])
-        control_ax_readout_correlation = (
-            control_fig.add_subplot(control_fig_gs[1, 2])
-        )
-        control_ax_control_heatmap = (
-            control_fig.add_subplot(control_fig_gs[1, 3])
-        )
-
-        control_ax_control_regression = (
-            self.plug_data.plot_control_regression(
-                control_ax_control_regression
-            )
-        )
-        control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(
-            control_ax_cycle_dist
-        )
-        control_ax_sample_dist = self.plug_data.plot_control_sample_dist(
-            control_ax_sample_dist
-        )
-        control_ax_readout_correlation = (
-            self.plug_data.plot_control_readout_correlation(
-                control_ax_readout_correlation
-            )
-        )
-
-        grid = self.plug_data.plot_compound_heatmap(
-            column_to_plot = 'control_peak_median',
-        )
-
-        control_fig.axes[-1] = grid.axes.flat[0]
-
-        control_fig.tight_layout()
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(control_fig)
-        control_fig.savefig(
-            qc_dir.joinpath(
-                f"control_fluorescence.{self.config.figure_export_file_type}"
-            )
-        )
-        plt.clf()
-
+        self.plot_control()
         self.plot_sample_cycles()
 
         plt.close('all')
@@ -759,7 +709,66 @@ class PlugExperiment(object):
             module_logger.error("Failed to plot length bias")
 
 
+    def plot_control(self):
+
+        self.seaborn_setup(font_scale = self.config.font_scale * .7)
+
+        qc_dir = self.ensure_qc_dir()
+
+        # Plotting control
+        control_fig = plt.figure(
+            figsize = (20, 10),
+            constrained_layout = False,
+        )
+        control_fig_gs = control_fig.add_gridspec(nrows = 2, ncols = 4)
+        control_ax_sample_dist = control_fig.add_subplot(control_fig_gs[0, :])
+        control_ax_control_regression = (
+            control_fig.add_subplot(control_fig_gs[1, 0])
+        )
+        control_ax_cycle_dist = control_fig.add_subplot(control_fig_gs[1, 1])
+        control_ax_readout_correlation = (
+            control_fig.add_subplot(control_fig_gs[1, 2])
+        )
+
+        control_ax_control_regression = (
+            self.plug_data.plot_control_regression(
+                control_ax_control_regression
+            )
+        )
+        control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(
+            control_ax_cycle_dist
+        )
+        control_ax_sample_dist = self.plug_data.plot_control_sample_dist(
+            control_ax_sample_dist
+        )
+        control_ax_readout_correlation = (
+            self.plug_data.plot_control_readout_correlation(
+                control_ax_readout_correlation
+            )
+        )
+
+        grid = self.plug_data.plot_compound_heatmap(
+            column_to_plot = 'control_peak_median',
+        )
+
+        control_fig.axes[-1] = grid.axes.flat[0]
+
+        control_fig.tight_layout()
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(control_fig)
+        control_fig.savefig(
+            qc_dir.joinpath(
+                f"control_fluorescence.{self.config.figure_export_file_type}"
+            )
+        )
+        plt.clf()
+
+        self.seaborn_setup()
+
+
     def plot_sample_cycles(self):
+
+        self.seaborn_setup(font_scale = self.font_scale * .7)
 
         # Plotting PMT overview
         try:
@@ -777,6 +786,8 @@ class PlugExperiment(object):
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error("Failed to plot sample cycles")
+
+        self.seaborn_setup()
 
 
     def calculate_statistics(self) -> pd.DataFrame:

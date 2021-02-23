@@ -22,9 +22,11 @@
 #
 
 import time
+import inspect
 
 import subprocess as sp
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 
 
@@ -170,6 +172,122 @@ def matplotlib_331_fix():
     if plt.matplotlib.__version__ == '3.3.1':
 
         plt.matplotlib.path.Path.get_extents = get_extents
+
+
+def seaborn_violin_fix(
+        box_color = None,
+        midpoint_color = None,
+        violin_border_width = None,
+        **kwargs,
+    ):
+    """
+    Draws miniature boxplots in the middle of the violins on a violinplot.
+    Seaborn has hardcoded values for the colors of these boxplots, hence
+    we need to provide a modified method to have any control over the
+    aesthetics.
+    """
+
+    def add_boxes(ax, data, support, density, center, plotter, parent_env):
+
+        def swap(*args):
+
+            return reversed(args) if plotter.orient == 'v' else args
+
+
+        q25, q50, q75 = np.percentile(data, [25, 50, 75])
+        whisker_lim = 1.5 * (q75 - q25)
+        h1 = np.min(data[data >= (q25 - whisker_lim)])
+        h2 = np.max(data[data <= (q75 + whisker_lim)])
+
+        box_color = parent_env['box_color'] or plotter.gray
+        midpoint_color = parent_env['midpoint_color'] or 'white'
+
+        # Draw a boxplot using lines and a point
+        ax.plot(
+            *swap([h1, h2], [center, center]),
+            linewidth = plotter.linewidth,
+            color = box_color,
+        )
+        ax.plot(
+            *swap([q25, q75], [center, center]),
+            linewidth = plotter.linewidth * 3,
+            color = box_color,
+        )
+        ax.scatter(
+            *swap(q50, center),
+            zorder = 3,
+            color = midpoint_color,
+            edgecolor = box_color,
+            s = np.square(plotter.linewidth * 2),
+        )
+
+
+    valid_args = {
+        'x', 'y', 'hue', 'data', 'order', 'hue_order',
+        'bw', 'cut', 'scale', 'scale_hue', 'gridsize',
+        'width', 'inner', 'split', 'dodge', 'orient', 'linewidth',
+        'color', 'palette', 'saturation',
+    }
+
+    ax = kwargs.pop('ax', None)
+    violin_args = {
+        k: v.default
+        for k, v in inspect.signature(sns.violinplot).parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
+    violin_args.update(kwargs)
+    violin_args = dict(
+        it for it in violin_args.items()
+        if it[0] in valid_args
+    )
+
+    plotter = sns.categorical._ViolinPlotter(**violin_args)
+
+    if ax is None:
+
+        ax = plt.gca()
+
+    plotter.plot(ax)
+
+    for i, group_data in enumerate(plotter.plot_data):
+
+        if plotter.plot_hues is None:
+
+            support, density = plotter.support[i], plotter.density[i]
+            violin_data = sns.utils.remove_na(group_data)
+            add_boxes(ax, violin_data, support, density, i, plotter, locals())
+
+        else:
+
+            for j, hue_level in enumerate(plotter.hue_names):
+
+                support, density = (
+                    plotter.support[i][j],
+                    plotter.density[i][j],
+                )
+                if support.size <= 1:
+
+                    continue
+
+                hue_mask = plotter.plot_hues[i] == hue_level
+                violin_data = sns.utils.remove_na(group_data[hue_mask])
+
+                add_boxes(
+                    ax, violin_data, support, density,
+                    i + (offsets[j] if plotter.split else 0),
+                    locals(),
+                )
+
+    # this is an example how to remove the violin borders
+    # unfortunately seaborn doesn't provide more convenient API for that
+    if violin_border_width is not None:
+
+        _ = [
+            ax.collections[i].set_linewidth(violin_border_width)
+            for i in range(len(ax.collections))
+        ]
+
+    return ax
 
 
 matplotlib_331_fix()

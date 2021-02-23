@@ -1520,14 +1520,27 @@ class PlugData(object):
 
     def plot_control_regression(self, axes: plt.Axes) -> plt.Axes:
         """
-        Plots a scatter plot of control peak medians over experiment time and applies a linear regression to it
+        Plots a scatter plot of control peak medians over experiment time
+            and applies a linear regression to it
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        axes = sns.regplot(x = "start_time", y = "control_peak_median", data = self.sample_df, ax = axes)
-        axes.set_title("Control Time Bias")
-        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
-        axes.set_xlabel("Experiment Time [s]")
+        axes = sns.regplot(
+            x = "start_time",
+            y = "control_peak_median",
+            data = self.sample_df,
+            ax = axes,
+            color = self.palette[0],
+            scatter_kws = {
+                'alpha': .33,
+            },
+            line_kws = {
+                'color': self.palette[1],
+            },
+        )
+        axes.set_title("Control: time bias")
+        axes.set_ylabel("Control channel intensity [AU]")
+        axes.set_xlabel("Time [s]")
         return axes
 
 
@@ -1537,10 +1550,22 @@ class PlugData(object):
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        axes = sns.violinplot(x = "cycle_nr", y = "control_peak_median", data = self.sample_df, ax = axes)
-        axes.set_title("Control Intensity by Cycle")
-        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
+
+        axes = misc.seaborn_violin_fix(
+            x = "cycle_nr",
+            y = "control_peak_median",
+            data = self.sample_df,
+            ax = axes,
+            color = self.palette[0],
+            box_color = 'white',
+            midpoint_color = self.palette[0],
+            violin_border_width = 0,
+        )
+
+        axes.set_title("Control: cycle bias")
+        axes.set_ylabel("Control channel intensity [AU]")
         axes.set_xlabel("Cycle")
+
         return axes
 
 
@@ -1550,12 +1575,42 @@ class PlugData(object):
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        axes = sns.violinplot(x = "name", y = "control_peak_median", data = self.sample_df, ax = axes)
-        axes.set_title("Control Intensity by Sample")
-        axes.set_ylabel("Peak Median Fluorescence Intensity [AU]")
-        axes.set_xlabel("Sample")
+
+        def shorten(name):
+
+            return ' + '.join(n[:5] for n in name.split(' + '))
+
+        names = [shorten(name) for name in self.sample_df.name]
+
+        axes = sns.violinplot(
+            x = names,
+            y = 'control_peak_median',
+            data = self.sample_df,
+            ax = axes,
+            color = self.palette[0],
+            linewidth = 0,
+            width = .97,
+        )
+
+        axes = sns.boxplot(
+            x = names,
+            y = 'control_peak_median',
+            data = self.sample_df,
+            ax = axes,
+            showbox = False,
+            showfliers = False,
+            showcaps = False,
+            whiskerprops = {'linewidth': 0.0},
+            medianprops = {'color': 'white'},
+        )
+
+        axes.set_title('Control signal by sample')
+        axes.set_ylabel('Control channel intensity [AU]')
+        axes.set_xlabel('Sample')
+
         for tick in axes.get_xticklabels():
             tick.set_rotation(90)
+
         return axes
 
 
@@ -1565,14 +1620,46 @@ class PlugData(object):
         :param axes: plt.Axes object to draw on
         :return: plt.Axes object with the plot
         """
-        # axes = sns.regplot(x = "control_peak_median", y = "readout_peak_median",  data = self.sample_df, ax = axes)
-        axes = sns.scatterplot(x = "control_peak_median", y = "readout_peak_median", hue = "sample_nr", style = "cycle_nr", data = self.sample_df, ax = axes)
-        axes.set_title("Readout - Control Correlation")
-        axes.set_xlabel("Control Peak Median Fluorescence Intensity [AU]")
-        axes.set_ylabel("Readout Peak Median Fluorescence Intensity [AU]")
 
-        axes.set_ylim(self.sample_df.readout_peak_median.min() * 0.95, self.sample_df.readout_peak_median.max() * 1.05)
-        axes.set_xlim(self.sample_df.control_peak_median.min() * 0.95, self.sample_df.control_peak_median.max() * 1.05)
+        labels = {
+            'sample_nr': 'Sample',
+            'cycle_nr': 'Cycle',
+        }
+
+        axes = sns.scatterplot(
+            x = 'control_peak_median',
+            y = 'readout_peak_median',
+            hue = 'sample_nr',
+            style = 'cycle_nr',
+            alpha = .7,
+            data = self.sample_df,
+            ax = axes,
+        )
+        axes.set_title('Readout-control correlation')
+        axes.set_xlabel('Control channel intensity [AU]')
+        axes.set_ylabel('Readout channel intensity [AU]')
+        lh, ll = axes.get_legend_handles_labels()
+        axes.legend_.remove()
+        ll = [labels[l] if l in labels else l for l in ll]
+        axes.legend(
+            lh,
+            ll,
+            handletextpad = .01,
+            loc = 4,
+            fancybox = False,
+            borderpad = .2,
+            edgecolor = '#FFFFFF00',
+            framealpha = 1,
+        )
+
+        axes.set_ylim(
+            self.sample_df.readout_peak_median.min() * 0.95,
+            self.sample_df.readout_peak_median.max() * 1.05,
+        )
+        axes.set_xlim(
+            self.sample_df.control_peak_median.min() * 0.95,
+            self.sample_df.control_peak_median.max() * 1.5,
+        )
 
         return axes
 
