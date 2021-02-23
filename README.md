@@ -13,9 +13,11 @@ directly on the site of the `plugy` repository https://git.embl.de/grp-merten/pl
 
 Imports & Setup
 
-You can now install `plugy` as a package using `pip` in your `conda` environment.
-To install `pip` in your `conda` environment run the following lines on your `bash` or `conda` prompt.
-```
+You can now install `plugy` as a package using `pip` in your `conda`
+environment. To install `pip` in your `conda` environment run the following
+lines on your `bash` or `conda` prompt.
+
+```bash
 # Activate your conda environment replacing 'YOUR_ENVIRONMENT' with the name of your environment
 conda activate YOUR_ENVIRONMENT
 
@@ -23,43 +25,44 @@ conda activate YOUR_ENVIRONMENT
 conda install pip git
 
 # Install plugy into your environment
-pip install git+https://git.embl.de/grp-merten/plugy@master
+pip install git+https://git.embl.de/grp-merten/plugy@dev
 ```
 
 ## Quick start
 
-Importing the modules
+This notebook will show you how to run a plugy based analysis of a drug
+combination Braille display microfluidics experiment.
+
+First, make sure your Python shell is running in the working directory where
+(or in its subdirectories) you have the data and where you want to save the
+results.
+
+The simplest workflow, which is sufficient most of the times, looks like this:
 
 ```python
-# Importing plugy modules
-import plugy.exp as exp
-import plugy.data.config as config
+import plugy
+exp = plugy.PlugExperiment()
+exp.main()
 ```
 
-Setting up Plugy
+Further settings, parameters can be passed to `PlugExperiment`:
 
 ```python
-plugy_config = config.PlugyConfig(
-    pmt_file = 'data/pmt_data.txt.gz',
-    seq_file = 'data/sequence.csv',
-    channel_file = 'data/channel_map.csv',
-    auto_detect_cycles = True,
-    peak_max_width = 2.5,
-    figure_export_file_type = 'png',
+import plugy
+exp = plugy.PlugExperiment(
+    peak_min_threshold = 0.02,
+    barcoding_param = {
+        'times': (.2, 4.0),
+    },
+    heatmap_second_scale = 'pos-ctrl',
 )
-
+exp.main()
 ```
 
-Running the analysis
-
-```python
-plug_exp = exp.PlugExperiment(plugy_config)
-```
-
-If you want to interact with the data use the contents of the plug_exp object. 
-It contains all the plug, pmt, channel and sequence data that was used in the analysis.
-
-For example, this would give you a DataFrame containing the statistics to each sample:
+If you want to interact with the data use the contents of the `exp` object.
+It contains all the plug, pmt, channel and sequence data that was used in the
+analysis. For example, a `pandas.DataFrame` containing the statistics for each
+sample:
 
 ```python
 plug_exp.sample_statistics
