@@ -844,7 +844,7 @@ class PlugData(object):
             )
             axes.text(
                 x = sample.start_time,
-                y = ymax - .1,
+                y = ymax - .15,
                 s = '%u/%u' % (sample.Index[0] + 1, sample.Index[1] + 1),
                 size = 'xx-large',
             )
@@ -1319,7 +1319,7 @@ class PlugData(object):
 
 
     # QC Plots
-    def plot_media_control_evolution(
+    def plot_medium_control_trends(
             self,
             axes: plt.Axes,
             by_sample = False,
@@ -1364,17 +1364,24 @@ class PlugData(object):
             slope, intercept, rvalue, _, _ = (
                 self.get_media_control_lin_reg(readout_column)
             )
-            axes = sns.scatterplot(
-                x = 'start_time',
-                y = readout_column,
-                data = plot_data,
-                ax = axes,
-                color = self.palette[0],
-                s = self.scatter_dot_size * 10,
-            )
+
+            with warnings.catch_warnings():
+
+                warnings.simplefilter("ignore")
+
+                axes = sns.scatterplot(
+                    x = 'start_time',
+                    y = readout_column,
+                    data = plot_data,
+                    ax = axes,
+                    color = self.palette[0],
+                    s = self.scatter_dot_size * 10,
+                    alpha = .66,
+                )
+
             misc.plot_line(slope, intercept, axes)
             label = axes.text(
-                0.1,
+                0.7,
                 0.9,
                 f'R²: {round(rvalue, 2)}',
                 transform = axes.transAxes,
@@ -1429,6 +1436,8 @@ class PlugData(object):
             line_kws = {
                 'color': self.palette[1],
             },
+            height = 3.8,
+            aspect = 1.1,
         )
         length_bias_plot.set_xlabels("Plug length [s]")
         length_bias_plot.set_ylabels("Fluorescence [AU]")

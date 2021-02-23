@@ -506,34 +506,7 @@ class PlugExperiment(object):
         qc_issues = []
         qc_dir = self.ensure_qc_dir()
 
-        # Plotting media control readout over experiment time
-        media_control_fig, media_control_ax = plt.subplots(
-            ncols = 2,
-            figsize = (18, 9),
-        )
-        media_control_ax[0] = (
-            self.plug_data.plot_media_control_evolution(
-                axes = media_control_ax[0],
-            )
-        )
-        media_control_ax[1] = (
-            self.plug_data.plot_media_control_evolution(
-                axes = media_control_ax[1],
-                by_sample = True,
-            )
-        )
-
-        media_control_fig.tight_layout()
-
-        if self.config.plot_git_caption:
-            misc.add_git_hash_caption(media_control_fig)
-
-        media_control_fig.savefig(
-            qc_dir.joinpath(
-                f"fs_media_control.{self.config.figure_export_file_type}"
-            )
-        )
-        plt.clf()
+        self.plot_medium_control_trends()
 
         self.plot_pmt_data()
 
@@ -687,6 +660,42 @@ class PlugExperiment(object):
         return qc_dir
 
 
+    def plot_medium_control_trends(self):
+
+        qc_dir = self.ensure_qc_dir()
+
+        # Plotting media control readout over experiment time
+        media_control_fig, media_control_ax = plt.subplots(
+            ncols = 2,
+            figsize = (14, 7),
+        )
+        media_control_ax[0] = (
+            self.plug_data.plot_medium_control_trends(
+                axes = media_control_ax[0],
+            )
+        )
+        media_control_ax[1] = (
+            self.plug_data.plot_medium_control_trends(
+                axes = media_control_ax[1],
+                by_sample = True,
+            )
+        )
+
+        media_control_fig.tight_layout()
+
+        if self.config.plot_git_caption:
+            misc.add_git_hash_caption(media_control_fig)
+
+        path = qc_dir.joinpath(
+            f"fs_media_control.{self.config.figure_export_file_type}"
+        )
+
+        media_control_fig.savefig(path)
+        plt.clf()
+
+        module_logger.info('Medium control trends plotted to %s' % path)
+
+
     def plot_length_bias(self):
         """
         Creates a figure of readout signal vs. plug length by sample.
@@ -698,12 +707,12 @@ class PlugExperiment(object):
             if self.config.plot_git_caption:
                 misc.add_git_hash_caption(length_bias_plot.fig)
             length_bias_plot.fig.tight_layout()
-            length_bias_plot.fig.savefig(
-                qc_dir.joinpath(
-                    f'length_bias.{self.config.figure_export_file_type}'
-                )
+            path = qc_dir.joinpath(
+                f'length_bias.{self.config.figure_export_file_type}'
             )
+            length_bias_plot.fig.savefig(path)
             plt.clf()
+            module_logger.error('Plug length bias plotted to %s' % path)
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error('Failed to plot length bias')
@@ -882,6 +891,7 @@ class PlugExperiment(object):
                 round(len(self.plug_data.sample_df.name.unique()) * 0.35),
                 3 * (len(cycles) if by_cycle else 1) + 2
             ),
+            sharex = True,
         )
 
 
