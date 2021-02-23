@@ -1783,14 +1783,14 @@ class PlugData(object):
             self.heatmap_second_scale in set(self.sample_df.compound_b)
         )
 
-        aspect_correction = 1.33 if second_scale else 1.0
+        aspect_correction = 1.3 if second_scale else 1.0
 
         grid = sns.FacetGrid(
             data = self.sample_df,
             col = 'cycle_nr' if by_cycle else None,
-            height = 5,
+            height = 7,
             aspect = (
-                (.55 * len(cycles) if by_cycle else 1) *
+                (.5 * len(cycles) if by_cycle else 1) *
                 aspect_correction
             ),
         )
@@ -1876,10 +1876,11 @@ class PlugData(object):
                     **kwargs
                 )
 
-            cycle_str = ('\nCycle #%u' % cycle) if by_cycle else ''
-            unit_str = 'z-score' if 'z_score' in column_to_plot else 'AU'
+            cycle_str = (' • Cycle %u' % cycle) if by_cycle else ''
+            unit_str = 'z-score' if 'z_score' in column_to_plot else '[AU]'
+            var_str = column_to_plot.split('_')[0].capitalize()
             ax.set_title(
-                f"{column_to_plot} by combination [{unit_str}]{cycle_str}"
+                f"{var_str} {unit_str}{cycle_str}"
             )
             ax.set_ylabel("")
             ax.set_xlabel("")
