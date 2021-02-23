@@ -1244,6 +1244,7 @@ class PlugData(object):
         Creates a plot with pmt data for the individual samples and cycles.
         :return: plt.Figure and plt.Axes object with the plot
         """
+
         names = self.sample_df.name.unique()
         cycles = sorted(self.sample_df.cycle_nr.unique())
 
@@ -1270,6 +1271,7 @@ class PlugData(object):
                 sample_cycle_ax[idx_y][idx_x].set_ylim((0, y_max))
 
         sample_cycle_fig.tight_layout()
+        sample_cycle_fig.subplots_adjust(left = .15)
 
         return sample_cycle_fig, sample_cycle_ax
 
@@ -1292,44 +1294,35 @@ class PlugData(object):
 
         :return: The plt.Axes object with the plot
         """
-        peak_data = self.sample_df[(self.sample_df.cycle_nr == cycle_nr) & (self.sample_df.name == name)]
+
+        peak_data = self.sample_df[
+            (self.sample_df.cycle_nr == cycle_nr) &
+            (self.sample_df.name == name)
+        ]
+
         if len(peak_data) == 0:
-            axes.text(0.5, 0.5, "No Data")
+            axes.text(0.5, 0.5, 'No Data')
         else:
-            axes = self.plot_plug_pmt_data(axes = axes, cut = (peak_data.start_time.min() - offset, peak_data.end_time.max() + offset))
+            axes = self.plot_plug_pmt_data(
+                axes = axes,
+                cut = (
+                    peak_data.start_time.min() - offset,
+                    peak_data.end_time.max() + offset
+                ),
+            )
 
-        axes.set_title(f"{name} | Cycle {cycle_nr}")
+        axes.set_title(f'{name} • Cycle {cycle_nr}', fontsize = 24)
+        plt.setp(axes.get_xticklabels()[0], visible = False)
+
         return axes
-
-        # start_time = peak_data.iloc[0].t0 - offset
-        # end_time = peak_data.iloc[-1].t1 + offset
-        #
-        # plotting_data = pd.DataFrame(self.data)
-        # plotting_data = plotting_data[(plotting_data[0] > start_time) & (plotting_data[0] < end_time)]
-        #
-        # sns.lineplot(x = plotting_data[0], y = plotting_data[1], estimator = None, ci = None, sort = False, color = self.colors["green"], ax = axes)
-        # sns.lineplot(x = plotting_data[0], y = plotting_data[2], estimator = None, ci = None, sort = False, color = self.colors["orange"], ax = axes)
-        # sns.lineplot(x = plotting_data[0], y = plotting_data[3], estimator = None, ci = None, sort = False, color = self.colors["blue"], ax = axes)
-        #
-        # # Plotting light green rectangles that indicate the used plug length and plug height
-        # patches = list()
-        # for plug in peak_data.itertuples():
-        #     patches.append(mpl_patch.Rectangle(xy = (plug.t0, 0), width = plug.length, height = plug.green))
-        # axes.add_collection(mpl_coll.PatchCollection(patches, facecolors = self.colors["green"], alpha = 0.4))
-        #
-        # axes.set_xlabel("Time [s]")
-        # axes.set_ylabel("Fluorescence [AU]")
-        # axes.set_title(f"{drug} Cycle {cycle}")
-
-        # return axes
 
 
     # QC Plots
     def plot_media_control_evolution(
-        self,
-        axes: plt.Axes,
-        by_sample = False,
-    ) -> plt.Axes:
+            self,
+            axes: plt.Axes,
+            by_sample = False,
+        ) -> plt.Axes:
         """
         Plots a scatter plot with readout medians for the media control
         over the experiment time.

@@ -780,12 +780,12 @@ class PlugExperiment(object):
                 misc.add_git_hash_caption(sample_cycle_fig)
 
             sample_cycle_fig.savefig(
-                qc_dir.joinpath("sample_cycle_overview.png")
+                qc_dir.joinpath('sample_cycle_overview.png')
             )
             plt.clf()
         except:
             traceback.print_exc(file = sys.stdout)
-            module_logger.error("Failed to plot sample cycles")
+            module_logger.error('Failed to plot sample cycles')
 
         self.seaborn_setup()
 
