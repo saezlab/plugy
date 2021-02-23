@@ -40,6 +40,7 @@ import numpy as np
 import scipy.stats as stats
 import skimage.filters
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patch
 import matplotlib.collections as mpl_coll
@@ -1570,6 +1571,20 @@ class PlugData(object):
         return axes
 
 
+    @staticmethod
+    def shorten_names(names):
+        """
+        Shortens the drug names to fit better on figures.
+        """
+
+        shorten = lambda name: ' + '.join(
+            n[:5].strip()
+            for n in name.split(' + ')
+        )
+
+        return [shorten(name) for name in names]
+
+
     def plot_control_sample_dist(self, axes: plt.Axes) -> plt.Axes:
         """
         Gathers control peak medians by sample and plots a violin plot
@@ -1577,11 +1592,7 @@ class PlugData(object):
         :return: plt.Axes object with the plot
         """
 
-        def shorten(name):
-
-            return ' + '.join(n[:5] for n in name.split(' + '))
-
-        names = [shorten(name) for name in self.sample_df.name]
+        names = self.shorten_names(self.sample_df.name)
 
         axes = sns.violinplot(
             x = names,
@@ -1674,28 +1685,49 @@ class PlugData(object):
             pickle.dump(self, f)
 
 
-    def plot_compound_violins(self, column_to_plot: str= "readout_peak_z_score", by_cycle: bool = False) -> sns.FacetGrid:
+    def plot_compound_violins(
+            self,
+            ax: mpl.axes.Axes,
+            column_to_plot: str = 'readout_peak_z_score',
+            cycle: int = None,
+        ) -> sns.FacetGrid:
         """
         Plots a violin plot per compound combination
-        :param column_to_plot: Column to be plotted (e.g. readout_peak_z_score, readout_per_control_z_score).
+        :param column_to_plot: Column to be plotted (e.g.
+            readout_peak_z_score, readout_per_control_z_score).
         :param by_cycle: Produce separate plots for each cycle.
         :return: seaborn.FacetGrid object with the plot
         """
 
         self._check_sample_df_column(column_to_plot)
 
-        height = 3 * (len(self.sample_df.cycle_nr.unique()) if by_cycle else 1) + 2
-        aspect = round(len(self.sample_df.name.unique()) * 0.35) / height
+        data = self.sample_df
 
-        args = {'row': 'cycle_nr'} if by_cycle else {}
+        if cycle is not None:
 
-        grid = sns.catplot(x = 'name', y = column_to_plot, data = self.sample_df, kind = 'violin', height = height, aspect = aspect, **args)
+            data = data[data.cycle_nr == cycle]
 
-        for ax in grid.axes.flat:
+        names = self.shorten_names(data.name)
 
-            ax.set_xticklabels(ax.get_xticklabels(), rotation = 90)
+        misc.seaborn_violin_fix(
+            x = names,
+            y = column_to_plot,
+            data = data,
+            color = self.palette[0],
+            width = 1.0,
+            linewidth = 0,
+            box_linewidth = 0.7,
+            box_color = 'white',
+            midpoint_color = self.palette[0],
+            violin_border_width = 0,
+            ax = ax,
+        )
 
-        return grid
+        ax.set_xticklabels(ax.get_xticklabels(), rotation = 90)
+        ax.set_ylabel('Readout z-score')
+        ax.set_xlim(-1, data.name.nunique())
+
+        return ax
 
 
     def plot_compound_heatmap(

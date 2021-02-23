@@ -864,14 +864,41 @@ class PlugExperiment(object):
 
         # Overview violin plot with z-scores
 
-        grid = self.plug_data.plot_compound_violins(
-            column_to_plot = self.config.readout_analysis_column,
-            by_cycle = by_cycle,
+        self.seaborn_setup(font_scale = self.font_scale * .7)
+
+        cycles = (
+            self.plug_data.sample_df.cycle_nr.unique()
+                if by_cycle else
+            [None]
         )
 
-        ax = grid.axes[0][0]
+        fig, ax = plt.subplots(
+            nrows = (
+                self.plug_data.sample_df.cycle_nr.nunique()
+                    if by_cycle else
+                1
+            ),
+            figsize = (
+                round(len(self.plug_data.sample_df.name.unique()) * 0.35),
+                3 * (len(cycles) if by_cycle else 1) + 2
+            ),
+        )
+
+
+
+        for i, cycle in enumerate(cycles):
+
+            this_ax = ax if len(cycles) == 1 else ax.flat[i]
+
+            self.plug_data.plot_compound_violins(
+                ax = this_ax,
+                column_to_plot = self.config.readout_analysis_column,
+                cycle = cycle,
+            )
+
+        this_ax = ax if len(cycles) == 1 else ax.flat[0]
         # Getting y coordinates for asterisk from axis dimensions
-        y_max = ax.axis()[3]
+        y_max = this_ax.axis()[3]
 
         # Labelling significant samples
         statistics = self.sample_statistics.reset_index()
@@ -884,7 +911,7 @@ class PlugExperiment(object):
         for idx, sample in enumerate(self.plug_data.sample_df.name.unique()):
             if sample != "Cell Control":
                 if statistics.significant[idx]:
-                    ax.annotate(
+                    this_ax.annotate(
                         "*",
                         xy = (idx, y_max),
                         xycoords = "data",
@@ -894,20 +921,21 @@ class PlugExperiment(object):
 
         if not by_cycle:
 
-            ax.set_title("Caspase activity z-scores", pad = 20)
+            this_ax.set_title("Caspase activity z-scores", pad = 20)
 
-        grid.fig.tight_layout()
+        fig.tight_layout()
 
         if self.config.plot_git_caption:
-            misc.add_git_hash_caption(grid.fig)
+            misc.add_git_hash_caption(fig)
 
         path = self.config.result_dir.joinpath(
             f"drug_comb_z_violins{'_by-cycle' if by_cycle else ''}."
             f"{self.config.figure_export_file_type}"
         )
         module_logger.info(f"Saving violin plots to {path}")
-        grid.savefig(path)
+        fig.savefig(path)
         plt.clf()
+        self.seaborn_setup()
 
 
     def z_scores_heatmap(self, by_cycle: bool = False):

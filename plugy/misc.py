@@ -178,6 +178,7 @@ def seaborn_violin_fix(
         box_color = None,
         midpoint_color = None,
         violin_border_width = None,
+        box_linewidth = 1.5,
         **kwargs,
     ):
     """
@@ -205,12 +206,12 @@ def seaborn_violin_fix(
         # Draw a boxplot using lines and a point
         ax.plot(
             *swap([h1, h2], [center, center]),
-            linewidth = plotter.linewidth,
+            linewidth = parent_env['box_linewidth'],
             color = box_color,
         )
         ax.plot(
             *swap([q25, q75], [center, center]),
-            linewidth = plotter.linewidth * 3,
+            linewidth = parent_env['box_linewidth'] * 3,
             color = box_color,
         )
         ax.scatter(
@@ -218,7 +219,7 @@ def seaborn_violin_fix(
             zorder = 3,
             color = midpoint_color,
             edgecolor = box_color,
-            s = np.square(plotter.linewidth * 2),
+            s = np.square(parent_env['box_linewidth'] * 2),
         )
 
 
