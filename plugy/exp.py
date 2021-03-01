@@ -687,7 +687,7 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(media_control_fig)
 
         path = qc_dir.joinpath(
-            f"fs_media_control.{self.config.figure_export_file_type}"
+            f"fs_medium_control.{self.config.figure_export_file_type}"
         )
 
         media_control_fig.savefig(path)

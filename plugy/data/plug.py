@@ -1372,7 +1372,7 @@ class PlugData(object):
 
             with warnings.catch_warnings():
 
-                warnings.simplefilter("ignore")
+                warnings.simplefilter('ignore')
 
                 axes = sns.scatterplot(
                     x = 'start_time',
