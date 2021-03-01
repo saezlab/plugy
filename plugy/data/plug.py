@@ -1312,7 +1312,7 @@ class PlugData(object):
                 ),
             )
 
-        axes.set_title(f'{name} • Cycle {cycle_nr}', fontsize = 24)
+        axes.set_title(f'{name} • Cycle {cycle_nr + 1}', fontsize = 24)
         plt.setp(axes.get_xticklabels()[0], visible = False)
 
         return axes
@@ -1343,6 +1343,11 @@ class PlugData(object):
             ylab = 'Readout median'
 
         plot_data = self.get_media_control_data()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            # stupid pandas again
+            plot_data['cycle_nr'] = plot_data['cycle_nr'] + 1
 
         if by_sample:
 
@@ -1656,7 +1661,7 @@ class PlugData(object):
             x = 'control_peak_median',
             y = 'readout_peak_median',
             hue = 'sample_nr',
-            style = 'cycle_nr',
+            style = self.sample_df.cycle_nr + 1,
             alpha = .7,
             data = self.sample_df,
             ax = axes,
@@ -1881,7 +1886,7 @@ class PlugData(object):
                     **kwargs
                 )
 
-            cycle_str = (' • Cycle %u' % cycle) if by_cycle else ''
+            cycle_str = (' • Cycle %u' % (cycle + 1)) if by_cycle else ''
             unit_str = 'z-score' if 'z_score' in column_to_plot else '[AU]'
             var_str = column_to_plot.split('_')[0].capitalize()
             ax.set_title(

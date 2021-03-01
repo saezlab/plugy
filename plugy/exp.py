@@ -712,7 +712,7 @@ class PlugExperiment(object):
             )
             length_bias_plot.fig.savefig(path)
             plt.clf()
-            module_logger.error('Plug length bias plotted to %s' % path)
+            module_logger.info('Plug length bias plotted to %s' % path)
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error('Failed to plot length bias')
