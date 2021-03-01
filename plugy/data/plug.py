@@ -1346,16 +1346,21 @@ class PlugData(object):
 
         if by_sample:
 
-            axes = sns.swarmplot(
-                x = 'sample_nr',
-                y = readout_column,
-                data = plot_data,
-                ax = axes,
-                hue = 'cycle_nr',
-                dodge = True,
-                palette = list(self.palette),
-                size = self.scatter_dot_size,
-            )
+            with warnings.catch_warnings():
+
+                warnings.simplefilter('ignore')
+
+                axes = sns.swarmplot(
+                    x = 'sample_nr',
+                    y = readout_column,
+                    data = plot_data,
+                    ax = axes,
+                    hue = 'cycle_nr',
+                    dodge = True,
+                    palette = list(self.palette),
+                    size = self.scatter_dot_size,
+                )
+
             axes.set_xlabel('Sample Number')
             axes.get_legend().set_title('Cycle')
 
