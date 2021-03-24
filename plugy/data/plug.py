@@ -80,6 +80,7 @@ class PlugData(object):
     palette: tuple = None
     font_scale: typing.Union[float, int] = 2
     scatter_dot_size: typing.Union[float, int] = 10
+    short_labels: bool = True
 
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
@@ -1573,9 +1574,8 @@ class PlugData(object):
         """
 
         axes = misc.seaborn_violin_fix(
-            x = "cycle_nr",
-            y = "control_peak_median",
-            data = self.sample_df,
+            x = self.sample_df.cycle_nr + 1,
+            y = self.sample_df.control_peak_median,
             ax = axes,
             color = self.palette[0],
             box_color = 'white',
@@ -1726,7 +1726,11 @@ class PlugData(object):
 
             data = data[data.cycle_nr == cycle]
 
-        names = self.shorten_names(data.name)
+        names = (
+            self.shorten_names(data.name)
+                if self.short_labels else
+            data.name
+        )
 
         misc.seaborn_violin_fix(
             x = names,

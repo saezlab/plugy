@@ -320,6 +320,7 @@ class PlugExperiment(object):
             palette = self.config.palette,
             font_scale = self.font_scale,
             scatter_dot_size = self.scatter_dot_size,
+            short_labels = self.config.short_labels,
             config = self.config,
         )
 

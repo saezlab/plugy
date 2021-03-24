@@ -213,6 +213,9 @@ class PlugyConfig(object):
     heatmap_override_scale: tuple = None
     heatmap_override_second_scale: tuple = None
 
+    # shorten drug names on certain plots
+    short_labels: bool = True
+
     # QC
     contamination_threshold: float = 0.03
 
