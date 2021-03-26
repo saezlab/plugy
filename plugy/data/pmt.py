@@ -289,6 +289,7 @@ class PmtData(object):
             self,
             axes: plt.Axes,
             cut: tuple = (None, None),
+            ylim: tuple = (None, None),
         ) -> plt.Axes:
         """
         Plots the raw PMT data to the specified axes object.
@@ -349,6 +350,7 @@ class PmtData(object):
                 left = int(round(df.time.min())),
                 right = int(round(df.time.max())),
             )
+            axes.set_ylim(ylim)
 
             axes.grid(b = True, which = "major", color = "k", linewidth = 1.0)
             axes.grid(b = True, which = "minor", color = "k", linewidth = 0.5)

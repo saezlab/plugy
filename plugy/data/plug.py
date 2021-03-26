@@ -1338,7 +1338,7 @@ class PlugData(object):
 
         if self.normalize_using_control:
             readout_column = 'readout_per_control'
-            ylab = 'Readout normalized to control'
+            ylab = 'Readout control ratio'
         else:
             readout_column = 'readout_peak_median'
             ylab = 'Readout median'
@@ -1367,7 +1367,7 @@ class PlugData(object):
                     size = self.scatter_dot_size,
                 )
 
-            axes.set_xlabel('Sample Number')
+            axes.set_xlabel('Sample')
             axes.get_legend().set_title('Cycle')
 
         else:
@@ -1398,10 +1398,14 @@ class PlugData(object):
                 transform = axes.transAxes,
             )
             label.set_bbox(dict(facecolor = 'white', alpha = 0.8))
-            axes.set_xlabel('Experiment Time [s]')
+            axes.set_xlabel('Time [s]')
 
-        axes.set_title('FS media control plug fluorescence')
+        if self.config.figure_titles:
+
+            axes.set_title('Values from medium control plugs')
+
         axes.set_ylabel(ylab)
+
         return axes
 
 
@@ -1451,7 +1455,7 @@ class PlugData(object):
             aspect = 1.1,
         )
         length_bias_plot.set_xlabels("Plug length [s]")
-        length_bias_plot.set_ylabels("Fluorescence [AU]")
+        length_bias_plot.set_ylabels("Readout [AU]")
         length_bias_plot.set_titles('{col_name}')
 
         length_bias_plot.set(
@@ -1510,12 +1514,12 @@ class PlugData(object):
             )
 
             axes.set_xlabel(
-                '%s median [%% of mean]' % (
+                '%s [%% of mean]' % (
                     channel_x.split('_')[0].capitalize()
                 )
             )
             axes.set_ylabel(
-                '%s median [%% of mean]' % (
+                '%s [%% of mean]' % (
                     channel_y.split('_')[0].capitalize()
                 )
             )
@@ -1531,10 +1535,10 @@ class PlugData(object):
                 palette = palette,
             )
             axes.set_xlabel(
-                '%s median [AU]' % channel_x.split('_')[0].capitalize()
+                '%s [AU]' % channel_x.split('_')[0].capitalize()
             )
             axes.set_ylabel(
-                '%s median [AU]' % channel_y.split('_')[0].capitalize()
+                '%s [AU]' % channel_y.split('_')[0].capitalize()
             )
 
         return contamination_plot
@@ -1560,9 +1564,14 @@ class PlugData(object):
                 'color': self.palette[1],
             },
         )
-        axes.set_title("Control: time bias")
-        axes.set_ylabel("Control channel intensity [AU]")
+
+        if self.config.figure_titles:
+
+            axes.set_title("Control: time bias")
+
+        axes.set_ylabel("Control [AU]")
         axes.set_xlabel("Time [s]")
+
         return axes
 
 
@@ -1583,8 +1592,11 @@ class PlugData(object):
             violin_border_width = 0,
         )
 
-        axes.set_title("Control: cycle bias")
-        axes.set_ylabel("Control channel intensity [AU]")
+        if self.config.figure_titles:
+
+            axes.set_title("Control: cycle bias")
+
+        axes.set_ylabel("Control [AU]")
         axes.set_xlabel("Cycle")
 
         return axes
@@ -1635,8 +1647,11 @@ class PlugData(object):
             medianprops = {'color': 'white'},
         )
 
-        axes.set_title('Control signal by sample')
-        axes.set_ylabel('Control channel intensity [AU]')
+        if self.config.figure_titles:
+
+            axes.set_title('Control by sample')
+
+        axes.set_ylabel('Control [AU]')
         axes.set_xlabel('Sample')
 
         for tick in axes.get_xticklabels():
@@ -1666,9 +1681,13 @@ class PlugData(object):
             data = self.sample_df,
             ax = axes,
         )
-        axes.set_title('Readout-control correlation')
-        axes.set_xlabel('Control channel intensity [AU]')
-        axes.set_ylabel('Readout channel intensity [AU]')
+
+        if self.config.figure_titles:
+
+            axes.set_title('Readout-control correlation')
+
+        axes.set_xlabel('Control [AU]')
+        axes.set_ylabel('Readout [AU]')
         lh, ll = axes.get_legend_handles_labels()
         axes.legend_.remove()
         ll = [labels[l] if l in labels else l for l in ll]

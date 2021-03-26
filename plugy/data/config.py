@@ -216,6 +216,9 @@ class PlugyConfig(object):
     # shorten drug names on certain plots
     short_labels: bool = True
 
+    # enable/disable figure titles
+    figure_titles: bool = True
+
     # QC
     contamination_threshold: float = 0.03
 

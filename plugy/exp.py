@@ -376,12 +376,12 @@ class PlugExperiment(object):
             self.plug_data.append(*exp)
 
 
-    def plot_pmt_data(self):
+    def plot_pmt_data(self, **kwargs):
 
         qc_dir = self.ensure_qc_dir()
 
         pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
-        self.pmt_data.plot_pmt_data(pmt_overview_ax)
+        self.pmt_data.plot_pmt_data(pmt_overview_ax, **kwargs)
 
         self.plug_data.highlight_plugs(
             axes = pmt_overview_ax,
@@ -391,6 +391,7 @@ class PlugExperiment(object):
         self.plug_data.pmt_plot_add_thresholds(axes = pmt_overview_ax)
 
         if self.config.plot_git_caption:
+
             misc.add_git_hash_caption(pmt_overview_fig)
 
         pmt_overview_fig.tight_layout()
@@ -554,9 +555,13 @@ class PlugExperiment(object):
             color = self.config.palette[1],
             linewidth = 2,
         )
-        contamination_hist_ax.set_title("Relative barcode contamination")
+
+        if self.config.figure_titles:
+
+            contamination_hist_ax.set_title("Relative barcode contamination")
+
         contamination_hist_ax.set_xlabel(
-            "Barcode signal in sample plugs\n"
+            "Barcode-control ratio\n"
             r"$\left[\frac{\overline{barcode_{median}}}"
             r"{\overline{control_{median}}}\right]$"
         )
