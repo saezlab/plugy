@@ -775,12 +775,20 @@ class PlugData(object):
             'barcode': [],
         }
 
+        xmin, xmax = axes.get_xlim()
+
         for plug in self.plug_df.itertuples():
 
+            if plug.end_time < xmin or plug.start_time > xmax:
+
+                continue
+
             plug_type = 'barcode' if plug.barcode else 'readout'
+            xleft = max(plug.start_time, xmin)
+            xright = min(plug.end_time, xmax)
             patch = mpl_patch.Rectangle(
-                xy = (plug.start_time, 0),
-                width = plug.end_time - plug.start_time,
+                xy = (xleft, 0),
+                width = xright - xleft,
                 height = getattr(plug, '%s_peak_median' % plug_type),
             )
             plug_patches[plug_type].append(patch)
@@ -805,12 +813,18 @@ class PlugData(object):
 
     def highlight_plugs_vspan(self, axes: plt.Axes):
 
+        xmin, xmax = axes.get_xlim()
+
         for plug in self.plug_df.itertuples():
+
+            if plug.end_time < xmin or plug.start_time > xmax:
+
+                continue
 
             color = self.config.colors['uv' if plug.barcode else 'green']
             axes.axvspan(
-                xmin = plug.start_time,
-                xmax = plug.end_time,
+                xmin = max(plug.start_time, xmin),
+                xmax = min(plug.end_time, xmax),
                 facecolor = color,
                 alpha = .4,
             )
@@ -834,17 +848,23 @@ class PlugData(object):
         )
 
         ymax = axes.get_ylim()[1]
+        xmin, xmax = axes.get_xlim()
 
         for sample in samples.itertuples():
 
+            if sample.start_time > xmax or sample.start_time < xmin:
+
+                continue
+
             axes.axvspan(
-                xmin = sample.start_time,
-                xmax = sample.end_time,
-                facecolor = '#777777',
-                alpha = .3,
+                xmin = max(sample.start_time, xmin),
+                xmax = min(sample.end_time, xmax),
+                facecolor = '#AAAAAA33',
+                edgecolor = 'black',
+                linewidth = 1,
             )
             axes.text(
-                x = sample.start_time,
+                x = max(sample.start_time, xmin),
                 y = ymax - .15,
                 s = '%u/%u' % (sample.Index[0] + 1, sample.Index[1] + 1),
                 size = 'xx-large',
@@ -1241,7 +1261,7 @@ class PlugData(object):
         return compounds
 
 
-    def plot_sample_cycles(self):
+    def plot_sample_cycles(self, ylim: tuple = (None, None)):
         """
         Creates a plot with pmt data for the individual samples and cycles.
         :return: plt.Figure and plt.Axes object with the plot
@@ -1258,9 +1278,15 @@ class PlugData(object):
         )
 
         y_max = self.sample_df.readout_peak_median.max() * 1.1
+        ylim = (
+            ylim[0] or 0,
+            ylim[1] or y_max
+        )
 
         for idx_y, name in enumerate(names):
+
             for idx_x, cycle in enumerate(cycles):
+
                 module_logger.debug(
                     f"Plotting sample {idx_y + 1} of {len(names)}, "
                     f"cycle {idx_x + 1} of {len(cycles)}"
@@ -1270,7 +1296,7 @@ class PlugData(object):
                     cycle_nr = cycle,
                     axes = sample_cycle_ax[idx_y][idx_x],
                 )
-                sample_cycle_ax[idx_y][idx_x].set_ylim((0, y_max))
+                sample_cycle_ax[idx_y][idx_x].set_ylim(ylim)
 
         sample_cycle_fig.tight_layout()
         sample_cycle_fig.subplots_adjust(left = .15)

@@ -26,6 +26,7 @@ import re
 import gzip
 import pathlib as pl
 import importlib as imp
+from typing import Union
 
 import pandas as pd
 import numpy as np
@@ -290,6 +291,7 @@ class PmtData(object):
             axes: plt.Axes,
             cut: tuple = (None, None),
             ylim: tuple = (None, None),
+            n_x_ticks: Union[int, float] = None,
         ) -> plt.Axes:
         """
         Plots the raw PMT data to the specified axes object.
@@ -352,8 +354,32 @@ class PmtData(object):
             )
             axes.set_ylim(ylim)
 
-            axes.grid(b = True, which = "major", color = "k", linewidth = 1.0)
-            axes.grid(b = True, which = "minor", color = "k", linewidth = 0.5)
+            if n_x_ticks:
+
+                axes.xaxis.set_major_locator(
+                    plt.MaxNLocator(
+                        nbins = n_x_ticks,
+                        prune = 'lower',
+                    )
+                )
+
+            axes.tick_params(
+                axis = 'x',
+                direction = 'out',
+                length = 8, width = 2,
+                bottom = True,
+                which = 'major',
+            )
+            axes.tick_params(
+                axis = 'x',
+                direction = 'out',
+                length = 4, width = 1,
+                bottom = True,
+                which = 'minor',
+            )
+
+            axes.grid(b = False, which = "major", axis = 'x')
+            #axes.grid(b = True, which = "minor", color = "k", linewidth = 0.5)
 
             axes.set_facecolor("white")
             axes.tick_params(labelsize = "xx-large")

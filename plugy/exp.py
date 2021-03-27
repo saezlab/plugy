@@ -376,12 +376,18 @@ class PlugExperiment(object):
             self.plug_data.append(*exp)
 
 
-    def plot_pmt_data(self, **kwargs):
+    def plot_pmt_data(self, width = 300, **kwargs):
 
         qc_dir = self.ensure_qc_dir()
 
-        pmt_overview_fig, pmt_overview_ax = plt.subplots(figsize=(300, 10))
-        self.pmt_data.plot_pmt_data(pmt_overview_ax, **kwargs)
+        pmt_overview_fig, pmt_overview_ax = plt.subplots(
+            figsize = (width, 10)
+        )
+        kwargs['n_x_ticks'] = kwargs.get('n_x_ticks', width / 2)
+        self.pmt_data.plot_pmt_data(
+            pmt_overview_ax,
+            **kwargs,
+        )
 
         self.plug_data.highlight_plugs(
             axes = pmt_overview_ax,
@@ -561,7 +567,7 @@ class PlugExperiment(object):
             contamination_hist_ax.set_title("Relative barcode contamination")
 
         contamination_hist_ax.set_xlabel(
-            "Barcode-control ratio\n"
+            "Barcode control ratio\n"
             r"$\left[\frac{\overline{barcode_{median}}}"
             r"{\overline{control_{median}}}\right]$"
         )
@@ -786,7 +792,7 @@ class PlugExperiment(object):
         self.seaborn_setup()
 
 
-    def plot_sample_cycles(self):
+    def plot_sample_cycles(self, **kwargs):
 
         self.seaborn_setup(font_scale = self.font_scale * .7)
 
@@ -794,9 +800,11 @@ class PlugExperiment(object):
         try:
             qc_dir = self.ensure_qc_dir()
             sample_cycle_fig, sample_cycle_ax = (
-                self.plug_data.plot_sample_cycles()
+                self.plug_data.plot_sample_cycles(**kwargs)
             )
+
             if self.config.plot_git_caption:
+
                 misc.add_git_hash_caption(sample_cycle_fig)
 
             sample_cycle_fig.savefig(
