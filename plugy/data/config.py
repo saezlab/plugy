@@ -189,7 +189,7 @@ class PlugyConfig(object):
     normalize_using_control: bool = True
     normalize_using_media_control_lin_reg: bool = True
     readout_column: str = "readout_peak_median"
-    readout_analysis_column: str = "readout_per_control_z_score"
+    readout_analysis_column: str = "readout_media_norm_z_score"
 
     # Plotting config
     seaborn_context: str = "notebook"
