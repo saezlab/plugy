@@ -19,3 +19,6 @@
 #
 
 # import plugy._version as _version_mod
+
+from plugy.exp import PlugExperiment
+from plugy.data.config import PlugyConfig

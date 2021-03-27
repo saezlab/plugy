@@ -192,7 +192,7 @@ class TestPlugSequenceReadWrite(unittest.TestCase):
 class TestPlugSequenceGenerate(unittest.TestCase):
     def setUp(self) -> None:
         self.test_gen_map_content = "9:CELLS\n10:SUBSTRATE\n11:FS\n12:FS\n13:Drug 1\n14:Drug 2\n15:Drug 3\n23:BCL\n24:BCH"
-        self.test_sequence = (Sample(1, 15, "Start Cycle Barcode", [11, 12, 23, 24]),
+        self.test_sequence = (Sample(1, 15, "Cycle Barcode", [11, 12, 23, 24]),
                               Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
                               Sample(1, 10, "Barcode", [11, 12, 23, 24]),
                               Sample(1, 12, "Drug 1", [9, 10, 11, 13]),
@@ -211,7 +211,7 @@ class TestPlugSequenceGenerate(unittest.TestCase):
                               Sample(1, 10, "Barcode", [11, 12, 23, 24]),
                               Sample(1, 12, "Cell Control", [9, 10, 11, 12]),
                               Sample(1, 10, "Barcode", [11, 12, 23, 24]),
-                              Sample(1, 15, "End Cycle Barcode", [11, 12, 23, 24]))
+                              Sample(1, 15, "Cycle Barcode", [11, 12, 23, 24]))
 
     def test_from_channel_map(self):
         with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as self.channel_file:
