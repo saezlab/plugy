@@ -631,6 +631,78 @@ class PlugData(object):
             )
 
 
+    def calculate_z_factor(self):
+        pos_cotrol_lable = "pos-ctrl"
+        neg_control_lable = "neg-ctrl"
+
+        cycles = self.sample_df.cycle_nr.unique()
+        z_factors = []
+
+        for i, cycle in enumerate(cycles):
+            pos_control = self.sample_df.loc[
+                (self.sample_df.compound_b == pos_cotrol_lable) &
+                (self.sample_df.compound_a != neg_control_label) &
+                (self.sample_df.cycle_nr == cycle),
+                "readout_media_norm_z_score"
+            ]
+
+            neg_control = self.sample_df.loc[
+                (self.sample_df.compound_b == neg_control_label) &
+                (self.sample_df.compound_a != pos_cotrol_lable) &
+                (self.sample_df.cycle_nr == cycle),
+                "readout_media_norm_z_score"
+            ]
+
+            z_factor_numerator = 3 * (np.std(neg_control) + np.std(pos_control))
+            z_factor_denominator = abs(np.mean(pos_control) - np.mean(neg_control))
+            z_factors.append(1 - (z_factor_numerator / z_factor_denominator))
+
+        self.z_factors = z_factors
+        z_factors = [round(e, 5) for e in z_factors]
+        module_logger.info(f"Reporting z-factor per cycle: {z_factors}")
+        return z_factors
+
+
+    def calculate_modified_z_factor(self):
+
+        pos_cotrol_lable = "pos-ctrl"
+        neg_control_lable = "neg-ctrl"
+        cell_control_lable = "Cell Control"
+
+        cycles = self.sample_df.cycle_nr.unique()
+        z_factor_modified = []
+
+        for i, cycle in enumerate(cycles):
+            fs_medium =  self.sample_df.loc[
+                (self.sample_df.name == cell_control_lable) &
+                (self.sample_df.cycle_nr == cycle),
+                "readout_media_norm_z_score"
+            ]
+            pos_control = self.sample_df.loc[
+                (self.sample_df.compound_b == pos_cotrol_lable) &
+                (self.sample_df.compound_a != neg_control_lable) &
+                (self.sample_df.cycle_nr == cycle),
+                "readout_media_norm_z_score"
+            ]
+
+            neg_control = self.sample_df.loc[
+                (self.sample_df.compound_b == neg_control_lable) &
+                (self.sample_df.compound_a != pos_cotrol_lable) &
+                (self.sample_df.cycle_nr == cycle),
+                "readout_media_norm_z_score"
+            ]
+
+            z_factor_numerator_mod = 2 * (np.std(neg_control) + np.std(pos_control) + np.std(fs_medium))
+            z_factor_denominator_mod = abs((np.mean(pos_control) - np.mean(fs_medium)) - np.mean(neg_control))
+            z_factor_modified.append( 1 - (z_factor_numerator_mod / z_factor_denominator_mod) )
+
+        z_factor_modified = [round(e, 5) for e in z_factor_modified]
+        self.z_factors_modified = z_factor_modified
+        module_logger.info(f"Reporting modified z-factor per cycle: {z_factor_modified}")
+        return z_factor_modified
+
+
+
     def get_media_control_data(self) -> pd.DataFrame:
         """
         Returns a DataFrame with only media control plugs (both compounds FS)
