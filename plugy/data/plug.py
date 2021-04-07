@@ -632,15 +632,15 @@ class PlugData(object):
 
 
     def calculate_z_factor(self):
-        pos_cotrol_lable = "pos-ctrl"
-        neg_control_lable = "neg-ctrl"
+        pos_control_label = "pos-ctrl"
+        neg_control_label = "neg-ctrl"
 
         cycles = self.sample_df.cycle_nr.unique()
         z_factors = []
 
         for i, cycle in enumerate(cycles):
             pos_control = self.sample_df.loc[
-                (self.sample_df.compound_b == pos_cotrol_lable) &
+                (self.sample_df.compound_b == pos_control_label) &
                 (self.sample_df.compound_a != neg_control_label) &
                 (self.sample_df.cycle_nr == cycle),
                 "readout_media_norm_z_score"
@@ -648,7 +648,7 @@ class PlugData(object):
 
             neg_control = self.sample_df.loc[
                 (self.sample_df.compound_b == neg_control_label) &
-                (self.sample_df.compound_a != pos_cotrol_lable) &
+                (self.sample_df.compound_a != pos_control_label) &
                 (self.sample_df.cycle_nr == cycle),
                 "readout_media_norm_z_score"
             ]
@@ -665,29 +665,29 @@ class PlugData(object):
 
     def calculate_modified_z_factor(self):
 
-        pos_cotrol_lable = "pos-ctrl"
-        neg_control_lable = "neg-ctrl"
-        cell_control_lable = "Cell Control"
+        pos_control_label = "pos-ctrl"
+        neg_control_label = "neg-ctrl"
+        cell_control_label = "Cell Control"
 
         cycles = self.sample_df.cycle_nr.unique()
         z_factor_modified = []
 
         for i, cycle in enumerate(cycles):
             fs_medium =  self.sample_df.loc[
-                (self.sample_df.name == cell_control_lable) &
+                (self.sample_df.name == cell_control_label) &
                 (self.sample_df.cycle_nr == cycle),
                 "readout_media_norm_z_score"
             ]
             pos_control = self.sample_df.loc[
-                (self.sample_df.compound_b == pos_cotrol_lable) &
-                (self.sample_df.compound_a != neg_control_lable) &
+                (self.sample_df.compound_b == pos_control_label) &
+                (self.sample_df.compound_a != neg_control_label) &
                 (self.sample_df.cycle_nr == cycle),
                 "readout_media_norm_z_score"
             ]
 
             neg_control = self.sample_df.loc[
-                (self.sample_df.compound_b == neg_control_lable) &
-                (self.sample_df.compound_a != pos_cotrol_lable) &
+                (self.sample_df.compound_b == neg_control_label) &
+                (self.sample_df.compound_a != pos_control_label) &
                 (self.sample_df.cycle_nr == cycle),
                 "readout_media_norm_z_score"
             ]
@@ -1285,7 +1285,7 @@ class PlugData(object):
 
     def _label_samples(self):
 
-        assert self.valid_cycles, 'No valid cycles available.'
+        assert self.valid_cycles, 'No valid cycles availabel.'
 
         module_logger.info('Labelling samples with compound names')
 
