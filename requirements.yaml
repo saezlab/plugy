@@ -79,3 +79,4 @@ dependencies:
   - xz=5.2.4=h14c3975_1001
   - zlib=1.2.11=h516909a_1006
   - tqdm
+  - scikit-image

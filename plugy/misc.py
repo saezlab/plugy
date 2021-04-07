@@ -113,6 +113,15 @@ def to_set(value):
         return {value}
 
 
+def first(value):
+    """
+    Returns first element of an iterator or the value unchanged if it's not
+    an iterator.
+    """
+
+    return next(value.__iter__()) if hasattr(value, '__iter__') else value
+
+
 def prettyfloat(n):
 
     return '%.02g' % n if isinstance(n, float) else str(n)

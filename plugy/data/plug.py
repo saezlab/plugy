@@ -137,6 +137,8 @@ class PlugData(object):
             self.config.readout_analysis_column
         )
         self._check_sample_df_column(self.config.readout_column)
+        self.calculate_z_factor()
+        self.calculate_modified_z_factor()
 
 
     def _detect_peaks(self):
@@ -629,6 +631,109 @@ class PlugData(object):
                 f"Samples DataFrame contains {len(self.sample_df)} line(s), "
                 f"omitting z-score calculation!"
             )
+
+
+    def calculate_z_factor(self, modified = False):
+
+        channels = (
+            set(self.sample_df.compound_a) |
+            set(self.sample_df.compound_b)
+        )
+
+        pos_control_label = misc.first(
+            misc.to_set(self.config.positive_control_label) & channels
+        )
+        neg_control_label = misc.first(
+            misc.to_set(self.config.negative_control_label) & channels
+        )
+        medium_control_label = misc.first(
+            misc.to_set(self.config.medium_control_label) & channels
+        )
+
+        readout_col = self.config.readout_analysis_column
+
+        module_logger.debug(f'Positive control label: `{pos_control_label}`')
+        module_logger.debug(f'Negative control label: `{neg_control_label}`')
+        module_logger.debug(f'Medium control label: `{medium_control_label}`')
+
+        cycles = self.sample_df.cycle_nr.unique()
+        z_factors = []
+
+        for i, cycle in enumerate(cycles):
+
+            pos_control = self.sample_df.loc[
+                (
+                    (
+                        (self.sample_df.compound_b == pos_control_label) &
+                        (self.sample_df.compound_a != neg_control_label)
+                    ) |
+                    (
+                        (self.sample_df.compound_a == pos_control_label) &
+                        (self.sample_df.compound_b != neg_control_label)
+                    )
+                ) &
+                (self.sample_df.cycle_nr == cycle),
+                readout_col
+            ]
+
+            medium_control = self.sample_df.loc[
+                (self.sample_df.compound_b == medium_control_label) &
+                (self.sample_df.compound_a == medium_control_label) &
+                (self.sample_df.cycle_nr == cycle),
+                readout_col
+            ]
+
+            neg_control = self.sample_df.loc[
+                (
+                    (self.sample_df.compound_a == neg_control_label) |
+                    (self.sample_df.compound_b == neg_control_label)
+                ) &
+                (self.sample_df.cycle_nr == cycle),
+                readout_col
+            ]
+
+            if modified:
+
+                z_factor_numerator = 2 * (
+                    np.std(neg_control) +
+                    np.std(pos_control) +
+                    np.std(medium_control)
+                )
+                z_factor_denominator = (
+                    np.mean(pos_control) -
+                    np.mean(medium_control) -
+                    np.mean(neg_control)
+                )
+
+            else:
+
+                z_factor_numerator = 3 * (
+                    np.std(medium_control) +
+                    np.std(pos_control)
+                )
+                z_factor_denominator = abs(
+                    np.mean(pos_control) -
+                    np.mean(medium_control)
+                )
+
+            z_factors.append(1 - (z_factor_numerator / z_factor_denominator))
+
+        setattr(
+            self,
+            'z_factors%s' % ('_modified' if modified else ''),
+            z_factors
+        )
+        z_factors = [round(e, 5) for e in z_factors]
+        module_logger.info(
+            f"Reporting {'modified ' if modified else ''}z-factor "
+            f"by cycle: {z_factors}"
+        )
+        return z_factors
+
+
+    def calculate_modified_z_factor(self):
+
+        return self.calculate_z_factor(modified = True)
 
 
     def get_media_control_data(self) -> pd.DataFrame:
@@ -1213,7 +1318,7 @@ class PlugData(object):
 
     def _label_samples(self):
 
-        assert self.valid_cycles, 'No valid cycles available.'
+        assert self.valid_cycles, 'No valid cycles availabel.'
 
         module_logger.info('Labelling samples with compound names')
 
