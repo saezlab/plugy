@@ -632,8 +632,13 @@ class PlugData(object):
 
 
     def calculate_z_factor(self):
-        pos_control_label = "pos-ctrl"
-        neg_control_label = "neg-ctrl"
+
+        pos_control_label = misc.first(misc.to_set(
+            self.config.positive_control_label
+        ))
+        neg_control_label = misc.first(misc.to_set(
+            self.config.medium_control_label
+        ))
 
         cycles = self.sample_df.cycle_nr.unique()
         z_factors = []
@@ -665,9 +670,15 @@ class PlugData(object):
 
     def calculate_modified_z_factor(self):
 
-        pos_control_label = "pos-ctrl"
-        neg_control_label = "neg-ctrl"
-        cell_control_label = "Cell Control"
+        pos_control_label = misc.first(misc.to_set(
+            self.config.positive_control_label
+        ))
+        neg_control_label = misc.first(misc.to_set(
+            self.config.negative_control_label
+        ))
+        cell_control_label = misc.first(misc.to_set(
+            self.config.medium_control_label
+        ))
 
         cycles = self.sample_df.cycle_nr.unique()
         z_factor_modified = []
