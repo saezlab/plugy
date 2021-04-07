@@ -137,6 +137,8 @@ class PlugData(object):
             self.config.readout_analysis_column
         )
         self._check_sample_df_column(self.config.readout_column)
+        self.calculate_z_factor()
+        self.calculate_modified_z_factor()
 
 
     def _detect_peaks(self):
