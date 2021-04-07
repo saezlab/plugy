@@ -644,7 +644,7 @@ class PlugData(object):
         medium_control_label = misc.first(misc.to_set(
             self.config.medium_control_label
         ))
-        readout_col = config.readout_analysis_column
+        readout_col = self.config.readout_analysis_column
 
         cycles = self.sample_df.cycle_nr.unique()
         z_factors = []
@@ -687,12 +687,12 @@ class PlugData(object):
                 z_factor_numerator = 2 * (
                     np.std(neg_control) +
                     np.std(pos_control) +
-                    np.std(medium_medium)
+                    np.std(medium_control)
                 )
                 z_factor_denominator = abs(
                     (
                         np.mean(pos_control) -
-                        np.mean(medium_medium)
+                        np.mean(medium_control)
                     ) -
                     np.mean(neg_control)
                 )
@@ -717,7 +717,7 @@ class PlugData(object):
         )
         z_factors = [round(e, 5) for e in z_factors]
         module_logger.info(
-            f"Reporting {'modified' if modified else ''}z-factor "
+            f"Reporting {'modified ' if modified else ''}z-factor "
             f"by cycle: {z_factors}"
         )
         return z_factors
