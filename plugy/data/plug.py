@@ -635,16 +635,26 @@ class PlugData(object):
 
     def calculate_z_factor(self, modified = False):
 
-        pos_control_label = misc.first(misc.to_set(
-            self.config.positive_control_label
-        ))
-        neg_control_label = misc.first(misc.to_set(
-            self.config.negative_control_label
-        ))
-        medium_control_label = misc.first(misc.to_set(
-            self.config.medium_control_label
-        ))
+        channels = (
+            set(self.sample_df.compound_a) |
+            set(self.sample_df.compound_b)
+        )
+
+        pos_control_label = misc.first(
+            misc.to_set(self.config.positive_control_label) & channels
+        )
+        neg_control_label = misc.first(
+            misc.to_set(self.config.negative_control_label) & channels
+        )
+        medium_control_label = misc.first(
+            misc.to_set(self.config.medium_control_label) & channels
+        )
+
         readout_col = self.config.readout_analysis_column
+
+        module_logger.debug(f'Positive control label: `{pos_control_label}`')
+        module_logger.debug(f'Negative control label: `{neg_control_label}`')
+        module_logger.debug(f'Medium control label: `{medium_control_label}`')
 
         cycles = self.sample_df.cycle_nr.unique()
         z_factors = []
