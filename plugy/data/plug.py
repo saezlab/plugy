@@ -699,11 +699,9 @@ class PlugData(object):
                     np.std(pos_control) +
                     np.std(medium_control)
                 )
-                z_factor_denominator = abs(
-                    (
-                        np.mean(pos_control) -
-                        np.mean(medium_control)
-                    ) -
+                z_factor_denominator = (
+                    np.mean(pos_control) -
+                    np.mean(medium_control) -
                     np.mean(neg_control)
                 )
 
