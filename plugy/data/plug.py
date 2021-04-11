@@ -672,8 +672,7 @@ class PlugData(object):
                         (self.sample_df.compound_b != neg_control_label)
                     )
                 ) &
-                (self.sample_df.cycle_nr == cycle),
-                readout_col
+                (self.sample_df.cycle_nr == cycle)
             ]
 
             medium_control = self.sample_df.loc[
@@ -683,16 +682,62 @@ class PlugData(object):
                 readout_col
             ]
 
-            neg_control = self.sample_df.loc[
-                (
-                    (self.sample_df.compound_a == neg_control_label) |
-                    (self.sample_df.compound_b == neg_control_label)
-                ) &
-                (self.sample_df.cycle_nr == cycle),
-                readout_col
-            ]
-
             if modified:
+
+                neg_control = self.sample_df.loc[
+                    (
+                        (self.sample_df.compound_a == neg_control_label) |
+                        (self.sample_df.compound_b == neg_control_label)
+                    ) &
+                    (self.sample_df.cycle_nr == cycle),
+                    readout_col
+                ]
+
+                single_drugs = self.sample_df.loc[
+                    (
+                        (self.sample_df.compound_a == medium_control_label) &
+                        (self.sample_df.compound_b != pos_control_label) &
+                        (self.sample_df.compound_b != neg_control_label)
+                    ) |
+                    (
+                        (self.sample_df.compound_b == medium_control_label) &
+                        (self.sample_df.compound_a != pos_control_label) &
+                        (self.sample_df.compound_a != neg_control_label)
+                    )
+                ]
+
+                with warnings.catch_warnings():
+
+                    warnings.simplefilter('ignore')
+
+                    single_drugs['compound'] = np.where(
+                        single_drugs.compound_a == medium_control_label,
+                        single_drugs.compound_b,
+                        single_drugs.compound_a
+                    )
+
+                single_drugs = (
+                    single_drugs.groupby('compound')[readout_col].agg('mean')
+                ).rename('single_drug_mean')
+
+                with warnings.catch_warnings():
+
+                    warnings.simplefilter('ignore')
+
+                    pos_control['compound'] = np.where(
+                        pos_control.compound_a == pos_control_label,
+                        pos_control.compound_b,
+                        pos_control.compound_a
+                    )
+
+                pos_control = pos_control.join(
+                    single_drugs,
+                    on = 'compound'
+                )
+                pos_control = (
+                    pos_control[readout_col] -
+                    pos_control.single_drug_mean
+                )
 
                 z_factor_numerator = 2 * (
                     np.std(neg_control) +
@@ -706,6 +751,8 @@ class PlugData(object):
                 )
 
             else:
+
+                pos_control = pos_control[readout_col]
 
                 z_factor_numerator = 3 * (
                     np.std(medium_control) +
