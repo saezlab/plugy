@@ -19,7 +19,6 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
-
 import logging
 import tempfile
 import unittest
@@ -234,7 +233,11 @@ class TestPlugSequenceCheck(unittest.TestCase):
     def test_sequence_many_valves(self):
         with self.assertRaises(ValueError) as cm:
             PlugSequence((Sample(1, 12, "Test", [11, 12, 13, 14]), Sample(1, 12, "Test", [11, 12, 13, 14, 15])))
-        self.assertEqual(cm.exception.args[0], "Sample 1 found with more than 4 valves open (5), THIS WILL DESTROY THE CHIP!")
+        self.assertEqual(
+            cm.exception.args[0],
+            "Sample 1 found with more than 4 valves open (5), "
+            "THIS MIGHT DAMAGE THE CHIP!"
+        )
 
     def test_sequence_few_valves(self):
         with self.assertWarns(UserWarning) as cm:
