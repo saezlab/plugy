@@ -328,11 +328,15 @@ class PlugyConfig(object):
 
         if hasattr(path, 'pattern'):
 
+            subdir, fname = os.path.split(path.pattern)
+
             for f in os.listdir(in_dir):
 
-                if path.match(f):
+                this_path = os.path.join(subdir, f)
 
-                    path = os.path.join(in_dir, f)
+                if path.match(this_path):
+
+                    path = os.path.join(in_dir, this_path)
                     break
 
         return path.pattern if hasattr(path, 'pattern') else path
