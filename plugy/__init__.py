@@ -20,5 +20,5 @@
 #
 
 
-from plugy.exp import PlugExperiment
-from plugy.data.config import PlugyConfig
+from .exp import PlugExperiment
+from .data.config import PlugyConfig

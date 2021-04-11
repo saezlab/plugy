@@ -29,7 +29,7 @@ import warnings
 from typing import Union
 from dataclasses import dataclass
 
-from plugy import misc
+from .. import misc
 
 module_logger = logging.getLogger("plugy.data.bd")
 
