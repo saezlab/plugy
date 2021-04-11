@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 
 #
-# Author      Nicolas Peschke
-# Date        04.04.2019
-#
 # This file is part of the `plugy` python module
 #
 # Copyright
-# 2018-2020
-# EMBL, Heidelberg University
+# 2018-2021
+# EMBL & Heidelberg University
 #
-# File author(s): Dénes Türei (turei.denes@gmail.com)
-#                 Nicolas Peschke
+# Author(s): Dénes Türei (turei.denes@gmail.com)
+#            Nicolas Peschke
+#            Olga Ivanova
 #
 # Distributed under the GPLv3 License.
 # See accompanying file LICENSE.txt or copy at
@@ -20,6 +18,7 @@
 #
 # Webpage: https://github.com/saezlab/plugy
 #
+
 
 import time
 import inspect
