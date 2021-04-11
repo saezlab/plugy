@@ -39,6 +39,7 @@ module_logger = logging.getLogger('plugy.data.config')
 class PlugyConfig(object):
 
     # File Paths
+    input_dir: str = '.'
     pmt_file: typing.Union[pl.Path, str, re.Pattern] = \
         re.compile(
             r'(?:fluor|exp)(?:[-\w ]*)?'
@@ -291,12 +292,18 @@ class PlugyConfig(object):
 
             if not isinstance(path, pl.Path):
 
-                path = self._find_file(path = path)
+                path = self._find_file(path = path, in_dir = self.input_dir)
 
                 if not os.path.exists(path):
 
                     msg = 'File not found: %s; `%s`' % (attr, path)
                     module_logger.critical(msg)
+                    module_logger.critical(
+                        'Files in directory `%s`: %s' % (
+                            self.input_dir,
+                            ', '.join(os.listdir(self.input_dir))
+                        )
+                    )
                     path = None
 
                     if attr == 'pmt_file':
@@ -317,19 +324,15 @@ class PlugyConfig(object):
 
 
     @staticmethod
-    def _find_file(path):
+    def _find_file(path, in_dir):
 
         if hasattr(path, 'pattern'):
 
-            _dir, fname = os.path.split(path.pattern)
+            for f in os.listdir(in_dir):
 
-            for f in os.listdir(_dir or '.'):
+                if path.match(f):
 
-                this_path = os.path.join(_dir, f)
-
-                if path.match(this_path):
-
-                    path = this_path
+                    path = os.path.join(in_dir, f)
                     break
 
         return path.pattern if hasattr(path, 'pattern') else path
