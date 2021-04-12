@@ -101,6 +101,8 @@ logging.basicConfig(level=logging.DEBUG,
 
 
 class TestPmtData(unittest.TestCase):
+
+
     def setUp(self):
         """
         Creates DataFrame for each unittest to compare results
