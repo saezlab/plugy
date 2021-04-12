@@ -22,23 +22,20 @@
 
 from setuptools import setup
 
+
+with open('requirements.txt', 'r') as fp:
+
+    requirements = [l.strip() for l in fp]
+
+
 setup(
-    name='plugy',
-    version='0.7.1',
-    packages=['plugy', 'plugy.data', 'plugy.test'],
-    url='https://github.com/saezlab/plugy',
-    license='GPLv3',
-    author='Dénes Türei, Nicolas Peschke, Olga Ivanova',
-    author_email='turei.denes@gmail.com',
-    description='Processing plug microfluidics data',
-    install_requires=[
-        'seaborn',
-        'matplotlib',
-        'statsmodels',
-        'scipy',
-        'pandas',
-        'numpy',
-        'scikit-image',
-        'tqdm',
-    ],
+    name = 'plugy',
+    version = '0.7.1',
+    packages = ['plugy', 'plugy.data', 'plugy.test'],
+    url = 'https://github.com/saezlab/plugy',
+    license = 'GPLv3',
+    author = 'Dénes Türei, Nicolas Peschke, Olga Ivanova',
+    author_email = 'turei.denes@gmail.com',
+    description = 'Processing plug microfluidics data',
+    install_requires = requirements,
 )
