@@ -84,8 +84,12 @@ class PmtData(object):
 
     config: PlugyConfig = field(default_factory = PlugyConfig)
 
+
     def __post_init__(self):
-        module_logger.info(f"Creating PmtData object from file {self.input_file.absolute()}")
+
+        module_logger.info(
+            f"Creating PmtData object from file {self.input_file.absolute()}"
+        )
         module_logger.debug(f"Configuration:")
         for k, v in self.__dict__.items():
             module_logger.debug(f"{k}: {v}")
@@ -97,7 +101,6 @@ class PmtData(object):
         self._set_fake_gain_adaptive()
         self.apply_fake_gain()
         self._override_barcode()
-        # self.data = self.correct_crosstalk()
 
 
     def reload(self):
@@ -237,7 +240,7 @@ class PmtData(object):
 
         for channel in (
             set(self.config.channel_names.values()) &
-            misc.to_set(self.config.ignore_channels)
+            misc.to_set(self.ignore_channels)
         ):
 
             module_logger.info('Setting %s channel to 0.0' % channel)
@@ -246,7 +249,15 @@ class PmtData(object):
         if self.correct_acquisition_time:
 
             module_logger.info("Correcting acquisition time")
-            df = df.assign(time = np.linspace(self.data.time[0], self.data.time[0] + time_between_samplings * (len(df) - 1), len(df)))
+            df = df.assign(
+                time = np.linspace(
+                    self.data.time[0],
+                    self.data.time[0] +
+                        time_between_samplings *
+                        (len(df) - 1),
+                    len(df)
+                )
+            )
 
         return df
 
