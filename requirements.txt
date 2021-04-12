@@ -1,0 +1,8 @@
+seaborn
+matplotlib
+statsmodels
+scipy
+pandas
+numpy
+scikit-image
+tqdm
