@@ -46,6 +46,9 @@ logging.basicConfig(
     datefmt = '%d.%m.%y %H:%M:%S',
 )
 
+# disable annoying pandas SettingWithCopy warnings
+pd.options.mode.chained_assignment = None
+
 
 class TestPlugData(unittest.TestCase):
 
