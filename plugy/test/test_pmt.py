@@ -21,7 +21,6 @@
 
 
 import unittest
-import unittest.mock as mock
 import tempfile
 
 import logging
@@ -139,13 +138,11 @@ class TestPmtData(unittest.TestCase):
 
             with self.subTest(file_content = file_content):
 
-                with (
-                    tempfile.NamedTemporaryFile(
+                with tempfile.NamedTemporaryFile(
                         mode = "w+b",
                         suffix = ".txt.gz",
                         delete = True
-                    ) as self.gz_file
-                ):
+                    ) as self.gz_file:
 
                     with gzip.GzipFile(mode = "wb", fileobj = self.gz_file) as gz:
 
@@ -173,13 +170,11 @@ class TestPmtData(unittest.TestCase):
 
             with self.subTest(file_content = file_content):
 
-                with (
-                    tempfile.NamedTemporaryFile(
+                with tempfile.NamedTemporaryFile(
                         mode = "w+t",
                         suffix = ".txt",
                         delete = True
-                    ) as self.txt_file
-                ):
+                    ) as self.txt_file:
 
                     self.txt_file.write(file_content)
                     self.txt_file.seek(0)

@@ -307,10 +307,8 @@ class TestPlugData(unittest.TestCase):
             "13:Drug 1\n14:Drug 2\n15:Drug 3\n23:BCM\n24:BCM"
         )
 
-        with (
-            tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as
-            self.channel_file
-        ):
+        with tempfile.NamedTemporaryFile(mode = "w+t", suffix = ".txt") as \
+            self.channel_file:
 
             self.channel_file.write(self.test_gen_map_content)
             self.channel_file.seek(0)
@@ -602,10 +600,13 @@ class TestPlugData(unittest.TestCase):
                 config = self.config,
             )
 
+        print(self.normalized_cycle_data)
+        print(plug_data.plug_df[self.normalized_cycle_data.columns])
+
         pd_test.assert_almost_equal(
             self.normalized_cycle_data,
             plug_data.plug_df[self.normalized_cycle_data.columns],
-            check_less_precise = 2,
+            atol = .01
         )
 
 
