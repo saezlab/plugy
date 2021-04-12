@@ -29,7 +29,7 @@ import itertools
 import functools
 import inspect
 import typing
-
+from dataclasses import dataclass, field
 import pathlib as pl
 
 import tqdm
@@ -48,7 +48,7 @@ import seaborn as sns
 from .. import misc
 from ..data import pmt, bd
 from ..data.config import PlugyConfig
-from dataclasses import dataclass, field
+
 
 module_logger = logging.getLogger("plugy.data.plug")
 

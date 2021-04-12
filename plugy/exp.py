@@ -22,11 +22,11 @@
 
 import sys
 import logging
-import pathlib as pl
 import collections
 import importlib as imp
 import traceback
 import typing
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -42,7 +42,6 @@ from .data.pmt import PmtData
 from .data.plug import PlugData
 from . import misc as misc
 
-from dataclasses import dataclass, field
 
 module_logger = logging.getLogger("plugy.data.exp")
 

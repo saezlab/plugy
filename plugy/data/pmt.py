@@ -26,18 +26,16 @@ import gzip
 import pathlib as pl
 import importlib as imp
 from typing import Union
+from dataclasses import dataclass, field
 
 import pandas as pd
 import numpy as np
 import scipy.signal as sig
 
-import matplotlib.patches as mpl_patch
-import matplotlib.collections as mpl_coll
 import matplotlib.ticker as mpl_ticker
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from dataclasses import dataclass, field
 from ..data.config import PlugyConfig
 from .. import misc
 
