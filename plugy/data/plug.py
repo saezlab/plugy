@@ -1189,7 +1189,9 @@ class PlugData(object):
             for cycle_nr in self.plug_df.cycle_nr.unique():
 
                 this_cycle = self.plug_df[self.plug_df.cycle_nr == cycle_nr]
-                start_times = this_cycle.groupby('sample_nr').min('start_time')
+                start_times = (
+                    this_cycle.groupby('sample_nr').min('start_time')
+                )
                 sample_freq_var += start_times['start_time'].std()
 
             result = self._barcode_result(

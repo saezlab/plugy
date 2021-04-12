@@ -3,7 +3,7 @@ image: continuumio/miniconda3:latest
 testbuild :
   stage: build
   script:
-    - conda env create -f requirements.yaml
-    - source activate plugy
+    - conda env create -f environment.yml
+    - source activate plugy_test
     - python -m unittest
     - python setup.py install
