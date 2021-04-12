@@ -284,6 +284,8 @@ class TestPlugData(unittest.TestCase):
                     peak_min_distance = 0.03,
                     config = self.config,
                 ),
+                has_controls = False,
+                samples_per_cycle = 2,
                 plug_sequence = None,
                 channel_map = None,
                 config = self.config,
@@ -313,6 +315,8 @@ class TestPlugData(unittest.TestCase):
                     peak_min_distance = 0.03,
                     config = self.config,
                 ),
+                has_controls = False,
+                samples_per_cycle = 2,
                 plug_sequence = None,
                 channel_map = None,
                 config = self.config,
@@ -342,6 +346,8 @@ class TestPlugData(unittest.TestCase):
                     peak_min_distance = 0.03,
                     config = self.config,
                 ),
+                has_controls = False,
+                samples_per_cycle = 2,
                 plug_sequence = None,
                 channel_map = None,
                 min_end_cycle_barcodes = 3,
@@ -352,17 +358,15 @@ class TestPlugData(unittest.TestCase):
 
         pd_test.assert_frame_equal(
             self.sample_data.round(),
-            plug_data.sample_df.round()
+            plug_data.sample_df.iloc[:,0:8].round()
         )
 
 
     def test_plug_sample_labelling(self):
         """
-        Tests if samples are properly labelled with the help of a bd.PlugSequence object
+        Tests if samples are properly labelled with the help of a
+        bd.PlugSequence object
         """
-        # with unittest.mock.patch.object(target = plug.PlugData, attribute = "call_plugs", new = lambda _: (self.sample_data, self.sample_data, self.sample_data)):
-        #     # noinspection PyTypeChecker
-        #     plug_data = plug.PlugData(pmt_data = None, plug_sequence = self.plug_sequence, channel_map = self.channel_map)
 
         with unittest.mock.patch.object(
             target = pmt.PmtData,
@@ -377,6 +381,7 @@ class TestPlugData(unittest.TestCase):
                     peak_min_distance = 0.03,
                     config = self.config,
                 ),
+                has_controls = False,
                 plug_sequence = self.plug_sequence,
                 channel_map = self.channel_map,
                 min_end_cycle_barcodes = 3,
@@ -385,7 +390,10 @@ class TestPlugData(unittest.TestCase):
             )
             plug_data.detect_samples()
 
-        pd_test.assert_frame_equal(self.labelled_sample_data.round(), plug_data.sample_df.round())
+        pd_test.assert_frame_equal(
+            self.labelled_sample_data.round(),
+            plug_data.sample_df.round()
+        )
 
 
     # noinspection DuplicatedCode
@@ -406,6 +414,8 @@ class TestPlugData(unittest.TestCase):
                     peak_min_distance = 0.03,
                     config = self.config,
                 ),
+                has_controls = False,
+                samples_per_cycle = 2,
                 plug_sequence = None,
                 channel_map = None,
                 normalize_using_control=True,
@@ -424,6 +434,10 @@ class TestPlugData(unittest.TestCase):
         """
         Tests detecting plugs with a large amount of noise
         """
+
+
+        print(self.normalized_cycle_data)
+
         with unittest.mock.patch.object(
             target = pmt.PmtData,
             attribute = "read_txt",
@@ -437,12 +451,13 @@ class TestPlugData(unittest.TestCase):
                     peak_min_distance = 0.03,
                     config = self.config,
                 ),
+                has_controls = False,
+                samples_per_cycle = 2,
                 plug_sequence = None,
                 channel_map = None,
                 normalize_using_control=True,
-                config=self.config,
+                config = self.config,
             )
-            plug_data.detect_samples()
 
         pd_test.assert_frame_equal(
             self.normalized_cycle_data.round(),
