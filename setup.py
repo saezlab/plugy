@@ -24,7 +24,7 @@ from setuptools import setup
 
 setup(
     name='plugy',
-    version='0.7.0',
+    version='0.7.1',
     packages=['plugy', 'plugy.data', 'plugy.test'],
     url='https://github.com/saezlab/plugy',
     license='GPLv3',
