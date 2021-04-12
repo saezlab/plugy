@@ -800,7 +800,7 @@ class PlugData(object):
             z_factors.append(1 - (z_factor_numerator / z_factor_denominator))
 
         label = (
-            ('modified' if modified2 else 'modified2')
+            ('modified2' if modified2 else 'modified')
                 if modified else
             ''
         )
