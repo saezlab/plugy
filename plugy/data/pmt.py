@@ -615,7 +615,7 @@ class PmtData(object):
 
             for row in self.peak_df.sort_values(by = "left_ips"):
 
-                plug_list.append(
+                peak_list.append(
                     self.quantify_interval(
                         row.left_ips,
                         row.right_ips

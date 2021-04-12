@@ -999,7 +999,7 @@ class PlugExperiment(object):
 
     def pmt_data_to_excel(
             self,
-            name = None,
+            fname = None,
             sheet_name = 'PMT_data',
             **kwargs,
         ):

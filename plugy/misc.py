@@ -283,7 +283,7 @@ def seaborn_violin_fix(
 
                 add_boxes(
                     ax, violin_data, support, density,
-                    i + (offsets[j] if plotter.split else 0),
+                    i + (offsets[j] if plotter.split else 0), # noqa: F821
                     locals(),
                 )
 

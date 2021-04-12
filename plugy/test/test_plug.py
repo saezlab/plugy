@@ -105,7 +105,7 @@ class TestPlugData(unittest.TestCase):
         for _ in range(repeats):
             try:
                 # noinspection PyUnboundLocalVariable
-                tmp_data = tmp_data.append(self.clean_data)
+                tmp_data = tmp_data.append(self.clean_data) # noqa: E821
             except UnboundLocalError:
                 tmp_data = self.clean_data
 
