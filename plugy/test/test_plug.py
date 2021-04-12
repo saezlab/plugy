@@ -46,6 +46,8 @@ logging.basicConfig(level = logging.DEBUG,
 
 
 class TestPlugData(unittest.TestCase):
+
+
     def setUp(self) -> None:
         self.clean_data = pd.DataFrame()
         self.noisy_data = pd.DataFrame()
@@ -205,7 +207,14 @@ class TestPlugData(unittest.TestCase):
         # workaround since there is only one simulated sample
         # readout_analysis_column is by default "readout_peak_z_score"
         # but z score calculation happens only for more than one sample in sample_df
-        self.config = config.PlugyConfig(readout_analysis_column="readout_peak_median")
+        self.tmpdir = tempfile.mkdtemp()
+        self.pmt_path = pl.Path(self.tmpdir, 'exp.txt')
+        self.pmt_path.touch()
+        self.config = config.PlugyConfig(
+            input_dir = self.tmpdir,
+            readout_analysis_column = 'readout_peak_median'
+        )
+
 
     @unittest.skip
     def test_plot_test_data(self):
@@ -224,17 +233,29 @@ class TestPlugData(unittest.TestCase):
         test_data_fig.show()
         self.assertTrue(True)
 
+
     @unittest.skip
     def test_plot_detected_data(self):
         """
         Tests plotting of the plug data together with the pmt data
         """
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.noisy_data,
+        ):
+
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = None,
-                                      channel_map = None,
-                                      peak_min_distance = 0.03)
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = None,
+                channel_map = None,
+                config = self.config,
+            )
 
         plug_data_fig, plug_data_ax = plt.subplots(figsize = (40, 10))
         plug_data_ax = plug_data.plot_plug_pmt_data(axes = plug_data_ax)
@@ -244,54 +265,96 @@ class TestPlugData(unittest.TestCase):
 
         self.assertTrue(True)
 
+
     # noinspection DuplicatedCode
     def test_plug_detect_clean_data(self):
         """
         Tests detecting simple plugs from clean data
         """
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.clean_data):
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.clean_data,
+        ):
+
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = None,
-                                      channel_map = None,
-                                      peak_min_distance = 0.03,
-                                      config=self.config)
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = None,
+                channel_map = None,
+                config = self.config,
+            )
 
+        pd_test.assert_frame_equal(
+            self.cycle_data.round(),
+            plug_data.plug_df[self.cycle_data.columns].round()
+        )
 
-
-        pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df[self.cycle_data.columns].round())
 
     # noinspection DuplicatedCode
     def test_plug_detect_noisy_data(self):
         """
         Tests detecting plugs with a large amount of noise
         """
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
-            # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = None,
-                                      channel_map = None,
-                                      peak_min_distance = 0.03,
-                                      config=self.config)
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.noisy_data
+        ):
 
-        pd_test.assert_frame_equal(self.cycle_data.round(), plug_data.plug_df[self.cycle_data.columns].round())
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = None,
+                channel_map = None,
+                config = self.config,
+            )
+
+        pd_test.assert_frame_equal(
+            self.cycle_data.round(),
+            plug_data.plug_df[self.cycle_data.columns].round()
+        )
+
 
     # noinspection DuplicatedCode
     def test_plug_cycle_sample_calling(self):
         """
         Tests if cycles and sample numbers are properly detected
         """
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.noisy_data,
+        ):
+
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = None,
-                                      channel_map = None,
-                                      peak_min_distance = 0.03,
-                                      min_end_cycle_barcodes = 3,
-                                      n_bc_adjacent_discards = 0)
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = None,
+                channel_map = None,
+                min_end_cycle_barcodes = 3,
+                n_bc_adjacent_discards = 0,
+                config = self.config,
+            )
             plug_data.detect_samples()
 
-        pd_test.assert_frame_equal(self.sample_data.round(), plug_data.sample_df.round())
+        pd_test.assert_frame_equal(
+            self.sample_data.round(),
+            plug_data.sample_df.round()
+        )
+
 
     def test_plug_sample_labelling(self):
         """
@@ -301,51 +364,92 @@ class TestPlugData(unittest.TestCase):
         #     # noinspection PyTypeChecker
         #     plug_data = plug.PlugData(pmt_data = None, plug_sequence = self.plug_sequence, channel_map = self.channel_map)
 
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.noisy_data,
+        ):
+
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = self.plug_sequence,
-                                      channel_map = self.channel_map,
-                                      peak_min_distance = 0.03,
-                                      min_end_cycle_barcodes = 3,
-                                      n_bc_adjacent_discards = 0)
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = self.plug_sequence,
+                channel_map = self.channel_map,
+                min_end_cycle_barcodes = 3,
+                n_bc_adjacent_discards = 0,
+                config = self.config,
+            )
             plug_data.detect_samples()
 
         pd_test.assert_frame_equal(self.labelled_sample_data.round(), plug_data.sample_df.round())
+
 
     # noinspection DuplicatedCode
     def test_plug_detect_clean_data_cell_norm(self):
         """
         Tests detecting simple plugs from clean data
         """
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.clean_data):
-            # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = None,
-                                      channel_map = None,
-                                      peak_min_distance = 0.03,
-                                      normalize_using_control=True,
-                                      config=self.config)
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.clean_data,
+        ):
 
-        pd_test.assert_almost_equal(self.normalized_cycle_data, plug_data.plug_df[self.normalized_cycle_data.columns], check_less_precise=2)
+            # noinspection PyTypeChecker
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = None,
+                channel_map = None,
+                normalize_using_control=True,
+                config = self.config,
+            )
+
+        pd_test.assert_almost_equal(
+            self.normalized_cycle_data,
+            plug_data.plug_df[self.normalized_cycle_data.columns],
+            check_less_precise = 2,
+        )
+
 
     # noinspection DuplicatedCode
     def test_plug_detect_noisy_data_cell_norm(self):
         """
         Tests detecting plugs with a large amount of noise
         """
-        with unittest.mock.patch.object(target = pmt.PmtData, attribute = "read_txt", new = lambda _: self.noisy_data):
+        with unittest.mock.patch.object(
+            target = pmt.PmtData,
+            attribute = "read_txt",
+            new = lambda _: self.noisy_data,
+        ):
+
             # noinspection PyTypeChecker
-            plug_data = plug.PlugData(pmt_data = pmt.PmtData(input_file = pl.Path("MOCK")),
-                                      plug_sequence = None,
-                                      channel_map = None,
-                                      peak_min_distance = 0.03,
-                                      normalize_using_control=True,
-                                      config=self.config)
+            plug_data = plug.PlugData(
+                pmt_data = pmt.PmtData(
+                    input_file = pl.Path("MOCK"),
+                    peak_min_distance = 0.03,
+                    config = self.config,
+                ),
+                plug_sequence = None,
+                channel_map = None,
+                normalize_using_control=True,
+                config=self.config,
+            )
             plug_data.detect_samples()
 
-        pd_test.assert_frame_equal(self.normalized_cycle_data.round(), plug_data.plug_df[self.normalized_cycle_data.columns].round())
+        pd_test.assert_frame_equal(
+            self.normalized_cycle_data.round(),
+            plug_data.plug_df[self.normalized_cycle_data.columns].round()
+        )
 
 
 if __name__ == '__main__':
+
     unittest.main()
