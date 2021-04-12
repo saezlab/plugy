@@ -312,6 +312,7 @@ class PlugExperiment(object):
             has_barcode = self.config.has_barcode,
             has_samples_cycles = self.config.has_samples_cycles,
             samples_per_cycle = self.config.samples_per_cycle,
+            has_controls = self.config.has_controls,
             heatmap_second_scale = self.config.heatmap_second_scale,
             heatmap_override_scale = self.config.heatmap_override_scale,
             heatmap_override_second_scale =

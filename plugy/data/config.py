@@ -164,6 +164,9 @@ class PlugyConfig(object):
     # file is available; otherwise it helps in evaluating barcode detection
     # methods even if the sequence is unknoen
     samples_per_cycle: int = None
+    # The experiment has positive (and optionally negative) control samples.
+    # If False, the tasks which require those samples will be skipped.
+    has_controls: bool = True
     # the name of a method for identifying barcode plugs:
     # * `simple`: the simplest method, works with not too noisy data:
     #    plugs are barcode if the channel of the blue value is the highest

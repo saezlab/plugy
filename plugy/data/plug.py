@@ -71,6 +71,7 @@ class PlugData(object):
     has_barcode: bool = True
     has_samples_cycles: bool = True
     samples_per_cycle: int = None
+    has_controls: bool = True
 
     heatmap_second_scale: str = 'pos_ctrl'
     heatmap_override_scale: tuple = None
@@ -633,6 +634,10 @@ class PlugData(object):
 
 
     def calculate_z_factor(self, modified = False):
+
+        if not self.has_controls:
+
+            return
 
         channels = (
             set(self.sample_df.compound_a) |
@@ -1364,7 +1369,7 @@ class PlugData(object):
 
     def _label_samples(self):
 
-        assert self.valid_cycles, 'No valid cycles availabel.'
+        assert self.valid_cycles, 'No valid cycles available.'
 
         module_logger.info('Labelling samples with compound names')
 
@@ -1375,14 +1380,10 @@ class PlugData(object):
             lambda nr: self.get_sample_name(nr, seq)
         )
         df['compound_a'] = df.loc[~df.discard].sample_nr.apply(
-            lambda nr: self.channel_map.get_compounds(
-                seq.sequence[nr].open_valves
-            )[0]
+            lambda nr: self.get_compound_name(nr, 0)
         )
         df['compound_b'] = df.loc[~df.discard].sample_nr.apply(
-            lambda nr: self.channel_map.get_compounds(
-                seq.sequence[nr].open_valves
-            )[1]
+            lambda nr: self.get_compound_name(nr, 1)
         )
 
 
@@ -1390,6 +1391,27 @@ class PlugData(object):
 
         sample_df = self.plug_df.loc[self.plug_df.discard == False]
         self.sample_df = sample_df.drop(columns = ['discard', 'barcode'])
+
+
+    def get_compound_name(self, sample_nr, which):
+        """
+        :param sample_nr: Sample number in the sequence of samples.
+        :param which: Either 0 or 1. Index within the compound combination.
+        """
+
+        seq = self.sample_sequence
+
+        if self.channel_map is None:
+
+            compound = 'Compound %u/%u' % (sample_nr, which)
+
+        else:
+
+            compound = self.channel_map.get_compounds(
+                seq.sequence[sample_nr].open_valves
+            )[which]
+
+        return compound
 
 
     def get_sample_name(
@@ -1403,11 +1425,22 @@ class PlugData(object):
         :param sample_nr: Sample number
         :param sample_sequence: bd.PlugSequence object to get open valves from
         """
-        compounds = self.channel_map.get_compounds(
-            sample_sequence.sequence[sample_nr].open_valves
-        )
-        compounds = [compound for compound in compounds if compound != "FS"]
-        compounds = ' + '.join(compounds) or 'Cell Control'
+
+        if self.channel_map is None:
+
+            compounds = 'Sample %u' % sample_nr
+
+        else:
+
+            compounds = self.channel_map.get_compounds(
+                sample_sequence.sequence[sample_nr].open_valves
+            )
+            compounds = [
+                compound
+                for compound in compounds
+                if compound != "FS"
+            ]
+            compounds = ' + '.join(compounds) or 'Cell Control'
 
         return compounds
 
