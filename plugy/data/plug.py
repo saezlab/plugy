@@ -956,22 +956,6 @@ class PlugData(object):
         return medium_control
 
 
-    def get_media_control_data(self) -> pd.DataFrame:
-        """
-        Returns a DataFrame with only media control plugs (both compounds FS)
-        :return: pd.DataFrame with media control plugs
-        """
-
-        control_labels = misc.to_set(self.config.control_label)
-
-        media_control_data = self.sample_df.loc[
-            self.sample_df.compound_a.isin(control_labels) &
-            self.sample_df.compound_b.isin(control_labels)
-        ]
-
-        return media_control_data
-
-
     def get_media_control_lin_reg(self, readout_column: str = ""):
         """
         Calculates a linear regression over time of all media control plugs
@@ -982,13 +966,13 @@ class PlugData(object):
         generated/scipy.stats.linregress.html for more information about
         the returned values.
         """
-        media_control = self.get_media_control_data()
+        medium_control = self.medium_only()
 
         readout_column = readout_column or self.config.readout_column
 
         slope, intercept, rvalue, pvalue, stderr = stats.linregress(
-            media_control.start_time,
-            media_control[readout_column],
+            medium_control.start_time,
+            medium_control[readout_column],
         )
 
         return slope, intercept, rvalue, pvalue, stderr
@@ -1724,7 +1708,7 @@ class PlugData(object):
             readout_column = 'readout_peak_median'
             ylab = 'Readout median'
 
-        plot_data = self.get_media_control_data()
+        plot_data = self.medium_only()
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')

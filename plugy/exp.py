@@ -822,7 +822,7 @@ class PlugExperiment(object):
         Calculates statistics
         """
         module_logger.info("Calculating statistics")
-        media_data = self.plug_data.get_media_control_data()
+        media_data = self.plug_data.medium_only()
         compound_data = self.plug_data.sample_df[
             ~self.plug_data.sample_df.isin(media_data)
         ].dropna()
