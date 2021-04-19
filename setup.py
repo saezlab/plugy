@@ -30,7 +30,7 @@ with open('requirements.txt', 'r') as fp:
 
 setup(
     name = 'plugy',
-    version = '0.7.1',
+    version = '0.7.2',
     packages = ['plugy', 'plugy.data', 'plugy.test'],
     url = 'https://github.com/saezlab/plugy',
     license = 'GPLv3',

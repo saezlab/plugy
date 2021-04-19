@@ -649,116 +649,24 @@ class PlugData(object):
 
             return
 
-        channels = (
-            set(self.sample_df.compound_a) |
-            set(self.sample_df.compound_b)
-        )
-
-        pos_ctrl_lab = misc.first(
-            misc.to_set(self.config.positive_control_label) & channels
-        )
-        neg_ctrl_lab = misc.first(
-            misc.to_set(self.config.negative_control_label) & channels
-        )
-        medium_ctrl_lab = misc.first(
-            misc.to_set(self.config.medium_control_label) & channels
-        )
-
-        readout_col = self.config.readout_analysis_column
-
-        module_logger.debug(f'Positive control label: `{pos_ctrl_lab}`')
-        module_logger.debug(f'Negative control label: `{neg_ctrl_lab}`')
-        module_logger.debug(f'Medium control label: `{medium_ctrl_lab}`')
-
-        cycles = self.sample_df.cycle_nr.unique()
         z_factors = []
+        readout_col = self.readout_col
 
-        for i, cycle in enumerate(cycles):
+        for cycle in self.cycles:
 
-            pos_control = self.sample_df.loc[
-                (
-                    (
-                        (self.sample_df.compound_b == pos_ctrl_lab) &
-                        (self.sample_df.compound_a != neg_ctrl_lab)
-                    ) |
-                    (
-                        (self.sample_df.compound_a == pos_ctrl_lab) &
-                        (self.sample_df.compound_b != neg_ctrl_lab)
-                    )
-                ) &
-                (self.sample_df.cycle_nr == cycle)
-            ]
-
-            single_drugs = self.sample_df.loc[
-                (
-                    (
-                        (self.sample_df.compound_a == medium_ctrl_lab) &
-                        (self.sample_df.compound_b != pos_ctrl_lab) &
-                        (self.sample_df.compound_b != neg_ctrl_lab)
-                    ) |
-                    (
-                        (self.sample_df.compound_b == medium_ctrl_lab) &
-                        (self.sample_df.compound_a != pos_ctrl_lab) &
-                        (self.sample_df.compound_a != neg_ctrl_lab)
-                    )
-                ) &
-                (self.sample_df.cycle_nr == cycle)
-            ]
-
-            with warnings.catch_warnings():
-
-                warnings.simplefilter('ignore')
-
-                single_drugs['compound'] = np.where(
-                    single_drugs.compound_a == medium_ctrl_lab,
-                    single_drugs.compound_b,
-                    single_drugs.compound_a
-                )
-
-            single_drugs = (
-                single_drugs.groupby('compound')[readout_col].agg('mean')
-            ).rename('single_drug_mean')
-
-            with warnings.catch_warnings():
-
-                warnings.simplefilter('ignore')
-
-                pos_control['compound'] = np.where(
-                    pos_control.compound_a == pos_ctrl_lab,
-                    pos_control.compound_b,
-                    pos_control.compound_a
-                )
-
-            pos_control = pos_control.join(
-                single_drugs,
-                on = 'compound'
+            pos_control = self.positive_controls(
+                subtract_single_drugs = True,
+                cycle = cycle,
             )
-            pos_control = (
-                pos_control[readout_col] -
-                pos_control.single_drug_mean
-            )
+            pos_control = pos_control[readout_col]
 
-            medium_control = self.sample_df.loc[
-                (self.sample_df.compound_b == medium_ctrl_lab) &
-                (self.sample_df.compound_a == medium_ctrl_lab) &
-                (self.sample_df.cycle_nr == cycle),
-                readout_col
-            ]
+            medium_control = self.medium_only(cycle = cycle)
+            medium_control = medium_control[readout_col]
 
             if modified:
 
-                neg_control = self.sample_df.loc[
-                    (
-                        (self.sample_df.compound_a == neg_ctrl_lab) |
-                        (self.sample_df.compound_b == neg_ctrl_lab)
-                    ) &
-                    (
-                        (self.sample_df.compound_a != pos_ctrl_lab) &
-                        (self.sample_df.compound_b != pos_ctrl_lab)
-                    ) &
-                    (self.sample_df.cycle_nr == cycle),
-                    readout_col
-                ]
+                neg_control = self.negative_controls(cycle = cycle)
+                neg_control = neg_control[readout_col]
 
                 z_factor_numerator = 2 * (
                     np.std(neg_control) +
@@ -810,6 +718,242 @@ class PlugData(object):
         """
 
         return self.calculate_z_factor(modified = True)
+
+
+    @property
+    def pos_ctrl_lab(self):
+        """
+        Returns the label of the positive control channel.
+        """
+
+        pos_ctrl_lab = misc.first(
+            misc.to_set(self.config.positive_control_label) & self.channels
+        )
+
+        module_logger.debug(f'Positive control label: `{pos_ctrl_lab}`')
+
+        return pos_ctrl_lab
+
+
+    @property
+    def neg_ctrl_lab(self):
+        """
+        Returns the label of the negative control channel.
+        """
+
+        neg_ctrl_lab = misc.first(
+            misc.to_set(self.config.negative_control_label) & self.channels
+        )
+
+        module_logger.debug(f'Negative control label: `{neg_ctrl_lab}`')
+
+        return neg_ctrl_lab
+
+
+    @property
+    def med_ctrl_lab(self):
+        """
+        Returns the label of the medium only channel in the current
+        experiment.
+        """
+
+        med_ctrl_lab = misc.first(
+            misc.to_set(self.config.medium_control_label) & self.channels
+        )
+
+        module_logger.debug(f'Medium control label: `{med_ctrl_lab}`')
+
+        return med_ctrl_lab
+
+
+    @property
+    def readout_col(self):
+        """
+        Returns the column name for the readout column according to the
+        current settings. The name of this column can vary because normally
+        at each normalization or correction step we create a new column.
+        """
+
+        return self.config.readout_analysis_column
+
+
+    @property
+    def channels(self):
+        """
+        Returns a set of all channel labels in the current experiment.
+        """
+
+        return (
+            set(self.sample_df.compound_a) |
+            set(self.sample_df.compound_b)
+        )
+
+
+    @property
+    def cycles(self):
+        """
+        Return the cycle identifiers in the current experiment.
+        """
+
+        return self.sample_df.cycle_nr.unique()
+
+
+    def positive_controls(self, subtract_single_drugs = True, cycle = None):
+        """
+        Returns a subset of the `sample_df` with only the positive control
+        samples.
+
+        :param bool subtract_single_drugs: Subtract the means of the
+            corresponding single drug samples from the positive control
+            values.
+        :param int cycle: Restrict the data to these cycles. If None, all
+            cycles will be used.
+        """
+
+        if cycle is None:
+
+            return pd.concat([
+                self.positive_controls(
+                    subtract_single_drugs = subtract_single_drugs,
+                    cycle = cycle,
+                )
+                for cycle in self.cycles
+            ])
+
+        pos_ctrl_lab = self.pos_ctrl_lab
+        neg_ctrl_lab = self.neg_ctrl_lab
+        med_ctrl_lab = self.med_ctrl_lab
+        readout_col = self.readout_col
+
+        pos_control = self.sample_df.loc[
+            (
+                (
+                    (self.sample_df.compound_b == pos_ctrl_lab) &
+                    (self.sample_df.compound_a != neg_ctrl_lab)
+                ) |
+                (
+                    (self.sample_df.compound_a == pos_ctrl_lab) &
+                    (self.sample_df.compound_b != neg_ctrl_lab)
+                )
+            ) &
+            (self.sample_df.cycle_nr == cycle)
+        ]
+
+        if subtract_single_drugs:
+
+            single_drugs = self.sample_df.loc[
+                (
+                    (
+                        (self.sample_df.compound_a == med_ctrl_lab) &
+                        (self.sample_df.compound_b != pos_ctrl_lab) &
+                        (self.sample_df.compound_b != neg_ctrl_lab)
+                    ) |
+                    (
+                        (self.sample_df.compound_b == med_ctrl_lab) &
+                        (self.sample_df.compound_a != pos_ctrl_lab) &
+                        (self.sample_df.compound_a != neg_ctrl_lab)
+                    )
+                ) &
+                (self.sample_df.cycle_nr == cycle)
+            ]
+
+            # these warnings stuff just filter out the pandas setting
+            # with copy warnings, which are an annoying example of the
+            # bad design of pandas
+            with warnings.catch_warnings():
+
+                warnings.simplefilter('ignore')
+
+                single_drugs['compound'] = np.where(
+                    single_drugs.compound_a == med_ctrl_lab,
+                    single_drugs.compound_b,
+                    single_drugs.compound_a
+                )
+
+            single_drugs = (
+                single_drugs.groupby('compound')[readout_col].agg('mean')
+            ).rename('single_drug_mean')
+
+            with warnings.catch_warnings():
+
+                warnings.simplefilter('ignore')
+
+                pos_control['compound'] = np.where(
+                    pos_control.compound_a == pos_ctrl_lab,
+                    pos_control.compound_b,
+                    pos_control.compound_a
+                )
+
+            pos_control = pos_control.join(
+                single_drugs,
+                on = 'compound'
+            )
+            pos_control[readout_col] = (
+                pos_control[readout_col] -
+                pos_control.single_drug_mean
+            )
+
+        return pos_control
+
+
+    def negative_controls(self, cycle = None):
+        """
+        Returns a subset of the `sample_df` with only the negative control
+        samples.
+
+        :param int cycle: Restrict the data to these cycles. If None, all
+            cycles will be used.
+        """
+
+        if cycle is None:
+
+            return pd.concat([
+                self.negative_controls(cycle = cycle)
+                for cycle in self.cycles
+            ])
+
+        pos_ctrl_lab = self.pos_ctrl_lab
+        neg_ctrl_lab = self.neg_ctrl_lab
+
+        neg_control = self.sample_df.loc[
+            (
+                (self.sample_df.compound_a == neg_ctrl_lab) |
+                (self.sample_df.compound_b == neg_ctrl_lab)
+            ) &
+            (
+                (self.sample_df.compound_a != pos_ctrl_lab) &
+                (self.sample_df.compound_b != pos_ctrl_lab)
+            ) &
+            (self.sample_df.cycle_nr == cycle)
+        ]
+
+        return neg_control
+
+
+    def medium_only(self, cycle = None):
+        """
+        Returns a subset of the `sample_df` with the medium only samples.
+
+        :param int cycle: Restrict the data to these cycles. If None, all
+            cycles will be used.
+        """
+
+        if cycle is None:
+
+            return pd.concat([
+                self.medium_only(cycle = cycle)
+                for cycle in self.cycles
+            ])
+
+        med_ctrl_lab = self.med_ctrl_lab
+
+        medium_control = self.sample_df.loc[
+            (self.sample_df.compound_b == med_ctrl_lab) &
+            (self.sample_df.compound_a == med_ctrl_lab) &
+            (self.sample_df.cycle_nr == cycle)
+        ]
+
+        return medium_control
 
 
     def get_media_control_data(self) -> pd.DataFrame:
