@@ -139,7 +139,6 @@ class PlugData(object):
         self._check_sample_df_column(self.config.readout_column)
         self.calculate_z_factor()
         self.calculate_modified_z_factor()
-        self.calculate_modified_z_factor_2()
 
 
     def _detect_peaks(self):
@@ -634,16 +633,16 @@ class PlugData(object):
             )
 
 
-    def calculate_z_factor(self, modified = False, modified2 = True):
+    def calculate_z_factor(self, modified = False):
         """
         Calculates the Z factor for each complete cycle according to
         https://en.wikipedia.org/wiki/Z-factor. Negative controls are
         the medium only samples and positive controls are the positive
-        control samples. Set the sample labels by the config options
+        control samples with the mean of the corresponding single drug
+        samples subtracted. Set the sample labels by the config options
         `medium_control_label` and `positive_control_label`. If the
         argument `modified` is True, it calculates a modified version
-        of the Z factor, see `calculate_modified_z_factor` and
-        `calculate_modified_z_factor_2`.
+        of the Z factor, see `calculate_modified_z_factor`.
         """
 
         if not self.has_controls:
@@ -680,25 +679,64 @@ class PlugData(object):
                 (
                     (
                         (self.sample_df.compound_b == pos_ctrl_lab) &
-                        (self.sample_df.compound_a != neg_ctrl_lab) &
-                        (
-                            self.sample_df.compound_a != medium_ctrl_lab
-                                if modified2 else
-                            True
-                        )
+                        (self.sample_df.compound_a != neg_ctrl_lab)
                     ) |
                     (
                         (self.sample_df.compound_a == pos_ctrl_lab) &
-                        (self.sample_df.compound_b != neg_ctrl_lab) &
-                        (
-                            self.sample_df.compound_b != medium_ctrl_lab
-                                if modified2 else
-                            True
-                        )
+                        (self.sample_df.compound_b != neg_ctrl_lab)
                     )
                 ) &
                 (self.sample_df.cycle_nr == cycle)
             ]
+
+            single_drugs = self.sample_df.loc[
+                (
+                    (
+                        (self.sample_df.compound_a == medium_ctrl_lab) &
+                        (self.sample_df.compound_b != pos_ctrl_lab) &
+                        (self.sample_df.compound_b != neg_ctrl_lab)
+                    ) |
+                    (
+                        (self.sample_df.compound_b == medium_ctrl_lab) &
+                        (self.sample_df.compound_a != pos_ctrl_lab) &
+                        (self.sample_df.compound_a != neg_ctrl_lab)
+                    )
+                ) &
+                (self.sample_df.cycle_nr == cycle)
+            ]
+
+            with warnings.catch_warnings():
+
+                warnings.simplefilter('ignore')
+
+                single_drugs['compound'] = np.where(
+                    single_drugs.compound_a == medium_ctrl_lab,
+                    single_drugs.compound_b,
+                    single_drugs.compound_a
+                )
+
+            single_drugs = (
+                single_drugs.groupby('compound')[readout_col].agg('mean')
+            ).rename('single_drug_mean')
+
+            with warnings.catch_warnings():
+
+                warnings.simplefilter('ignore')
+
+                pos_control['compound'] = np.where(
+                    pos_control.compound_a == pos_ctrl_lab,
+                    pos_control.compound_b,
+                    pos_control.compound_a
+                )
+
+            pos_control = pos_control.join(
+                single_drugs,
+                on = 'compound'
+            )
+            pos_control = (
+                pos_control[readout_col] -
+                pos_control.single_drug_mean
+            )
 
             medium_control = self.sample_df.loc[
                 (self.sample_df.compound_b == medium_ctrl_lab) &
@@ -717,61 +755,10 @@ class PlugData(object):
                     (
                         (self.sample_df.compound_a != pos_ctrl_lab) &
                         (self.sample_df.compound_b != pos_ctrl_lab)
-                            if modified2 else
-                        True
                     ) &
                     (self.sample_df.cycle_nr == cycle),
                     readout_col
                 ]
-
-                single_drugs = self.sample_df.loc[
-                    (
-                        (
-                            (self.sample_df.compound_a == medium_ctrl_lab) &
-                            (self.sample_df.compound_b != pos_ctrl_lab) &
-                            (self.sample_df.compound_b != neg_ctrl_lab)
-                        ) |
-                        (
-                            (self.sample_df.compound_b == medium_ctrl_lab) &
-                            (self.sample_df.compound_a != pos_ctrl_lab) &
-                            (self.sample_df.compound_a != neg_ctrl_lab)
-                        )
-                    ) &
-                    (self.sample_df.cycle_nr == cycle)
-                ]
-
-                with warnings.catch_warnings():
-
-                    warnings.simplefilter('ignore')
-
-                    single_drugs['compound'] = np.where(
-                        single_drugs.compound_a == medium_ctrl_lab,
-                        single_drugs.compound_b,
-                        single_drugs.compound_a
-                    )
-
-                single_drugs = (
-                    single_drugs.groupby('compound')[readout_col].agg('mean')
-                ).rename('single_drug_mean')
-
-                with warnings.catch_warnings():
-
-                    warnings.simplefilter('ignore')
-
-                    pos_control['compound'] = np.where(
-                        pos_control.compound_a == pos_ctrl_lab,
-                        pos_control.compound_b,
-                        pos_control.compound_a
-                    )
-
-                pos_control = pos_control.join(
-                    single_drugs,
-                    on = 'compound'
-                )
-                pos_control = (
-                    pos_control[readout_col] -
-                    pos_control.single_drug_mean
-                )
 
                 z_factor_numerator = 2 * (
                     np.std(neg_control) +
@@ -786,8 +773,6 @@ class PlugData(object):
 
             else:
 
-                pos_control = pos_control[readout_col]
-
                 z_factor_numerator = 3 * (
                     np.std(medium_control) +
                     np.std(pos_control)
@@ -799,11 +784,7 @@ class PlugData(object):
 
             z_factors.append(1 - (z_factor_numerator / z_factor_denominator))
 
-        label = (
-            ('modified2' if modified2 else 'modified')
-                if modified else
-            ''
-        )
+        label = 'modified' if modified else ''
         attr = 'z_factors%s' % ('_%s' % label if label else '')
 
         setattr(self, attr, z_factors)
@@ -821,22 +802,14 @@ class PlugData(object):
         """
         Calculates a Z factor with the SD and mean of positive controls,
         medium controls and negative controls are all in the numerator and
-        denominator, respectively.
+        denominator, respectively. The positive + negative control samples
+        are ignored instead of being part of the negative control group,
+        while the positive control + medium samples are part of the positive
+        control group. The means of the corresponding single drug samples
+        are subtracted from the positive controls.
         """
 
-        return self.calculate_z_factor(modified = True, modified2 = False)
-
-
-    def calculate_modified_z_factor_2(self):
-        """
-        Calculates a Z factor similar to `calculate_modified_z_factor`,
-        except that the positive + negative control samples are ignored
-        instead of being part of the negative control group, and the
-        positive control + medium samples also ignored, instead of being
-        part of the positive control group.
-        """
-
-        return self.calculate_z_factor(modified = True, modified2 = True)
+        return self.calculate_z_factor(modified = True)
 
 
     def get_media_control_data(self) -> pd.DataFrame:
