@@ -1,5 +1,5 @@
 # Plugy: Python module for plug microfluidics data analysis
-[![pipeline status](https://git.embl.de/grp-merten/plugy/badges/master/pipeline.svg)](https://git.embl.de/grp-merten/plugy/commits/master)
+[![pipeline status](https://github.com/saezlab/plugy/actions/workflows/python-package-conda.yml/badge.svg)](https://git.embl.de/grp-merten/plugy/commits/master)
 
 ## Issues
 
