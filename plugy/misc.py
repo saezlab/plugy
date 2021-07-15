@@ -118,7 +118,17 @@ def first(value):
     an iterator.
     """
 
-    return next(value.__iter__()) if hasattr(value, '__iter__') else value
+    if hasattr(value, '__iter__'):
+
+        try:
+
+            value = next(value.__iter__())
+
+        except StopIteration:
+
+            value = None
+
+    return value
 
 
 def prettyfloat(n):
