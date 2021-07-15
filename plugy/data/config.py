@@ -50,8 +50,7 @@ class PlugyConfig(object):
         re.compile(r'seq(?:[-\w ]*)?(?:\.[tc]sv)?', re.IGNORECASE)
     channel_file: typing.Union[pl.Path, str, re.Pattern] = \
         re.compile(r'channel(?:[-\w ]*)?(?:\.[tc]sv)?', re.IGNORECASE)
-    result_base_dir: typing.Union[pl.Path, str] = \
-        pl.Path.cwd().joinpath('results')
+    result_base_dir: typing.Union[pl.Path, str] = None
     result_subdirs: bool = False
     timestamp_result_subdirs: bool = False
 
@@ -262,7 +261,10 @@ class PlugyConfig(object):
             self.result_base_dir
         )
 
-        self.result_dir = self.result_base_dir
+        self.result_dir = (
+            self.result_base_dir or
+            pl.Path.cwd().joinpath('results')
+        )
 
         if self.result_subdirs:
 
