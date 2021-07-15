@@ -290,7 +290,6 @@ class PlugyConfig(object):
             'pmt_file',
             'channel_file',
             'seq_file',
-            'result_base_dir',
         ):
 
             path = getattr(self, attr)
