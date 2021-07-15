@@ -331,7 +331,13 @@ class PlugyConfig(object):
 
         if hasattr(path, 'pattern'):
 
-            subdir, fname = os.path.split(path.pattern)
+            subdir, fname = (
+                ('', path.pattern)
+                    if sys.platform.lower().startswith('win') else
+                os.path.split(path.pattern)
+            )
+
+            in_dir = in_dir + subdir
 
             for f in os.listdir(in_dir):
 
