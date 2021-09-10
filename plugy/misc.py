@@ -19,11 +19,11 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
-
+import os
 import time
 import inspect
-
 import subprocess as sp
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -46,7 +46,8 @@ def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
     sha = sp.run(
         ['git', 'describe', '--tags', '--long', '--dirty'],
         capture_output = True,
-        text = True
+        text = True,
+        cwd = os.path.dirname(os.path.realpath(__file__)),
     ).stdout.strip()
     rel_position = offset / (fig.get_size_inches() * 25.4)
     fig.text(
