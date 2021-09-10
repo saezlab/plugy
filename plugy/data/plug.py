@@ -2377,3 +2377,81 @@ class PlugData(object):
 
         return pd.concat([df1, df2]).reset_index()
 
+
+    def length_grid(self):
+        """
+        Creates a `seaborn.PairGrid` figure of plug lengths and readout
+        values (https://seaborn.pydata.org/tutorial/distributions.html).
+
+        Returns:
+            (seaborn.PairGrid): A `PairGrid` object which can be saved
+                into a matplotlib figure.
+        """
+
+        data = self.plug_df.loc[
+            np.logical_not(self.plug_df.discard) |
+            self.plug_df.barcode
+        ]
+
+        # these warnings stuff just filter out the pandas setting
+        # with copy warnings, which are an annoying example of the
+        # bad design of pandas
+        with warnings.catch_warnings():
+
+            warnings.simplefilter('ignore')
+            data['length'] = data.end_time - data.start_time
+
+        labels = {
+            'length': 'Length [s]',
+            'barcode_peak_median': 'Barcode [AU]',
+            'control_peak_median': 'Control [AU]',
+            'readout_peak_median': 'Readout [AU]',
+            'readout_per_control': 'R:C ratio',
+            '': '',
+        }
+
+        legend_labels = {
+            'barcode': '',
+            'False': 'Sample plugs',
+            'True': 'Barcode plugs',
+            'cycle_nr': '',
+            '0': 'Cycle 1',
+            '1': 'Cycle 2',
+        }
+
+        grid = sns.PairGrid(
+            data = data,
+            hue = 'barcode',
+            vars = [
+                'length',
+                'barcode_peak_median',
+                'control_peak_median',
+                'readout_peak_median',
+                'readout_per_control',
+            ],
+            palette = self.config.palette,
+        )
+
+        grid.map_upper(sns.scatterplot, style = data.cycle_nr)
+        grid.map_lower(sns.kdeplot, fill = True)
+        grid.map_diag(sns.histplot, kde = False)
+
+        for ax in grid.axes.flatten():
+
+            # seaborn is crazy
+            ax.get_yaxis().set_label_coords(-0.4,0.5)
+            ax.yaxis.set_label_text(labels[ax.yaxis.get_label_text()])
+            ax.xaxis.set_label_text(labels[ax.xaxis.get_label_text()])
+
+        # seaborn is crazy
+        grid.add_legend(title = '', bbox_to_anchor=(1.2, .5))
+
+        for l in grid.fig.legends:
+
+            for t in l.get_texts():
+
+                if t.get_text() in legend_labels:
+
+                    t.set_text(legend_labels[t.get_text()])
+
+        return grid

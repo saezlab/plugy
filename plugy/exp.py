@@ -992,6 +992,24 @@ class PlugExperiment(object):
         plt.clf()
 
 
+    def length_grid(self):
+
+        grid = self.plug_data.length_grid()
+
+        grid.fig.tight_layout()
+
+        if self.config.plot_git_caption:
+
+            misc.add_git_hash_caption(grid.fig)
+
+        path = self.config.result_dir.joinpath(
+            f"lengths_grid.{self.config.figure_export_file_type}"
+        )
+        module_logger.info(f"Saving plug length grid figure to {path}")
+        grid.savefig(path)
+        plt.clf()
+
+
     def close_figures(self):
 
         plt.close('all')
