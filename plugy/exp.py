@@ -33,6 +33,7 @@ import pandas as pd
 import scipy.stats as stats
 import statsmodels.stats.multitest as statsmod
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -1007,6 +1008,81 @@ class PlugExperiment(object):
         )
         module_logger.info(f"Saving plug length grid figure to {path}")
         grid.savefig(path)
+        plt.clf()
+
+
+    def length_density(self):
+
+        grid = self.plug_data.length_density()
+
+        grid.fig.tight_layout()
+
+        if self.config.plot_git_caption:
+
+            misc.add_git_hash_caption(grid.fig)
+
+        path = self.config.result_dir.joinpath(
+            f"lengths_density.{self.config.figure_export_file_type}"
+        )
+        module_logger.info(
+            f"Saving plug length density plots figure to {path}"
+        )
+        grid.savefig(path)
+        plt.clf()
+
+
+    def sample_sd_violin(self):
+
+        grid = self.plug_data.sample_sd_violin()
+
+        self._plot_base(grid, 'sample_sd_violin', 'sample SD violin plots')
+
+
+    def _plot_base(
+            self,
+            fig,
+            fname,
+            log_msg = None,
+        ):
+        """
+        Many plotting functions contain mostly repeated code. Here we attempt
+        to contain these common parts in one function.
+        """
+
+        parent = None
+
+        if not isinstance(fig, mpl.figure.Figure):
+
+            if hasattr(fig, 'fig'):
+
+                parent = fig
+                fig = parent.fig
+
+            else:
+
+                raise ValueError(
+                    'Don\'t know how to process a `%s` object.' % type(fig)
+                )
+
+        fig.tight_layout()
+
+        if self.config.plot_git_caption:
+
+            misc.add_git_hash_caption(fig)
+
+        path = self.config.result_dir.joinpath(
+            f"{fname}.{self.config.figure_export_file_type}"
+        )
+
+        log_msg = log_msg or fname
+        module_logger.info(
+            f"Saving {log_msg} figure to {path}"
+        )
+
+        save = parent.savefig if hasattr(parent, 'savefig') else fig.savefig
+
+        save(path)
+
         plt.clf()
 
 
