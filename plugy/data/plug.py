@@ -19,7 +19,6 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
-
 import logging
 import pickle
 import importlib as imp
@@ -2378,7 +2377,7 @@ class PlugData(object):
         return pd.concat([df1, df2]).reset_index()
 
 
-    def length_grid(self):
+    def length_grid(self) -> sns.PairGrid:
         """
         Creates a `seaborn.PairGrid` figure of plug lengths and readout
         values (https://seaborn.pydata.org/tutorial/distributions.html).
@@ -2388,18 +2387,7 @@ class PlugData(object):
                 into a matplotlib figure.
         """
 
-        data = self.plug_df.loc[
-            np.logical_not(self.plug_df.discard) |
-            self.plug_df.barcode
-        ]
-
-        # these warnings stuff just filter out the pandas setting
-        # with copy warnings, which are an annoying example of the
-        # bad design of pandas
-        with warnings.catch_warnings():
-
-            warnings.simplefilter('ignore')
-            data['length'] = data.end_time - data.start_time
+        data = self.sample_and_barcode_plugs
 
         labels = {
             'length': 'Length [s]',
@@ -2430,6 +2418,7 @@ class PlugData(object):
                 'readout_per_control',
             ],
             palette = self.config.palette,
+            despine = False,
         )
 
         grid.map_upper(sns.scatterplot, style = data.cycle_nr)
@@ -2446,6 +2435,7 @@ class PlugData(object):
         # seaborn is crazy
         grid.add_legend(title = '', bbox_to_anchor=(1.2, .5))
 
+        # shameful seaborn
         for l in grid.fig.legends:
 
             for t in l.get_texts():
@@ -2453,5 +2443,163 @@ class PlugData(object):
                 if t.get_text() in legend_labels:
 
                     t.set_text(legend_labels[t.get_text()])
+
+        return grid
+
+
+    @property
+    def sample_and_barcode_plugs(self):
+        """
+        Returns the plug data frame with the plugs marked for discard removed,
+        and the sample and barcode plugs kept. It also adds a new column with
+        the plug length in seconds.
+        """
+
+        data = self.plug_df.loc[
+            np.logical_not(self.plug_df.discard) |
+            self.plug_df.barcode
+        ]
+
+        # these warnings stuff just filter out the pandas setting
+        # with copy warnings, which are an annoying example of the
+        # bad design of pandas
+        with warnings.catch_warnings():
+
+            warnings.simplefilter('ignore')
+            data['length'] = data.end_time - data.start_time
+
+        return data
+
+
+    def length_density(self) -> sns.FacetGrid:
+        """
+        Density plot of plug lengths.
+
+        Returns:
+            (seaborn.FacetGrid): A grid with 3 subplots, each a density plot
+                of plug lengths: barcode plugs, sample plugs and both
+                together.
+        """
+
+        data = self.sample_and_barcode_plugs
+
+        # these warnings stuff just filter out the pandas setting
+        # with copy warnings, which are an annoying example of the
+        # bad design of pandas
+        with warnings.catch_warnings():
+
+            warnings.simplefilter('ignore')
+
+            data['group'] = [
+                'Barcode' if bc else 'Sample'
+                for bc in data.barcode
+            ]
+
+        data_both = data.copy()
+        data_both['group'] = 'Both'
+        data = pd.concat([data, data_both])
+
+        grid = sns.FacetGrid(
+            data,
+            col = 'group',
+            despine = False,
+            height = 4,
+        )
+        grid.map(
+            sns.histplot,
+            'length',
+            kde = True,
+            color = self.config.palette[0],
+            line_kws = {'color': self.config.palette[1]},
+        )
+
+        for ax in grid.axes.flatten():
+
+            # I can not believe seaborn has no better solution
+            # for all these trivial tasks
+            ax.set_title(
+                ax.get_title().split('=')[-1].strip()
+            )
+
+        grid.axes.flatten()[0].xaxis.set_label_text('')
+        grid.axes.flatten()[1].xaxis.set_label_text('Plug length [s]')
+        grid.axes.flatten()[2].xaxis.set_label_text('')
+
+        return grid
+
+
+    def sample_sd_violin(self) -> sns.FacetGrid:
+
+        def seaborn_violin_fix_fix(*args, **kwargs):
+            """
+            A tribute to seaborn's genious design idea of passing
+            map arguments only as positional, not as keyword args.
+            Congratulations!
+            """
+
+            x, y = args
+
+            misc.seaborn_violin_fix(
+                x = x,
+                y = y,
+                **kwargs
+            )
+
+
+        labels = {
+            'readout_sd': 'Readout\n',
+            'ro_ctrl_sd': 'Readout:control\nratio',
+            'ro_corr_sd': 'R:C corrected by\nnegative control',
+        }
+
+        data = (
+            self.sample_df.groupby(['cycle_nr', 'sample_nr']).agg(
+                readout_sd = pd.NamedAgg('readout_peak_median', 'std'),
+                ro_ctrl_sd = pd.NamedAgg('readout_per_control', 'std'),
+                ro_corr_sd = pd.NamedAgg('readout_media_norm', 'std'),
+            )
+        )
+
+        data = data.reset_index().melt(
+            id_vars = ['cycle_nr', 'sample_nr'],
+            var_name = 'var',
+            value_name = 'sd',
+        )
+
+        data.cycle_nr = data.cycle_nr + 1
+
+        grid = sns.FacetGrid(
+            data,
+            col = 'var',
+            despine = False,
+            height = 5,
+        )
+
+        bg_color = self.config.palette[0]
+        fg_color = 'white'
+
+        grid.map(
+            seaborn_violin_fix_fix,
+            # seaborn, is this serious??
+            'cycle_nr',
+            'sd',
+            color = bg_color,
+            midpoint_color = bg_color,
+            box_color = fg_color,
+            violin_border_width = 0,
+        )
+
+        for ax in grid.axes.flatten():
+
+            # I can not believe seaborn has no better solution
+            # for all these trivial tasks
+            ax.set_title(
+                labels[ax.get_title().split('=')[-1].strip()]
+            )
+
+        grid.axes.flatten()[0].yaxis.set_label_text('Standard deviation')
+        grid.axes.flatten()[0].xaxis.set_label_text('')
+        grid.axes.flatten()[1].xaxis.set_label_text('Cycle')
+        grid.axes.flatten()[2].xaxis.set_label_text('')
 
         return grid
