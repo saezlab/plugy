@@ -2528,6 +2528,77 @@ class PlugData(object):
         return grid
 
 
+    def sample_sd_df(self) -> pd.DataFrame:
+        """
+        Creates a data frame of readout standard deviations
+        """
+
+        return self.sample_stats(
+            readout_peak_median = 'std',
+            readout_per_control = 'std',
+            readout_media_norm = 'std',
+        )
+
+
+    def sample_stats(self, long = True, **kwargs) -> pd.DataFrame:
+        """
+        Calculates statistics for each sample in the samples data frame.
+
+        Args:
+            long (bool): Return a long or wide format data frame.
+            kwargs: A mapping where keys are column names while values are
+                aggregate function names or functions. For one column more
+                than one statistics can be calculated by passing a tuple
+                as value.
+
+        Returns:
+            (pandas.DataFrame): A data frame with each row representing
+                one statistics for one sample, or each row representing
+                one sample with all its statistics, if `long` is False.
+        """
+
+        agg_args = dict(
+            (
+                '%s___%s' % (
+                    colname,
+                    (
+                        fun
+                            if isinstance(fun, str) else
+                        fun.__name__
+                            if fun.__name__ != '<lambda>' else
+                        'agg%u' % i
+                    )
+                ),
+                pd.NamedAgg(colname, fun)
+            )
+            for colname, funs in kwargs.items()
+            for i, fun in enumerate(
+                funs
+                    if isinstance(funs, tuple) else
+                (funs,)
+            )
+        )
+
+        data = (
+            self.sample_df.
+            groupby(['cycle_nr', 'sample_nr']).
+            agg(**agg_args)
+        )
+
+        if long:
+
+            data = data.reset_index().melt(
+                id_vars = ['cycle_nr', 'sample_nr'],
+                var_name = 'var_stat',
+                value_name = 'value',
+            )
+
+            data['stat'] = [v.split('___')[-1] for v in data['var_stat']]
+            data['var'] = [v.split('___')[0] for v in data['var_stat']]
+
+        return data
+
+
     def sample_sd_violin(self) -> sns.FacetGrid:
 
         def seaborn_violin_fix_fix(*args, **kwargs):
@@ -2547,24 +2618,12 @@ class PlugData(object):
 
 
         labels = {
-            'readout_sd': 'Readout\n',
-            'ro_ctrl_sd': 'Readout:control\nratio',
-            'ro_corr_sd': 'R:C corrected by\nnegative control',
+            'readout_peak_median': 'Readout\n',
+            'readout_per_control': 'Readout:control\nratio',
+            'readout_media_norm': 'R:C corrected by\nnegative control',
         }
 
-        data = (
-            self.sample_df.groupby(['cycle_nr', 'sample_nr']).agg(
-                readout_sd = pd.NamedAgg('readout_peak_median', 'std'),
-                ro_ctrl_sd = pd.NamedAgg('readout_per_control', 'std'),
-                ro_corr_sd = pd.NamedAgg('readout_media_norm', 'std'),
-            )
-        )
-
-        data = data.reset_index().melt(
-            id_vars = ['cycle_nr', 'sample_nr'],
-            var_name = 'var',
-            value_name = 'sd',
-        )
+        data = self.sample_sd_df()
 
         data.cycle_nr = data.cycle_nr + 1
 
@@ -2582,7 +2641,7 @@ class PlugData(object):
             seaborn_violin_fix_fix,
             # seaborn, is this serious??
             'cycle_nr',
-            'sd',
+            'value',
             color = bg_color,
             midpoint_color = bg_color,
             box_color = fg_color,
