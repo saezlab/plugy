@@ -991,6 +991,7 @@ class PlugExperiment(object):
             grid,
             f"drug_comb_z_heatmap{'_by-cycle' if by_cycle else ''}.",
             'drug combination heatmap',
+            qc_dir = False,
         )
 
 
@@ -1043,10 +1044,20 @@ class PlugExperiment(object):
             fig,
             fname,
             log_msg = None,
+            qc_dir = True,
         ):
         """
         Many plotting functions contain mostly repeated code. Here we attempt
         to contain these common parts in one function.
+
+        Args:
+            fig: A matplotlib Figure object, or some higher level object
+                carrying a Figure object (such as a grid) in its `fig`
+                attribute.
+            fname (str): The file name, without extension.
+            log_msg (str): How to call this figure in the log messages.
+            qc_dir (bool): Save the plots in the `qc` subdirectory instead of
+                directly into the `results` directory.
         """
 
         parent = None
@@ -1070,7 +1081,8 @@ class PlugExperiment(object):
 
             misc.add_git_hash_caption(fig)
 
-        path = self.config.result_dir.joinpath(
+        dir_path = self.config.qc_dir if qc_dir else self.config.result_dir
+        path = dir_path.joinpath(
             f"{fname}.{self.config.figure_export_file_type}"
         )
 
