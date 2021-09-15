@@ -19,6 +19,7 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
+import sys
 import logging
 import pickle
 import importlib as imp
@@ -2662,3 +2663,56 @@ class PlugData(object):
         grid.axes.flatten()[2].xaxis.set_label_text('')
 
         return grid
+
+
+    def sample_sd(self, variable = 'readout_peak_median', silent = False):
+        """
+        Prints and returns the standard deviation of a variable within
+        samples, with confidence intervals.
+
+        Args:
+            variable (str): The name of the variable to calculate the
+                standard deviations from.
+
+        Returns:
+            (dict): A dictionary with cycle numbers and the string "all" as
+                keys and dictionaries of statistics about the standard
+                deviations of samples as values.
+        """
+
+        def sd_stats(data):
+
+            return {
+                'mean': data.value.mean(),
+                'median': data.value.median(),
+                'q1': data.value.quantile(.25),
+                'q2': data.value.quantile(.75),
+                'min': data.value.min(),
+                'max': data.value.max(),
+                'ci90_low': data.value.mean() - 1.645 * data.value.std(),
+                'ci90_high': data.value.mean() + 1.645 * data.value.std(),
+             }
+
+
+        args = {variable: 'std'}
+        data = self.sample_stats(**args)
+        result = {}
+
+        for cycle in data.cycle_nr.unique():
+
+            result[cycle] = sd_stats(data[data.cycle_nr == cycle])
+
+        result['all'] = sd_stats(data)
+
+        if not silent:
+
+            sys.stdout.write(
+                '\nStandard deviation of `%s` within samples:\n\n' % variable
+            )
+            sys.stdout.write(
+                pd.DataFrame(result).__repr__()
+            )
+            sys.stdout.write('\n\n')
+            sys.stdout.flush()
+
+        return result
