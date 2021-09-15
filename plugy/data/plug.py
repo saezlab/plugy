@@ -2389,6 +2389,7 @@ class PlugData(object):
         """
 
         data = self.sample_and_barcode_plugs
+        data = self.lengths(data)
 
         labels = {
             'length': 'Length [s]',
@@ -2452,8 +2453,7 @@ class PlugData(object):
     def sample_and_barcode_plugs(self):
         """
         Returns the plug data frame with the plugs marked for discard removed,
-        and the sample and barcode plugs kept. It also adds a new column with
-        the plug length in seconds.
+        and the sample and barcode plugs kept.
         """
 
         data = self.plug_df.loc[
@@ -2461,15 +2461,73 @@ class PlugData(object):
             self.plug_df.barcode
         ]
 
+        return data
+
+
+    @staticmethod
+    def lengths(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Creates a new column with plug or sample length (depending on the
+        input data frame). The length is the difference of the start and end
+        times in seconds.
+
+        Args:
+            df (pandas.DataFrame): A data frame with `start_time` and
+                `end_time` columns.
+
+        Returns:
+            (pandas.DataFrame): A copy of the data frame with a new column
+                called `length`.
+        """
+
+        df = df.copy()
+
         # these warnings stuff just filter out the pandas setting
         # with copy warnings, which are an annoying example of the
         # bad design of pandas
         with warnings.catch_warnings():
 
             warnings.simplefilter('ignore')
-            data['length'] = data.end_time - data.start_time
+            df['length'] = df.end_time - df.start_time
 
-        return data
+        return df
+
+
+    @classmethod
+    def volumes(
+            cls,
+            df: pd.DataFrame,
+            flow_rate: float = 800.,
+        ) -> pd.DataFrame:
+        """
+        Creates a new column with plug volume. The volumes are calculated by
+        the length of the plugs, if the data frame has no `length` column,
+        it will be added too.
+
+        Args:
+            df (pandas.DataFrame): A data frame with `start_time` and
+                `end_time` columns.
+            flow_rate (float): The flow rate used at the data acquisition
+                in microlitres per hour.
+
+        Returns:
+            (pandas.DataFrame): A copy of the data frame with a new column
+                called `volume` containing the plug volumes in nanolitres.
+                If the input data frame does not have a column `length`
+                that will be added too.
+        """
+
+        df = df.copy()
+
+        if 'length' not in df.columns:
+
+            df = cls.lengths(df)
+
+        # dividing by 3600 for hours -> seconds conversion
+        # multiplying by 1000 for microlitres -> nanoliters conversion
+        df['volume'] = df.length * flow_rate / 3.6
+
+        return df
 
 
     def length_density(self) -> sns.FacetGrid:
@@ -2483,6 +2541,7 @@ class PlugData(object):
         """
 
         data = self.sample_and_barcode_plugs
+        data = self.lengths(data)
 
         # these warnings stuff just filter out the pandas setting
         # with copy warnings, which are an annoying example of the
@@ -2541,7 +2600,7 @@ class PlugData(object):
         )
 
 
-    def sample_stats(self, long = True, **kwargs) -> pd.DataFrame:
+    def sample_stats(self, long: bool = True, **kwargs) -> pd.DataFrame:
         """
         Calculates statistics for each sample in the samples data frame.
 
@@ -2621,7 +2680,7 @@ class PlugData(object):
         labels = {
             'readout_peak_median': 'Readout\n',
             'readout_per_control': 'Readout:control\nratio',
-            'readout_media_norm': 'R:C corrected by\nnegative control',
+            'readout_media_norm': 'R:C corrected by\nmedium control',
         }
 
         data = self.sample_sd_df()
