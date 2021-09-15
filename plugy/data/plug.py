@@ -1780,12 +1780,20 @@ class PlugData(object):
         of plug start and end times.
         """
 
-        self.sample_df = self.sample_df.assign(
-            length = (
-                self.sample_df.end_time -
-                self.sample_df.start_time
-            )
-        )
+        self.sample_df = self.lengths(self.sample_df)
+
+
+    def add_volume_column(self, flow_rate: float = 800.):
+        """
+        Creates a new column ``volume`` in ``sample_df`` with the volumes of
+        the plugs in nanolitres.
+
+        Args:
+            flow_rate (float): The flow rate used at the data acquisition
+                in microlitres per hour.
+        """
+
+        self.sample_df = self.volumes(self.sample_df, flow_rate = flow_rate)
 
 
     def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
@@ -2530,18 +2538,29 @@ class PlugData(object):
         return df
 
 
-    def length_density(self) -> sns.FacetGrid:
+    def size_density(
+            self,
+            volume: bool = False,
+            flow_rate: float = 800.,
+        ) -> sns.FacetGrid:
         """
-        Density plot of plug lengths.
+        Density plot of plug sizes, either lengths in seconds or volumes
+        in nanolitres.
+
+        Args:
+            volume (bool): Use plug volumes in nanolitres instead of lengths
+                in seconds.
+            flow_rate (float): The flow rate used at the data acquisition
+                in microlitres per hour.
 
         Returns:
             (seaborn.FacetGrid): A grid with 3 subplots, each a density plot
-                of plug lengths: barcode plugs, sample plugs and both
+                of plug sizes: barcode plugs, sample plugs and both
                 together.
         """
 
         data = self.sample_and_barcode_plugs
-        data = self.lengths(data)
+        data = self.volumes(data, flow_rate = flow_rate)
 
         # these warnings stuff just filter out the pandas setting
         # with copy warnings, which are an annoying example of the
@@ -2567,7 +2586,7 @@ class PlugData(object):
         )
         grid.map(
             sns.histplot,
-            'length',
+            'volume' if volume else 'length',
             kde = True,
             color = self.config.palette[0],
             line_kws = {'color': self.config.palette[1]},
@@ -2581,8 +2600,12 @@ class PlugData(object):
                 ax.get_title().split('=')[-1].strip()
             )
 
+        xlab = 'Plug %s [%s]' % (
+            'volume' if volume else 'length',
+            'nl' if volume else 's',
+        )
         grid.axes.flatten()[0].xaxis.set_label_text('')
-        grid.axes.flatten()[1].xaxis.set_label_text('Plug length [s]')
+        grid.axes.flatten()[1].xaxis.set_label_text(xlab)
         grid.axes.flatten()[2].xaxis.set_label_text('')
 
         return grid
