@@ -638,6 +638,11 @@ class PlugExperiment(object):
         self.plot_control()
         self.plot_sample_cycles()
 
+        self.length_grid()
+        self.length_density()
+        self.volume_density()
+        self.sample_sd_violin()
+
         plt.close('all')
 
         qc_successful = not qc_issues
