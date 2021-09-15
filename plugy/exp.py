@@ -963,6 +963,10 @@ class PlugExperiment(object):
 
 
     def z_scores_heatmap(self, by_cycle: bool = False):
+        """
+        Drug vs. drug heatmap showing the median readouts for each drug
+        combination.
+        """
 
         # Overview heatmap of z-scores
 
@@ -978,57 +982,48 @@ class PlugExperiment(object):
             by_cycle = by_cycle,
         )
 
-        grid.fig.tight_layout()
-
-        if self.config.plot_git_caption:
-
-            misc.add_git_hash_caption(grid.fig)
-
-        path = self.config.result_dir.joinpath(
-            f"drug_comb_z_heatmap{'_by-cycle' if by_cycle else ''}."
-            f"{self.config.figure_export_file_type}"
+        self._plot_base(
+            grid,
+            f"drug_comb_z_heatmap{'_by-cycle' if by_cycle else ''}.",
+            'drug combination heatmap',
         )
-        module_logger.info(f"Saving heatmap(s) to {path}")
-        grid.savefig(path)
-        plt.clf()
 
 
     def length_grid(self):
+        """
+        A pairs grid figure between plug lengths, fluorescent channels
+        and the ratio of the readout and control channels.
+        """
 
         grid = self.plug_data.length_grid()
 
-        grid.fig.tight_layout()
-
-        if self.config.plot_git_caption:
-
-            misc.add_git_hash_caption(grid.fig)
-
-        path = self.config.result_dir.joinpath(
-            f"lengths_grid.{self.config.figure_export_file_type}"
-        )
-        module_logger.info(f"Saving plug length grid figure to {path}")
-        grid.savefig(path)
-        plt.clf()
+        self._plot_base(grid, 'lengths_grid', 'plug length grid')
 
 
     def length_density(self):
+        """
+        Density plots and histograms about plug lengths. Three panels are
+        created, with barcode plugs, sample plugs and both togther.
+        """
 
-        grid = self.plug_data.length_density()
+        grid = self.plug_data.size_density()
 
-        grid.fig.tight_layout()
+        self._plot_base(grid, 'lengths_density', 'plug length density plots')
 
-        if self.config.plot_git_caption:
 
-            misc.add_git_hash_caption(grid.fig)
+    def volume_density(self, flow_rate: float = 800.):
+        """
+        Density plots and histograms about plug volumes. Three panels are
+        created, with barcode plugs, sample plugs and both togther.
 
-        path = self.config.result_dir.joinpath(
-            f"lengths_density.{self.config.figure_export_file_type}"
-        )
-        module_logger.info(
-            f"Saving plug length density plots figure to {path}"
-        )
-        grid.savefig(path)
-        plt.clf()
+        Args:
+            flow_rate (float): The flow rate used at the data acquisition
+                in microlitres per hour.
+        """
+
+        grid = self.plug_data.size_density()
+
+        self._plot_base(grid, 'lengths_density', 'plug length density plots')
 
 
     def sample_sd_violin(self):
