@@ -1027,9 +1027,12 @@ class PlugExperiment(object):
                 in microlitres per hour.
         """
 
-        grid = self.plug_data.size_density()
+        grid = self.plug_data.size_density(
+            volume = True,
+            flow_rate = flow_rate,
+        )
 
-        self._plot_base(grid, 'lengths_density', 'plug length density plots')
+        self._plot_base(grid, 'volumes_density', 'plug volume density plots')
 
 
     def sample_sd_violin(self):
@@ -1081,7 +1084,7 @@ class PlugExperiment(object):
 
             misc.add_git_hash_caption(fig)
 
-        dir_path = self.config.qc_dir if qc_dir else self.config.result_dir
+        dir_path = self.ensure_qc_dir() if qc_dir else self.config.result_dir
         path = dir_path.joinpath(
             f"{fname}.{self.config.figure_export_file_type}"
         )
