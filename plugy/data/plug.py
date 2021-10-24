@@ -2401,6 +2401,7 @@ class PlugData(object):
 
         labels = {
             'length': 'Length [s]',
+            'start_time': 'Time [s]',
             'barcode_peak_median': 'Barcode [AU]',
             'control_peak_median': 'Control [AU]',
             'readout_peak_median': 'Readout [AU]',
@@ -2415,6 +2416,8 @@ class PlugData(object):
             'cycle_nr': '',
             '0': 'Cycle 1',
             '1': 'Cycle 2',
+            '2': 'Cycle 3',
+            '3': 'Cycle 4',
         }
 
         grid = sns.PairGrid(
@@ -2422,6 +2425,7 @@ class PlugData(object):
             hue = 'barcode',
             vars = [
                 'length',
+                'start_time',
                 'barcode_peak_median',
                 'control_peak_median',
                 'readout_peak_median',
