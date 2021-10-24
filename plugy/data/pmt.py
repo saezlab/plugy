@@ -316,9 +316,14 @@ class PmtData(object):
         module_logger.debug('Plotting PMT data')
         df = self.cut_data(cut = cut)
 
-        with sns.axes_style("darkgrid", {"xtick.bottom": True,
-                                         'xtick.major.size': 1.0,
-                                         'xtick.minor.size': 0.5}):
+        with sns.axes_style(
+            'darkgrid',
+            {
+                'xtick.bottom': True,
+                'xtick.major.size': 1.0,
+                'xtick.minor.size': 0.5
+            },
+        ):
 
             for channel in ('green', 'orange', 'uv'):
 
@@ -334,9 +339,12 @@ class PmtData(object):
                 )
 
             if df.time.max() - df.time.min() > 1000:
+
                 major_tick_freq = 100
                 minor_tick_freq = 25
+
             else:
+
                 major_tick_freq = 10
                 minor_tick_freq = 1
 
@@ -348,6 +356,7 @@ class PmtData(object):
                 ),
                 minor = False,
             )
+
             axes.set_xticks(
                 range(
                     int(round(df.time.min())),
@@ -356,20 +365,28 @@ class PmtData(object):
                 ),
                 minor = True,
             )
+
             axes.set_xlim(
                 left = int(round(df.time.min())),
                 right = int(round(df.time.max())),
             )
+
             axes.set_ylim(ylim)
 
             if n_x_ticks:
 
-                axes.xaxis.set_major_locator(
-                    plt.MaxNLocator(
-                        nbins = n_x_ticks,
-                        prune = 'lower',
-                    )
+                major_locator = plt.MaxNLocator(
+                    nbins = n_x_ticks,
+                    prune = 'lower',
                 )
+                minor_locator = plt.MaxNLocator(
+                    nbins = n_x_ticks * 10,
+                    prune = 'lower',
+                )
+                minor_locator.MAXTICKS = 10000
+
+                axes.xaxis.set_major_locator(major_locator)
+                axes.xaxis.set_minor_locator(minor_locator)
 
             axes.tick_params(
                 axis = 'x',

@@ -1197,7 +1197,7 @@ class PlugData(object):
                 continue
 
             color = self.config.channel_color(channel)
-            print('color: ', color, 'channel: ', channel)
+
             sns.lineplot(
                 x = time,
                 y = threshold / threshold.max() * axes.get_ylim()[1] * .95,
