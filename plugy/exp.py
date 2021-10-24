@@ -159,13 +159,19 @@ class PlugExperiment(object):
 
             steps['init'] = True
 
-        module_logger.debug('Main: %s' % misc.dict_str(steps))
+        module_logger.info('Workflow steps: %s' % misc.dict_str(steps))
 
         for step, enabled in steps.items():
 
             if enabled:
 
+                module_logger.info('Executing step `%s`.' % step)
                 getattr(self, '_%s' % step)()
+                module_logger.info('Finished step `%s`.' % step)
+
+            else:
+
+                module_logger.info('Skipping step `%s`.' % step)
 
 
     def _init(self):
