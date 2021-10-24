@@ -39,7 +39,7 @@ import seaborn as sns
 from ..data.config import PlugyConfig
 from .. import misc
 
-module_logger = logging.getLogger("plugy.data.pmt")
+module_logger = logging.getLogger(__name__)
 
 
 @dataclass

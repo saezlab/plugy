@@ -44,7 +44,7 @@ from .data.plug import PlugData
 from . import misc as misc
 
 
-module_logger = logging.getLogger("plugy.data.exp")
+module_logger = logging.getLogger(__name__)
 
 
 @dataclass(init = False)
