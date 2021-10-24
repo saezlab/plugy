@@ -50,7 +50,7 @@ from ..data import pmt, bd
 from ..data.config import PlugyConfig
 
 
-module_logger = logging.getLogger("plugy.data.plug")
+module_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -998,7 +998,9 @@ class PlugData(object):
         ) -> plt.Axes:
         """
         Plots pmt data and superimposes rectangles with the called plugs upon
-        the plot
+        the plot. This function has been replaced by
+        ``plugy.data.pmt.PmtData.plot_pmt_data`` and is probably safe to
+        remove.
 
         :param axes: plt.Axes object to plot to
         :param cut: tuple with (start_time, end_time) to subset the plot to
@@ -1131,6 +1133,15 @@ class PlugData(object):
                 continue
 
             color = self.config.colors['uv' if plug.barcode else 'green']
+
+            module_logger.debug(
+                'Highlighting plug between %.02f and %.02f (%s).' % (
+                    max(plug.start_time, xmin),
+                    min(plug.end_time, xmax),
+                    color,
+                )
+            )
+
             axes.axvspan(
                 xmin = max(plug.start_time, xmin),
                 xmax = min(plug.end_time, xmax),
