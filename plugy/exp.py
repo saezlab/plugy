@@ -995,7 +995,7 @@ class PlugExperiment(object):
 
         self._plot_base(
             grid,
-            f"drug_comb_z_heatmap{'_by-cycle' if by_cycle else ''}.",
+            f"drug_comb_z_heatmap{'_by-cycle' if by_cycle else ''}",
             'drug combination heatmap',
             qc_dir = False,
         )
