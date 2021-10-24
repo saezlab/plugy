@@ -32,7 +32,7 @@ import hashlib
 from dataclasses import dataclass, field
 
 
-module_logger = logging.getLogger('plugy.data.config')
+module_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -128,7 +128,9 @@ class PlugyConfig(object):
     # above this value set the value of the barcode channel to 1.0
     barcode_raw_threshold: float = None
 
-    # Plug Calling
+    # parameters for the peak detection algorithm;
+    # we use a generic signal processing algorithm
+    # from scipy.signal.find_peaks
     auto_detect_cycles: bool = True
     peak_min_threshold: float = 0.05
     peak_max_threshold: float = 2.0
@@ -138,8 +140,13 @@ class PlugyConfig(object):
     peak_min_width: float = 0.5
     peak_max_width: float = 2.5
     width_rel_height: float = 0.5
+    # max distance between centers of the peaks to merge
+    # if we merge the peaks by their centers
     merge_peaks_distance: float = 0.2
-    merge_peaks_by: str = 'center'
+    # alternative is to merge them by 'center', but unless for
+    # some weird reason supposedly distinct peaks overlap
+    # merging by overlap is a superior method
+    merge_peaks_by: str = 'overlap'
     n_bc_adjacent_discards: int = 1
     # lowest number of barcode plugs separating two cycles
     # barcode segments with fewer plugs separate samples within cycles
