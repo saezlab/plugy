@@ -966,14 +966,29 @@ class PlugData(object):
         generated/scipy.stats.linregress.html for more information about
         the returned values.
         """
+
         medium_control = self.medium_only()
 
-        readout_column = readout_column or self.config.readout_column
+        if not bool(len(medium_control)):
 
-        slope, intercept, rvalue, pvalue, stderr = stats.linregress(
-            medium_control.start_time,
-            medium_control[readout_column],
-        )
+            module_logger.warning(
+                'Could not find medium only control samples, unable to '
+                'fit a linear regression on them. If the experiment '
+                'contains such samples, check the config value of '
+                '`medium_control_label` (currently `%s`).' %
+                self.config.medium_control_label,
+            )
+
+            slope, intercept, rvalue, pvalue, stderr = (None,) * 5
+
+        else:
+
+            readout_column = readout_column or self.config.readout_column
+
+            slope, intercept, rvalue, pvalue, stderr = stats.linregress(
+                medium_control.start_time,
+                medium_control[readout_column],
+            )
 
         return slope, intercept, rvalue, pvalue, stderr
 
@@ -1767,12 +1782,14 @@ class PlugData(object):
                 )
 
             misc.plot_line(slope, intercept, axes)
+
             label = axes.text(
                 0.7,
                 0.9,
                 f'R²: {round(rvalue, 2)}',
                 transform = axes.transAxes,
             )
+
             label.set_bbox(dict(facecolor = 'white', alpha = 0.8))
             axes.set_xlabel('Time [s]')
 
@@ -1783,6 +1800,12 @@ class PlugData(object):
         axes.set_ylabel(ylab)
 
         return axes
+
+
+    @property
+    def has_medium_control(self):
+
+        return bool(len(self.medium_only()))
 
 
     def add_length_column(self):
@@ -2338,10 +2361,53 @@ class PlugData(object):
             else:
                 readout_column = "readout_peak_median"
 
-            slope, intercept, _, _, _ = self.get_media_control_lin_reg(readout_column=readout_column)
+            slope, intercept, _, _, _ = self.get_media_control_lin_reg(
+                readout_column=readout_column
+            )
 
-            sample_df = sample_df.assign(readout_media_norm=sample_df[readout_column] / (sample_df["start_time"] * slope + intercept))
-            sample_df = sample_df.assign(readout_media_norm_z_score=stats.zscore(sample_df.readout_media_norm))
+            if slope and intercept:
+
+                sample_df = sample_df.assign(
+                    readout_media_norm = (
+                        sample_df[readout_column] /
+                        (sample_df["start_time"] * slope + intercept)
+                    )
+                )
+
+                sample_df = sample_df.assign(
+                    readout_media_norm_z_score = stats.zscore(
+                        sample_df.readout_media_norm
+                    )
+                )
+
+            else:
+
+                module_logger.warning(
+                    'Could not find medium only control samples, unable to '
+                    'adjust readout values based on the drift of these '
+                    'samples. If the experiment contains such samples, '
+                    'check the config value of `medium_control_label` '
+                    '(currently `%s`).' % self.config.medium_control_label,
+                )
+
+                new_readout_analysis_column = (
+                    'readout_per_control_z_score'
+                        if self.normalize_using_control else
+                    'readout_z_score'
+                )
+
+                module_logger.critical(
+                    'Using the column `%s` instead of `%s` in the analysis, '
+                    'because the correction by medium only samples '
+                    'failed.' % (
+                        new_readout_analysis_column,
+                        self.config.readout_analysis_column,
+                    )
+                )
+
+                self.config.readout_analysis_column = (
+                    new_readout_analysis_column
+                )
 
             self.sample_df = sample_df
 
@@ -2702,6 +2768,7 @@ class PlugData(object):
                     if isinstance(funs, tuple) else
                 (funs,)
             )
+            if colname in self.sample_df.columns
         )
 
         data = (
@@ -2784,7 +2851,10 @@ class PlugData(object):
         grid.axes.flatten()[0].yaxis.set_label_text('Standard deviation')
         grid.axes.flatten()[0].xaxis.set_label_text('')
         grid.axes.flatten()[1].xaxis.set_label_text('Cycle')
-        grid.axes.flatten()[2].xaxis.set_label_text('')
+
+        if len(grid.axes.flatten()) > 2:
+
+            grid.axes.flatten()[2].xaxis.set_label_text('')
 
         return grid
 

@@ -685,6 +685,14 @@ class PlugExperiment(object):
 
     def plot_medium_control_trends(self):
 
+        if not self.plug_data.has_medium_control:
+
+            module_logger.info(
+                'Skipping medium control trends figure, looks like '
+                'this experiment has no medium only samples.'
+            )
+            return
+
         qc_dir = self.ensure_qc_dir()
 
         # Plotting media control readout over experiment time
@@ -913,13 +921,14 @@ class PlugExperiment(object):
                 1
             ),
             figsize = (
-                round(len(self.plug_data.sample_df.name.unique()) * 0.35),
+                max(
+                    4,
+                    round(len(self.plug_data.sample_df.name.unique()) * 0.35)
+                ),
                 3 * (len(cycles) if by_cycle else 1) + 2
             ),
             sharex = True,
         )
-
-
 
         for i, cycle in enumerate(cycles):
 
@@ -944,8 +953,11 @@ class PlugExperiment(object):
         )
 
         for idx, sample in enumerate(self.plug_data.sample_df.name.unique()):
+
             if sample != "Cell Control":
+
                 if statistics.significant[idx]:
+
                     this_ax.annotate(
                         "*",
                         xy = (idx, y_max),
@@ -961,6 +973,7 @@ class PlugExperiment(object):
         fig.tight_layout()
 
         if self.config.plot_git_caption:
+
             misc.add_git_hash_caption(fig)
 
         path = self.config.result_dir.joinpath(
