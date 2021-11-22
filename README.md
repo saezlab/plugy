@@ -3,11 +3,8 @@
 
 ## Issues
 
-Please feel free to open issues for the tutorial at https://git.embl.de/grp-merten/plugy-tutorial/issues
-in case there are some things unclear or you spotted some errors in the tutorial.
-
-In case you have some issue or feature request with `plugy` directly, please open an issue
-directly on the site of the `plugy` repository https://git.embl.de/grp-merten/plugy/issues
+Feedback, questions, bug reports are welcome:
+https://github.com/saezlab/plugy/issues
 
 ## Installation
 
@@ -25,10 +22,10 @@ conda activate YOUR_ENVIRONMENT
 conda install pip git
 
 # Install plugy into your environment
-pip install git+https://git.embl.de/grp-merten/plugy@master
+pip install git+https://github.com/saezlab/plugy@master
 
 # If you want to use the latest development version use this instead
-pip install --force-reinstall git+https://git.embl.de/grp-merten/plugy@dev
+pip install --force-reinstall git+https://github.com/saezlab/plugy@dev
 ```
 
 ## Quick start
@@ -68,14 +65,14 @@ analysis. For example, a `pandas.DataFrame` containing the statistics for each
 sample:
 
 ```python
-plug_exp.sample_statistics
+exp.sample_statistics
 ```
 
 ## Tutorial
 
 You can find more examples in the plugy guide:
-https://git.embl.de/grp-merten/plugy/-/blob/dev/notebooks/plugy_guide.ipynb
+https://github.com/saezlab/plugy/blob/master/notebooks/plugy_guide.ipynb
 
 ## Development history
 
-https://git.embl.de/grp-merten/plugy/-/blob/dev/NEWS.md
+https://github.com/saezlab/plugy/blob/master/NEWS.md
