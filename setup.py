@@ -42,7 +42,7 @@ setup(
     author_email = 'turei.denes@gmail.com',
     description = 'Processing plug microfluidics data',
     long_description = readme,
-    description_content_type = 'text/x-markdown; charset=UTF-8',
+    long_description_content_type = 'text/markdown; charset=UTF-8',
     install_requires = requirements,
     classifiers = [
         'Development Status :: 5 - Production/Stable',
