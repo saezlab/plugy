@@ -27,6 +27,10 @@ with open('requirements.txt', 'r') as fp:
 
     requirements = [l.strip() for l in fp]
 
+with open('README.md', 'r') as f:
+
+    readme = f.read()
+
 
 setup(
     name = 'plugy',
@@ -37,5 +41,18 @@ setup(
     author = 'Dénes Türei, Nicolas Peschke, Olga Ivanova',
     author_email = 'turei.denes@gmail.com',
     description = 'Processing plug microfluidics data',
+    long_description = readme,
+    description_content_type = 'text/x-markdown; charset=UTF-8',
     install_requires = requirements,
+    classifiers = [
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Natural Language :: English',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Scientific/Engineering :: Medical Science Apps.',
+    ],
 )
