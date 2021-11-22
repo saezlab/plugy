@@ -648,6 +648,7 @@ class PlugExperiment(object):
         self.length_density()
         self.volume_density()
         self.sample_sd_violin()
+        self.report_cv()
 
         plt.close('all')
 
@@ -1059,6 +1060,26 @@ class PlugExperiment(object):
         grid = self.plug_data.sample_sd_violin()
 
         self._plot_base(grid, 'sample_sd_violin', 'sample SD violin plots')
+
+
+    def report_cv(self):
+
+        cv = self.plug_data.mean_cv()
+
+        for cycle, ccv in cv.items():
+
+            for var, vcv in ccv.items():
+
+                module_logger.info(
+                    'Coefficient of variance, cycle %s, %s: '
+                    '%.01f (%.01f-%.01f).' % (
+                        str(cycle),
+                        var,
+                        vcv['mean'],
+                        vcv['ci_low'],
+                        vcv['ci_high'],
+                    )
+                )
 
 
     def _plot_base(

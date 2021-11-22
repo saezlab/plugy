@@ -1808,16 +1808,28 @@ class PlugData(object):
         return bool(len(self.medium_only()))
 
 
-    def add_length_column(self):
+    def add_length_column(self, df = 'plug'):
         """
         Creates a new column ``length`` in ``sample_df`` with the difference
         of plug start and end times.
+
+        Args:
+            df (str): Which data frame add the column to. Either "plug" or
+                "sample".
         """
 
-        self.sample_df = self.lengths(self.sample_df)
+        attr = self._check_df(df, 'add_length_column')
+
+        if attr:
+
+            setattr(
+                self,
+                attr,
+                self.lengths(getattr(self, attr)),
+            )
 
 
-    def add_volume_column(self, flow_rate: float = 800.):
+    def add_volume_column(self, flow_rate: float = 800., df = 'plug'):
         """
         Creates a new column ``volume`` in ``sample_df`` with the volumes of
         the plugs in nanolitres.
@@ -1825,9 +1837,45 @@ class PlugData(object):
         Args:
             flow_rate (float): The flow rate used at the data acquisition
                 in microlitres per hour.
+            df (str): Which data frame add the column to. Either "plug" or
+                "sample".
         """
 
-        self.sample_df = self.volumes(self.sample_df, flow_rate = flow_rate)
+        attr = self._check_df(df, 'add_length_column')
+
+        if attr:
+
+            setattr(
+                self,
+                attr,
+                self.volumes(getattr(self, attr), flow_rate = flow_rate),
+            )
+
+
+    def _check_df(self, df, fun):
+        """
+        Args:
+            df (str): Which data frame: either "plug" or "sample".
+            fun (str): Name of the calling function (to be shown in messages).
+        """
+
+        if df not in ('plug', 'sample'):
+
+            module_logger.error(
+                '`%s`: df must be either "plug" or "sample".' % fun
+            )
+            return
+
+        attr = '%s_df' % df
+
+        if not hasattr(self, attr):
+
+            module_logger.error(
+                '`%s`: %s data frame does not exist yet.' % (fun, attr)
+            )
+            return
+
+        return attr
 
 
     def plot_length_bias(self, col_wrap: int = 3) -> sns.FacetGrid:
@@ -1840,7 +1888,7 @@ class PlugData(object):
         :return: sns.FacetGrid object with the subplots
         """
 
-        self.add_length_column()
+        self.add_length_column(df = 'sample')
 
         df = self.sample_df
 
@@ -2721,13 +2769,17 @@ class PlugData(object):
 
     def sample_sd_df(self) -> pd.DataFrame:
         """
-        Creates a data frame of readout standard deviations
+        Creates a data frame of readout standard deviations and coefficients
+        of variation (CV).
         """
 
+        cv = lambda x: np.std(x) / np.mean(x) * 100.
+        cv_stat = {'label': 'cv', 'fun': cv}
+
         return self.sample_stats(
-            readout_peak_median = 'std',
-            readout_per_control = 'std',
-            readout_media_norm = 'std',
+            readout_peak_median = ('std', cv_stat),
+            readout_per_control = ('std', cv_stat),
+            readout_media_norm = ('std', cv_stat),
         )
 
 
@@ -2756,11 +2808,24 @@ class PlugData(object):
                         fun
                             if isinstance(fun, str) else
                         fun.__name__
-                            if fun.__name__ != '<lambda>' else
+                            if (
+                                hasattr(fun, '__name__') and
+                                fun.__name__ != '<lambda>'
+                            ) else
+                        fun['label']
+                            if (
+                                isinstance(fun, dict) and
+                                'label' in fun
+                            ) else
                         'agg%u' % i
                     )
                 ),
-                pd.NamedAgg(colname, fun)
+                pd.NamedAgg(
+                    colname,
+                    fun['fun']
+                        if isinstance(fun, dict) and 'fun' in fun else
+                    fun,
+                )
             )
             for colname, funs in kwargs.items()
             for i, fun in enumerate(
@@ -2789,6 +2854,39 @@ class PlugData(object):
             data['var'] = [v.split('___')[0] for v in data['var_stat']]
 
         return data
+
+
+    def mean_cv(self):
+        """
+        Calculates the coefficient of variation for all cycles and the
+        whole screen, for all available readout metrics.
+        """
+
+        cv_data = self.sample_sd_df()
+        cv_data = cv_data[cv_data['stat'] == 'cv']
+
+        readout_vars = cv_data['var'].unique()
+        cycles = tuple(cv_data['cycle_nr'].unique()) + ('all',)
+
+        result = collections.defaultdict(dict)
+
+        for cycle, var in itertools.product(cycles, readout_vars):
+
+            cv = cv_data[cv_data['var'] == var]
+
+            if cycle != 'all':
+
+                cv = cv[cv['cycle_nr'] == cycle]
+
+            cv = cv.value
+
+            result[cycle][var] = {
+                'mean': cv.mean(),
+                'ci_low': cv.mean() - cv.std(),
+                'ci_high': cv.mean() + cv.std(),
+            }
+
+        return dict(result)
 
 
     def sample_sd_violin(self) -> sns.FacetGrid:
