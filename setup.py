@@ -34,7 +34,7 @@ with open('README.md', 'r') as f:
 
 setup(
     name = 'plugy',
-    version = '1.0.10',
+    version = '1.0.11',
     packages = ['plugy', 'plugy.data', 'plugy.test'],
     url = 'https://github.com/saezlab/plugy',
     license = 'GPLv3',

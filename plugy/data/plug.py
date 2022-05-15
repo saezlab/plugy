@@ -651,6 +651,12 @@ class PlugData(object):
 
         z_factors = []
         readout_col = self.readout_col
+        label = 'modified ' if modified else ''
+        mu = '\u03bc'
+        sigma = '\u03c3'
+        times = '\u00d7'
+        division = '\u00f7'
+        controls = ('pos', 'med') + (('neg',) if modified else ())
 
         for cycle in self.cycles:
 
@@ -663,43 +669,84 @@ class PlugData(object):
             medium_control = self.medium_only(cycle = cycle)
             medium_control = medium_control[readout_col]
 
+            std_pos_c = np.std(pos_control)
+            std_med_c = np.std(medium_control)
+            mean_pos_c = np.mean(pos_control)
+            mean_med_c = np.mean(medium_control)
+
             if modified:
 
                 neg_control = self.negative_controls(cycle = cycle)
                 neg_control = neg_control[readout_col]
+                std_neg_c = np.std(neg_control)
+                mean_neg_c = np.mean(neg_control)
 
                 z_factor_numerator = 2 * (
-                    np.std(neg_control) +
-                    np.std(pos_control) +
-                    np.std(medium_control)
+                    std_pos_c +
+                    std_med_c +
+                    std_neg_c
                 )
                 z_factor_denominator = (
-                    np.mean(pos_control) -
-                    np.mean(medium_control) -
-                    np.mean(neg_control)
+                    mean_pos_c -
+                    mean_med_c -
+                    mean_neg_c
                 )
 
             else:
 
                 z_factor_numerator = 3 * (
-                    np.std(medium_control) +
-                    np.std(pos_control)
+                    std_med_c +
+                    std_pos_c
                 )
                 z_factor_denominator = abs(
-                    np.mean(pos_control) -
-                    np.mean(medium_control)
+                    mean_pos_c -
+                    mean_med_c
                 )
 
-            z_factors.append(1 - (z_factor_numerator / z_factor_denominator))
+            the_z_factor = 1 - (z_factor_numerator / z_factor_denominator)
+            z_factors.append(the_z_factor)
 
-        label = 'modified' if modified else ''
-        attr = 'z_factors%s' % ('_%s' % label if label else '')
+            # the three blocks below are only for logging
+            _locals = locals()
+
+            formula_parts = [
+                [
+                    '[%s%s=%.03f]' % (
+                        sigma if metric == 'std' else mu,
+                        ctrl,
+                        _locals['%s_%s_c' % (metric, ctrl)],
+                    )
+                    for ctrl in controls
+                ]
+                for metric in ('std', 'mean')
+            ]
+
+            module_logger.info(
+                (
+                    '%sz-factor formula (cycle #%u):\n'
+                    '    1 - ( %u %s ( %s ) %s %s %s %s ) = %.02f' % (
+                        label,
+                        cycle,
+                        2 if modified else 3,
+                        times,
+                        ' + '.join(formula_parts[0]),
+                        division,
+                        '(' if modified else '|',
+                        ' - '.join(formula_parts[1]),
+                        ')' if modified else '|',
+                        the_z_factor,
+                    )
+                ).capitalize()
+
+            )
+
+        attr = 'z_factors%s' % ('_%s' % label.strip() if label else '')
 
         setattr(self, attr, z_factors)
 
         z_factors = [round(e, 2) for e in z_factors]
         module_logger.info(
-            f"Reporting {label} z-factor "
+            f"Reporting {label}z-factor "
             f"by cycle: {z_factors}"
         )
 
