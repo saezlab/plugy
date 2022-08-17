@@ -818,7 +818,9 @@ class PlugExperiment(object):
 
         # Plotting PMT overview
         try:
+
             qc_dir = self.ensure_qc_dir()
+
             sample_cycle_fig, sample_cycle_ax = (
                 self.plug_data.plot_sample_cycles(**kwargs)
             )
@@ -827,13 +829,22 @@ class PlugExperiment(object):
 
                 misc.add_git_hash_caption(sample_cycle_fig)
 
-            sample_cycle_fig.savefig(
-                qc_dir.joinpath('sample_cycle_overview.png')
+            file_type = (
+                self.config.figure_export_file_type
+                    if len(kwargs.get('samples', np.inf)) < 9 else
+                'png'
             )
+
+            sample_cycle_fig.savefig(
+                qc_dir.joinpath(f'sample_cycle_overview.{file_type}')
+            )
+
             plt.clf()
+
         except:
+
             traceback.print_exc(file = sys.stdout)
-            module_logger.error('Failed to plot sample cycles')
+            module_logger.error('Failed to plot samples vs. cycles.')
 
         self.seaborn_setup()
 
