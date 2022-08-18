@@ -5,7 +5,7 @@
 # This file is part of the `plugy` python module
 #
 # Copyright
-# 2018-2021
+# 2018-2022
 # EMBL & Heidelberg University
 #
 # Author(s): Dénes Türei (turei.denes@gmail.com)
@@ -18,6 +18,8 @@
 #
 # Webpage: https://github.com/saezlab/plugy
 #
+
+from typing import Optional
 
 import sys
 import logging
@@ -1666,21 +1668,46 @@ class PlugData(object):
             compounds = [
                 compound
                 for compound in compounds
-                if compound != "FS"
+                if compound != 'FS'
             ]
             compounds = ' + '.join(compounds) or 'Cell Control'
 
         return compounds
 
 
-    def plot_sample_cycles(self, ylim: tuple = (None, None)):
+    def plot_sample_cycles(
+            self,
+            # these type hints look pretty terrible
+            ylim: tuple[Optional[float], Optional[float]] = (None, None),
+            samples: Optional[list[str]] = None,
+        ) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
         """
-        Creates a plot with pmt data for the individual samples and cycles.
-        :return: plt.Figure and plt.Axes object with the plot
+        Creates a plot with raw data for the individual samples and cycles.
+
+        Args:
+            samples:
+                Restrict the figure to these samples only. A list of sample
+                names, to see all sample names, refer to the ``name`` column
+                of the ``sample_df``.
+
+        Returns:
+            A ``Figure`` and an ``Axes`` object with a matrix of samples
+            vs. cycles, raw data of one sample, with its detected plugs,
+            shown on each panel.
         """
 
-        names = self.sample_df.name.unique()
+        all_samples = self.sample_df.name.unique()
+        names = samples or all_samples
         cycles = sorted(self.sample_df.cycle_nr.unique())
+
+        missing = names - set(all_samples)
+
+        if missing:
+
+            module_logger.warn(
+                'Requested to plot raw data of sample(s) '
+                f'that do not exist: {", ".join(missing)}.'
+            )
 
         sample_cycle_fig, sample_cycle_ax = plt.subplots(
             nrows = len(names),
@@ -1690,6 +1717,7 @@ class PlugData(object):
         )
 
         y_max = self.sample_df.readout_peak_median.max() * 1.1
+
         ylim = (
             ylim[0] or 0,
             ylim[1] or y_max

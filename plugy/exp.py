@@ -5,7 +5,7 @@
 # This file is part of the `plugy` python module
 #
 # Copyright
-# 2018-2021
+# 2018-2022
 # EMBL & Heidelberg University
 #
 # Author(s): Dénes Türei (turei.denes@gmail.com)
@@ -19,6 +19,7 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
+from typing import Optional
 
 import sys
 import logging
@@ -812,7 +813,14 @@ class PlugExperiment(object):
         self.seaborn_setup()
 
 
-    def plot_sample_cycles(self, **kwargs):
+    def plot_sample_cycles(self, label: Optional[str] = None, **kwargs):
+        """
+        Creates a plot with raw data for the individual samples and cycles.
+
+        Args:
+            label:
+                A custom label to be included in the file name.
+        """
 
         self.seaborn_setup(font_scale = self.font_scale * .7)
 
@@ -829,15 +837,15 @@ class PlugExperiment(object):
 
                 misc.add_git_hash_caption(sample_cycle_fig)
 
-            file_type = (
+            ftype = (
                 self.config.figure_export_file_type
                     if len(kwargs.get('samples', np.inf)) < 9 else
                 'png'
             )
 
-            sample_cycle_fig.savefig(
-                qc_dir.joinpath(f'sample_cycle_overview.{file_type}')
-            )
+            fname = f'sample_cycle_overview{"_" * bool(label)}{label}.{ftype}'
+
+            sample_cycle_fig.savefig(qc_dir.joinpath(fname))
 
             plt.clf()
 
