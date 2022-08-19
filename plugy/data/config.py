@@ -212,6 +212,7 @@ class PlugyConfig(object):
     seaborn_context_dict: dict = field(
         default_factory = lambda: {
             'grid.linewidth': .9,
+            'font.family': 'Helvetica LT Std',
         }
     )
     seaborn_style: str = "whitegrid"
@@ -219,6 +220,7 @@ class PlugyConfig(object):
         default_factory = lambda: {
             'axes.edgecolor': '#000000',
             'grid.color': '#000000',
+            'font.family': 'Helvetica LT Std',
         }
     )
     font_scale: typing.Union[float, int] = 2
