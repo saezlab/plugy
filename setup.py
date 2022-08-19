@@ -5,7 +5,7 @@
 # This file is part of the `plugy` python module
 #
 # Copyright
-# 2018-2021
+# 2018-2022
 # EMBL & Heidelberg University
 #
 # Author(s): Dénes Türei (turei.denes@gmail.com)
@@ -34,7 +34,7 @@ with open('README.md', 'r') as f:
 
 setup(
     name = 'plugy',
-    version = '1.0.11',
+    version = '1.0.12',
     packages = ['plugy', 'plugy.data', 'plugy.test'],
     url = 'https://github.com/saezlab/plugy',
     license = 'GPLv3',
