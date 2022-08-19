@@ -1675,7 +1675,7 @@ class PlugData(object):
         return compounds
 
 
-    def plot_sample_cycles(
+    def plot_samples_cycles(
             self,
             # these type hints look pretty terrible
             ylim: tuple[Optional[float], Optional[float]] = (None, None),
@@ -1700,7 +1700,7 @@ class PlugData(object):
         names = samples or all_samples
         cycles = sorted(self.sample_df.cycle_nr.unique())
 
-        missing = names - set(all_samples)
+        missing = set(names) - set(all_samples)
 
         if missing:
 

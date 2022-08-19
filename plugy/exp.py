@@ -38,6 +38,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# to output text instead of paths
+plt.rcParams['svg.fonttype'] = 'none'
+
 from .data.config import PlugyConfig
 from .data.bd import ChannelMap, PlugSequence
 from .data.pmt import PmtData
@@ -643,7 +646,7 @@ class PlugExperiment(object):
         plt.clf()
 
         self.plot_control()
-        self.plot_sample_cycles()
+        self.plot_samples_cycles()
 
         self.length_grid()
         self.length_density()
@@ -813,13 +816,14 @@ class PlugExperiment(object):
         self.seaborn_setup()
 
 
-    def plot_sample_cycles(self, label: Optional[str] = None, **kwargs):
+    def plot_samples_cycles(self, label: Optional[str] = None, **kwargs):
         """
         Creates a plot with raw data for the individual samples and cycles.
 
         Args:
             label:
-                A custom label to be included in the file name.
+                A custom label to be included in the file name. Useful if
+                plotting a subset of samples.
         """
 
         self.seaborn_setup(font_scale = self.font_scale * .7)
@@ -830,7 +834,7 @@ class PlugExperiment(object):
             qc_dir = self.ensure_qc_dir()
 
             sample_cycle_fig, sample_cycle_ax = (
-                self.plug_data.plot_sample_cycles(**kwargs)
+                self.plug_data.plot_samples_cycles(**kwargs)
             )
 
             if self.config.plot_git_caption:
@@ -839,13 +843,14 @@ class PlugExperiment(object):
 
             ftype = (
                 self.config.figure_export_file_type
-                    if len(kwargs.get('samples', np.inf)) < 9 else
+                    if 0 < len(kwargs.get('samples', ())) < 9 else
                 'png'
             )
 
             fname = f'sample_cycle_overview{"_" * bool(label)}{label}.{ftype}'
-
-            sample_cycle_fig.savefig(qc_dir.joinpath(fname))
+            path = qc_dir.joinpath(fname)
+            sample_cycle_fig.savefig(path)
+            module_logger.info(f'Saved figure to `{path}`')
 
             plt.clf()
 
