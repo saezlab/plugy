@@ -1675,7 +1675,7 @@ class PlugData(object):
             self,
             sample_nr: int,
             sample_sequence: bd.PlugSequence,
-        ):
+        ) -> str:
         """
         Returns a unified naming string for a sample.
         Concatenation of both compounds or single compound or cell control
@@ -1697,7 +1697,7 @@ class PlugData(object):
                 for compound in compounds
                 if compound != 'FS'
             ]
-            compounds = ' + '.join(compounds) or 'Cell Control'
+            compounds = ' + '.join(sorted(compounds)) or 'Cell Control'
 
         return compounds
 
