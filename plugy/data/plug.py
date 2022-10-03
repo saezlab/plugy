@@ -775,7 +775,7 @@ class PlugData(object):
         """
 
         pos_ctrl_lab = misc.first(
-            misc.to_set(self.config.positive_control_label) & self.channels
+            misc.to_set(self.config.positive_control_label) & self.compounds
         )
 
         module_logger.debug(f'Positive control label: `{pos_ctrl_lab}`')
@@ -790,7 +790,7 @@ class PlugData(object):
         """
 
         neg_ctrl_lab = misc.first(
-            misc.to_set(self.config.negative_control_label) & self.channels
+            misc.to_set(self.config.negative_control_label) & self.compounds
         )
 
         module_logger.debug(f'Negative control label: `{neg_ctrl_lab}`')
@@ -806,7 +806,7 @@ class PlugData(object):
         """
 
         med_ctrl_lab = misc.first(
-            misc.to_set(self.config.medium_control_label) & self.channels
+            misc.to_set(self.config.medium_control_label) & self.compounds
         )
 
         module_logger.debug(f'Medium control label: `{med_ctrl_lab}`')
@@ -826,15 +826,24 @@ class PlugData(object):
 
 
     @property
-    def channels(self):
+    def compounds(self):
         """
-        Returns a set of all channel labels in the current experiment.
+        Returns a set of all compound labels in the current experiment.
         """
 
         return (
             set(self.sample_df.compound_a) |
             set(self.sample_df.compound_b)
         )
+
+
+    @property
+    def channels(self):
+        """
+        Returns the channel labels according to the config.
+        """
+
+        return self.config.channel_roles
 
 
     @property
@@ -2389,26 +2398,11 @@ class PlugData(object):
 
         for (i, cycle), _center in zip(enumerate(cycles), center):
 
-            data = self.sample_df
-            data = data if cycle is None else data[data.cycle_nr == cycle]
-            data = data[[column_to_plot, "compound_a", "compound_b"]]
-            data = data.groupby(["compound_a", "compound_b"]).mean()
-            data = data.reset_index()
-            data = data.pivot("compound_a", "compound_b", column_to_plot)
-            data = data.reindex(
-                data.isna().
-                sum(axis = 1).
-                sort_values(ascending = False).
-                index.
-                to_list()
+            data = self._compound_heatmap_data(
+                col = column_to_plot,
+                cycle = cycle,
+                df = self.sample_df,
             )
-            data = data[
-                data.isna().
-                sum(axis = 0).
-                sort_values(ascending = True).
-                index.
-                to_list()
-            ]
 
             if annotation_df is not None:
 
@@ -2451,9 +2445,12 @@ class PlugData(object):
                 cmap = (
                     self.config['heatmap_cmap'] or
                     (
-                        'inferno'
+                        self.config.continuous_palette_1
                             if _center is None else
-                        sns.diverging_palette(240, 10, as_cmap = True)
+                        sns.diverging_palette(
+                            *self.config.diverging_palette_1
+                            as_cmap = True,
+                        )
                     )
                 ),
                 **kwargs
@@ -2475,11 +2472,14 @@ class PlugData(object):
                     vmax = vmax,
                     center = _center,
                     cmap = (
-                        self.config['heatmap_second_cmap'] or
+                        self.config.heatmap_second_cmap or
                         (
-                            'viridis'
+                            self.config.continuous_palette_2
                                 if _center is None else
-                            sns.diverging_palette(150, 275, as_cmap = True)
+                            sns.diverging_palette(
+                                *self.config.diverging_palette_2,
+                                as_cmap = True,
+                            )
                         )
                     ),
                     **kwargs
@@ -2500,6 +2500,36 @@ class PlugData(object):
                 ax.set_ylim(ylim[0] + .5, ylim[1] - .5)
 
         return grid
+
+
+    def _compound_heatmap_data(
+            self,
+            col: str, cycle: int | None = None,
+            df: pd.DataFrame | None = None,
+        ) -> pd.DataFrame:
+
+        df = self.data if df is None else df
+        df = df if cycle is None else df[df.cycle_nr == cycle]
+        df = df[[column_to_plot, 'compound_a', 'compound_b']]
+        df = df.groupby(['compound_a', 'compound_b']).mean()
+        df = df.reset_index()
+        df = df.pivot('compound_a', 'compound_b', col)
+        df = df.reindex(
+            df.isna().
+            sum(axis = 1).
+            sort_values(ascending = False).
+            index.
+            to_list()
+        )
+        df = df[
+            df.isna().
+            sum(axis = 0).
+            sort_values(ascending = True).
+            index.
+            to_list()
+        ]
+
+        return df
 
 
     def _check_sample_df_column(self, column: str):
@@ -2705,6 +2735,91 @@ class PlugData(object):
                     t.set_text(legend_labels[t.get_text()])
 
         return grid
+
+
+    def heatmap_matrix(self, **kwargs) -> mpl.figure.Figure:
+        """
+        Composite figure of compound-by-compound heatmaps: a grid of
+        cycles vs. channels and derived variables. ``**kwargs`` is passed
+        to ``seaborn.heatmap``.
+        """
+
+        df = self.data
+
+        variables = (
+            [f'{ch}_peak_median' for ch in self.channels] +
+            [
+                'readout_per_control',
+                'readout_media_norm',
+            ]
+        )
+
+        variables = [v for v in variables if v in df.columns]
+
+        fig = plt.figure(
+            figsize = (
+                5 + self.ncycles * 5,
+                len(variables) * 5
+            ),
+            constrained_layout = False,
+        )
+
+        gs = fig.add_gridspec(
+            nrows = len(variables),
+            ncols = self.ncycles + 1,
+        )
+
+        for i, var in enumerate(variables):
+
+            var_str = var.replace('_', ' ').capitalize()
+
+            vmin = df[var].min()
+            vmax = df[var].max()
+
+            center = (
+                self.medium_only(cycle = cycle)[var].median()
+                    if self.config.heatmap_center_scale else
+                None
+            )
+
+            cmap = (
+                config.heatmap_cmap
+                    if config.heatmap_cmap is not None else
+                sns.diverging_palette(
+                    *self.config.diverging_palette_1,
+                    as_cmap = True,
+                )
+                    if center is not None else
+                self.config.continuous_palette_1
+            )
+
+            for j, cycle in enumerate(itertools.chain(self.cycles, (None,))):
+
+                ax = fig.add_subplot(gs[i, j])
+                data = self._compound_heatmap_data(
+                    col = var,
+                    cycle = cycle,
+                    df = df,
+                )
+
+                sns.heatmap(
+                    data,
+                    ax = ax,
+                    fmt = '',
+                    vmin = vmin,
+                    vmax = vmax,
+                    center = center,
+                    cmap = cmap,
+                    **kwargs
+                )
+
+                cycle_str = 'all' if cycle is None else f'{cycle}'
+
+                ax.set_title(f'{var_str} cycle: {cycle_str}')
+                ax.set_ylabel('')
+                ax.set_xlabel('')
+
+        return fig
 
 
     @property

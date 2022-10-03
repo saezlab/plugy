@@ -705,6 +705,9 @@ class PlugExperiment(object):
         # 13: printing coefficients of variance into the log
         self.report_cv()
 
+        # 14: heatmap matrix
+        self.heatmap_matrix()
+
         plt.close('all')
 
         qc_successful = not qc_issues
@@ -803,6 +806,17 @@ class PlugExperiment(object):
         except:
             traceback.print_exc(file = sys.stdout)
             module_logger.error('Failed to plot length bias')
+
+
+    def heatmap_matrix(self, **kwargs):
+        """
+        Creates a composite figure to overview the medians of conditions
+        by cycle vs. channel or derived variable.
+        """
+
+        grid = self.plug_data.heatmap_matrix(**kwargs)
+
+        self._plot_base(grid, 'heatmap_matrix', 'heatmap matrix')
 
 
     def plot_control(self):
