@@ -2307,6 +2307,7 @@ class PlugData(object):
             annotation_df: pd.DataFrame = None,
             annotation_column: str = "significant",
             by_cycle: bool = False,
+            center: float | str | tuple[float] | None = None,
             **kwargs
         ) -> sns.FacetGrid:
         """
@@ -2317,6 +2318,8 @@ class PlugData(object):
         :param annotation_column: Which column in annotation_df to use for
             the annotation
         :param by_cycle: Produce separate plots for each cycle.
+        :param center: Center the color scale at these values or the median
+            of these samples. Can be a tuple if plotting by cycle.
         :return: seaborn.FacetGrid object with the plot
         """
         self._check_sample_df_column(column_to_plot)
@@ -2347,6 +2350,38 @@ class PlugData(object):
 
         aspect_correction = 1.3 if second_scale else 1.0
 
+        # setting up divergent palette center value
+        if not center and self.config.heatmap_center_scale:
+
+            center = tuple(
+                self.medium_only(cycle = cycle)[self.readout_col].median()
+                for cycle in cycles
+            )
+
+        center = to_tuple(center) or (None,)
+
+        if all(isinstance(k, str) for k in center):
+
+            center = tuple(
+                self.cycle(
+                    cycle,
+                    df = self.sample(*center)
+                )[self.readout_col].median()
+                for cycle in cycles
+            )
+
+        center = center * len(cycles) if len(center) == 1 else center
+
+        if len(center) != len(cycles):
+
+            msg = (
+                'heatmap: `center` should be either one value, '
+                'or should contain a value for each cycle.'
+            )
+            module_logger.error(msg)
+            raise ValueError(msg)
+
+        # creating the empty grid
         grid = sns.FacetGrid(
             data = self.sample_df,
             col = 'cycle_nr' if by_cycle else None,
@@ -2357,7 +2392,7 @@ class PlugData(object):
             ),
         )
 
-        for i, cycle in enumerate(cycles):
+        for (i, cycle), _center in zip(enumerate(cycles), center):
 
             data = self.sample_df
             data = data if cycle is None else data[data.cycle_nr == cycle]
@@ -2417,6 +2452,7 @@ class PlugData(object):
                 ax = ax,
                 vmin = vmin,
                 vmax = vmax,
+                center = _center,
                 **kwargs
             )
 
@@ -2435,6 +2471,7 @@ class PlugData(object):
                     ax = ax,
                     vmin = vmin,
                     vmax = vmax,
+                    center = _center,
                     **kwargs
                 )
 
@@ -3102,3 +3139,122 @@ class PlugData(object):
             sys.stdout.flush()
 
         return result
+
+
+    def __len__(self) -> int:
+
+        return self.nplugs
+
+
+    @property
+    def nplugs(self) -> int:
+        """
+        Number of plugs.
+        """
+
+        return len(self.plug_df) if hasattr(self, 'plug_df') else 0
+
+
+    @property
+    def nsamples(self) -> int:
+        """
+        Number of samples.
+        """
+
+        return self._numof('sample_nr')
+
+    @property
+    def ncycles(self) -> int:
+        """
+        Nuber of cycles.
+        """
+
+        return self._numof('cycle_nr')
+
+
+    def _numof(self, col: str) -> int:
+
+        return self.plug_df[col].nunique() if hasattr(self, 'plug_df') else 0
+
+
+    def __repr__(self) -> str:
+
+        return (
+            f'<PlugData: {len(self)} plugs, '
+            f'{self.nsamples} samples, '
+            f'{self.ncycles} cycles>'
+        )
+
+
+    def __getitem__(self, keys) -> pd.DataFrame:
+
+        df = self.data
+
+        if isinstance(keys, misc.SIMPLE_TYPES):
+
+            if isinstance(keys, int):
+
+                return df.iloc[keys]
+
+            elif isinstance(keys, str):
+
+                return self.sample(keys, df = df)
+
+        elif hasattr(keys, '__len__'):
+
+            if all(isinstance(k, int) for k in keys):
+
+                return df.iloc[keys[0], keys[1]]
+
+            elif all(isinstance(k, str) for k in keys):
+
+                return self.sample(*keys, df = df)
+
+        raise ValueError(f'Don\'t know how to process key: {keys}')
+
+
+    def sample(self, *args, df: pd.DataFrame | None = None) -> pd.DataFrame:
+        """
+        Selects a sample based on its name or a pair of conditions (compounds).
+        """
+
+        df = df if isinstance(df, pd.DataFrame) else self.data
+
+        if len(args) == 1:
+
+            return df[df.name == args[0]]
+
+        elif len(args) >= 2:
+
+            args = misc.to_set(args)
+
+            return df[
+                df.compound_a.isin(args) |
+                df.compound_b.isin(args)
+            ]
+
+        raise ValueError(f'Don\'t know how to process sample name: {args}')
+
+
+    def cycle(self, *cycle, df: pd.DataFrame | None = None) -> pd.DataFrame:
+        """
+        Selects cycle(s) based on their number(s).
+        """
+
+        df = df if isinstance(df, pd.DataFrame) else self.data
+
+        if cycle and cycle != (None,):
+
+            cycle = misc.to_set(cycle)
+            df = df[df.cycle_nr.isin(cycle)]
+
+        return df
+
+
+    @property
+    def data(self):
+        """
+        The sample data frame, if available, otherwise the plug data frame.
+        """
+
+        return self.sample_df if hasattr(self, 'sample_df') else self.plug_df

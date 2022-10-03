@@ -232,6 +232,7 @@ class PlugyConfig(object):
     heatmap_second_scale: str = 'pos_ctrl'
     heatmap_override_scale: tuple = None
     heatmap_override_second_scale: tuple = None
+    heatmap_center_scale: bool = True
 
     # shorten drug names on certain plots
     short_labels: bool = True
