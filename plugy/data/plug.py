@@ -3341,6 +3341,21 @@ class PlugData(object):
         raise ValueError(f'Don\'t know how to process key: {keys}')
 
 
+    def __contains__(self, other):
+
+        return (
+            (
+                other in self.compounds or
+                other in self.channels or
+                other in self.sample_df.name.values
+            )
+                if isinstance(other, str) and hasattr(self, 'sample_df') else
+            self.start < other < self.end
+                if isinstance(other, (int, float)) else
+            False
+        )
+
+
     def sample(self, *args, df: pd.DataFrame | None = None) -> pd.DataFrame:
         """
         Selects a sample based on its name or a pair of conditions (compounds).
@@ -3386,3 +3401,21 @@ class PlugData(object):
         """
 
         return self.sample_df if hasattr(self, 'sample_df') else self.plug_df
+
+
+    @property
+    def start(self):
+        """
+        Beginning of the first plug (in seconds).
+        """
+
+        return self.plug_df.start_time.min()
+
+
+    @property
+    def end(self):
+        """
+        End of the last plug (in seconds).
+        """
+
+        return self.plug_df.end_time.max()
