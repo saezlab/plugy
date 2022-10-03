@@ -2750,7 +2750,7 @@ class PlugData(object):
 
         fig = plt.figure(
             figsize = (
-                5 + self.ncycles * 5,
+                7 + self.ncycles * 5,
                 len(variables) * 5
             ),
             constrained_layout = False,
@@ -2793,14 +2793,15 @@ class PlugData(object):
                     vmax = vmax,
                     center = center,
                     cmap = cmap,
+                    xticklabels = i == len(variables) - 1,
+                    yticklabels = j == 0,
+                    cbar = j == self.ncycles,
                     **kwargs
                 )
 
-                cycle_str = 'all' if cycle is None else f'{cycle}'
-
-                ax.set_title(f'{var_str} cycle: {cycle_str}')
-                ax.set_ylabel('')
-                ax.set_xlabel('')
+                cycle_str = 'All' if cycle is None else f'Cycle #{cycle}'
+                ax.set_ylabel(var_str if j == 0 else '')
+                ax.set_xlabel(cycle_str if i == len(variables) - 1 else '')
 
         return fig
 
