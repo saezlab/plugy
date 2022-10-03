@@ -81,12 +81,21 @@ class PlugyConfig(object):
     # run the analysis
     analysis: bool = None
     # label of the control channels in the channel layout
-    control_label: typing.Union[set, str] = 'FS'
-    medium_control_label: typing.Union[set, str] = 'FS'
-    negative_control_label: typing.Union[set, str] = field(
+    # deprecated, not used afaik
+    control_label: set[str] | str = 'FS'
+    # medium only control:
+    # can be a set of compound labels, in this case any combination
+    # within this set is considered control; can be also one or more
+    # string of sample labels, e.g. "FS + XY", but this is equivalent
+    # to {"FS", "XY"}; can be a set of alternative labels, in case
+    # the actual label is uncertain, or to mitigate typos, e.g.
+    # {"FS", "Fs", "fs", "freestyle"}
+    medium_control_label: set[str] | str = 'FS'
+    # the two below are only sets of alternatives, to workaround typos
+    negative_control_label: set[str] | str = field(
         default_factory = lambda: {'neg-ctrl', 'neg_ctrl'}
     )
-    positive_control_label: typing.Union[set, str] = field(
+    positive_control_label: set[str] | str = field(
         default_factory = lambda: {'pos-ctrl', 'pos_ctrl'}
     )
     # do not raise an error if the quality control fails

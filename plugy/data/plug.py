@@ -770,7 +770,7 @@ class PlugData(object):
 
 
     @property
-    def pos_ctrl_lab(self):
+    def pos_ctrl_lab(self) -> str:
         """
         Returns the label of the positive control channel.
         """
@@ -785,7 +785,7 @@ class PlugData(object):
 
 
     @property
-    def neg_ctrl_lab(self):
+    def neg_ctrl_lab(self) -> str:
         """
         Returns the label of the negative control channel.
         """
@@ -800,15 +800,19 @@ class PlugData(object):
 
 
     @property
-    def med_ctrl_lab(self):
+    def med_ctrl_lab(self) -> set[str]:
         """
-        Returns the label of the medium only channel in the current
-        experiment.
+        Returns the labels of the medium only channels in the current
+        experiment. Or whatever is considered a baseline control.
         """
 
-        med_ctrl_lab = misc.first(
-            misc.to_set(self.config.medium_control_label) & self.compounds
-        )
+        med_ctrl_lab = {
+            y.strip() for y in
+            itertools.chain(*(
+                x.split('+')
+                for x in misc.to_tuple(self.config.medium_control_label)
+            ))
+        }
 
         module_logger.debug(f'Medium control label: `{med_ctrl_lab}`')
 
@@ -902,12 +906,12 @@ class PlugData(object):
             single_drugs = self.sample_df.loc[
                 (
                     (
-                        (self.sample_df.compound_a == med_ctrl_lab) &
+                         self.sample_df.compound_a.isin(med_ctrl_lab) &
                         (self.sample_df.compound_b != pos_ctrl_lab) &
                         (self.sample_df.compound_b != neg_ctrl_lab)
                     ) |
                     (
-                        (self.sample_df.compound_b == med_ctrl_lab) &
+                         self.sample_df.compound_b.isin(med_ctrl_lab) &
                         (self.sample_df.compound_a != pos_ctrl_lab) &
                         (self.sample_df.compound_a != neg_ctrl_lab)
                     )
@@ -923,7 +927,7 @@ class PlugData(object):
                 warnings.simplefilter('ignore')
 
                 single_drugs['compound'] = np.where(
-                    single_drugs.compound_a == med_ctrl_lab,
+                    single_drugs.compound_a.isin(med_ctrl_lab),
                     single_drugs.compound_b,
                     single_drugs.compound_a
                 )
@@ -1006,8 +1010,8 @@ class PlugData(object):
         med_ctrl_lab = self.med_ctrl_lab
 
         medium_control = self.sample_df.loc[
-            (self.sample_df.compound_b == med_ctrl_lab) &
-            (self.sample_df.compound_a == med_ctrl_lab) &
+             self.sample_df.compound_a.isin(med_ctrl_lab) &
+             self.sample_df.compound_b.isin(med_ctrl_lab) &
             (self.sample_df.cycle_nr == cycle)
         ]
 
@@ -1033,8 +1037,7 @@ class PlugData(object):
                 'Could not find medium only control samples, unable to '
                 'fit a linear regression on them. If the experiment '
                 'contains such samples, check the config value of '
-                '`medium_control_label` (currently `%s`).' %
-                self.config.medium_control_label,
+                f'`medium_control_label` (currently `{self.med_ctrl_lab}`).'
             )
 
             slope, intercept, rvalue, pvalue, stderr = (None,) * 5
@@ -1697,7 +1700,7 @@ class PlugData(object):
                 for compound in compounds
                 if compound != 'FS'
             ]
-            compounds = ' + '.join(sorted(compounds)) or 'Cell Control'
+            compounds = misc.sample_label(*compounds) or 'Cell Control'
 
         return compounds
 
@@ -2597,7 +2600,7 @@ class PlugData(object):
                     'adjust readout values based on the drift of these '
                     'samples. If the experiment contains such samples, '
                     'check the config value of `medium_control_label` '
-                    '(currently `%s`).' % self.config.medium_control_label,
+                    f'(currently `{self.med_ctrl_lab}`).'
                 )
 
                 new_readout_analysis_column = (

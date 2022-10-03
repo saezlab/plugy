@@ -194,6 +194,11 @@ def ntuple_str(nt, pretty_floats = True):
     )
 
 
+def sample_label(*compounds) -> str:
+
+    return ' + '.join(sorted(compounds)[:2])
+
+
 def matplotlib_331_fix():
 
     def get_extents(self, transform = None, **kwargs):
