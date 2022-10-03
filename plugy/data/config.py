@@ -249,7 +249,7 @@ class PlugyConfig(object):
     # Statistics
     alpha: float = 0.05
     significance_symbols: dict = field(
-        default_factory = {
+        default_factory = lambda: {
             '***': .0001,
             '**': .001,
             '*': .05,

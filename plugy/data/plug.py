@@ -2353,7 +2353,7 @@ class PlugData(object):
                 for cycle in cycles
             )
 
-        center = to_tuple(center) or (None,)
+        center = misc.to_tuple(center) or (None,)
 
         if all(isinstance(k, str) for k in center):
 
