@@ -248,6 +248,14 @@ class PlugyConfig(object):
 
     # Statistics
     alpha: float = 0.05
+    significance_symbols: dict = field(
+        default_factory = {
+            '***': .0001,
+            '**': .001,
+            '*': .05,
+            '`': .1,
+        }
+    )
 
     # Palette for plotting
     palette: tuple = (
@@ -266,6 +274,7 @@ class PlugyConfig(object):
         self.start_logging()
         self._set_paths()
         self._set_name()
+        self._set_significance_symbols()
 
 
     def _set_result_dir(self):
@@ -441,6 +450,28 @@ class PlugyConfig(object):
         )
 
 
+    def _set_significance_symbols(self):
+
+        self._significance_symbols = sorted(
+            self.significance_symbols.items(),
+            key = lambda it: it[1],
+        )
+
+
     def __getitem__(self, attr):
 
         return getattr(self, attr, None)
+
+
+    def significance_stars(self, pval: float) -> str:
+        """
+        Returns symbols to show significance in visualization or tables.
+        """
+
+        for sym, threshold in self._significance_symbols:
+
+            if pval <= threshold:
+
+                return sym
+
+        return ''

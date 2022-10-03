@@ -2305,7 +2305,7 @@ class PlugData(object):
             self,
             column_to_plot: str,
             annotation_df: pd.DataFrame = None,
-            annotation_column: str = "significant",
+            annotation_column: str = 'stars',
             by_cycle: bool = False,
             center: float | str | tuple[float] | None = None,
             **kwargs
@@ -2334,11 +2334,6 @@ class PlugData(object):
                 'compound_a',
                 'compound_b',
                 annotation_column,
-            )
-            annotation_df = (
-                annotation_df.
-                replace(True, '*').
-                replace(False, '')
             )
 
         cycles = self.sample_df.cycle_nr.unique() if by_cycle else (None,)

@@ -942,9 +942,11 @@ class PlugExperiment(object):
                 method = "bonferroni",
             )
         )
+        stars = [self.config.significance_stars(p) for p in p_adjusted]
         sample_stats = sample_stats.assign(
             p_adjusted = p_adjusted,
             significant = significance,
+            stars = stars,
         )
 
         # Renaming columns to avoid shadowing mean function
@@ -954,6 +956,7 @@ class PlugExperiment(object):
             "pval",
             "p_adjusted",
             "significant",
+            "stars",
         ]
 
         # # Reindex based on sample_df from plug.PlugData object
@@ -1027,15 +1030,13 @@ class PlugExperiment(object):
 
             if sample != "Cell Control":
 
-                if statistics.significant[idx]:
-
-                    this_ax.annotate(
-                        "*",
-                        xy = (idx, y_max),
-                        xycoords = "data",
-                        textcoords = "data",
-                        ha = "center",
-                    )
+                this_ax.annotate(
+                    statistics.stars[idx],
+                    xy = (idx, y_max),
+                    xycoords = "data",
+                    textcoords = "data",
+                    ha = "center",
+                )
 
         if not by_cycle:
 
@@ -1069,7 +1070,7 @@ class PlugExperiment(object):
         statistics = self.sample_statistics.reset_index()
         statistics = statistics.drop("name", axis = 1)
         statistics = statistics.set_index(["compound_a", "compound_b"])
-        statistics = statistics.significant
+        statistics = statistics.stars
 
         grid = self.plug_data.plot_compound_heatmap(
             column_to_plot = self.config.readout_analysis_column,
