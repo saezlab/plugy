@@ -19,6 +19,16 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
+from typing import (
+    Any,
+    Mapping,
+    Iterable,
+    KeysView,
+    Generator,
+    ItemsView,
+    ValuesView,
+)
+
 import os
 import time
 import inspect
@@ -27,6 +37,27 @@ import subprocess as sp
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+
+
+SIMPLE_TYPES = (
+    bytes,
+    str,
+    int,
+    float,
+    bool,
+    type(None),
+)
+
+LIST_LIKE = (
+    list,
+    set,
+    tuple,
+    Generator,
+    ItemsView,
+    KeysView,
+    Mapping,
+    ValuesView,
+)
 
 
 def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
@@ -83,6 +114,8 @@ def to_tuple(value):
     return (
         value
             if isinstance(value, tuple) else
+        tuple(value)
+            if isinstance(value, LIST_LIKE) else
         ()
             if value is None else
         (value,)
