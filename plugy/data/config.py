@@ -237,6 +237,12 @@ class PlugyConfig(object):
     heatmap_cmap: str = None
     heatmap_second_cmap: str = None
 
+
+    continuous_palette_1: str = 'inferno'
+    continuous_palette_2: str = 'viridis'
+    diverging_palette_1: tuple[int, int] = (240, 10)
+    diverging_palette_1: tuple[int, int] = (150, 275)
+
     # shorten drug names on certain plots
     short_labels: bool = True
 
@@ -439,6 +445,12 @@ class PlugyConfig(object):
             (key, value[0])
             for key, value in self.channels.items()
         )
+
+
+    @property
+    def channel_roles(self):
+
+        return sorted(self.channels.keys())
 
 
     def channel_color(self, channel):
