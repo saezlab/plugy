@@ -233,6 +233,9 @@ class PlugyConfig(object):
     heatmap_override_scale: tuple = None
     heatmap_override_second_scale: tuple = None
     heatmap_center_scale: bool = True
+    # see the cmap argument for seaborn.heatmap
+    heatmap_cmap: str = None
+    heatmap_second_cmap: str = None
 
     # shorten drug names on certain plots
     short_labels: bool = True
@@ -436,3 +439,8 @@ class PlugyConfig(object):
                 if channel in self.channels else
             '#000000'
         )
+
+
+    def __getitem__(self, attr):
+
+        return getattr(self, attr, None)

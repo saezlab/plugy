@@ -2448,11 +2448,12 @@ class PlugData(object):
             sns.heatmap(
                 data,
                 annot = annotation_df,
-                fmt = "",
+                fmt = '',
                 ax = ax,
                 vmin = vmin,
                 vmax = vmax,
                 center = _center,
+                cmap = self.config['heatmap_cmap'],
                 **kwargs
             )
 
@@ -2472,6 +2473,7 @@ class PlugData(object):
                     vmin = vmin,
                     vmax = vmax,
                     center = _center,
+                    cmap = self.config['heatmap_second_cmap'],
                     **kwargs
                 )
 
