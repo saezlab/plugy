@@ -58,6 +58,7 @@ class PlugyConfig(object):
     name: str = None
     # file type for saving the figures
     figure_export_file_type: str = 'png'
+    pmt_overview_force_png: bool = True
     # colors for representing channels on the figures
     colors: dict = field(
         default_factory = lambda: {
@@ -221,6 +222,7 @@ class PlugyConfig(object):
             'axes.edgecolor': '#000000',
             'grid.color': '#000000',
             'font.family': 'Helvetica LT Std',
+            'font.sans-serif': 'Helvetica LT Std',
         }
     )
     font_scale: typing.Union[float, int] = 2

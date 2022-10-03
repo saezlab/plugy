@@ -20,6 +20,7 @@
 #
 
 from typing import Optional
+from numbers import Number
 
 import sys
 import logging
@@ -386,7 +387,15 @@ class PlugExperiment(object):
             self.plug_data.append(*exp)
 
 
-    def plot_pmt_data(self, width = 300, **kwargs):
+    def plot_pmt_data(
+            self,
+            width: Number = 300,
+            xmin: Optional[Number] = None,
+            xmax: Optional[Number] = None,
+            ymax: Optional[Number] = None,
+            label: Optional[str] = None,
+            **kwargs
+        ):
 
         qc_dir = self.ensure_qc_dir()
 
@@ -398,6 +407,10 @@ class PlugExperiment(object):
             pmt_overview_ax,
             **kwargs,
         )
+
+
+        pmt_overview_ax.set_xlim(xmin, xmax)
+        pmt_overview_ax.set_ylim(0.0, ymax)
 
         self.plug_data.highlight_plugs(
             axes = pmt_overview_ax,
@@ -411,11 +424,17 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(pmt_overview_fig)
 
         pmt_overview_fig.tight_layout()
-        png_path = qc_dir.joinpath(f"pmt_overview.png")
-        pmt_overview_fig.savefig(png_path)
+        fmt = (
+            'png'
+                if self.config.pmt_overview_force_png else
+            self.config.figure_export_file_type
+        )
+        label = f'_{label}' if label else ''
+        path = qc_dir.joinpath(f"pmt_overview{label}.{fmt}")
+        pmt_overview_fig.savefig(path)
         plt.clf()
 
-        module_logger.info(f"Plotted PMT data to {png_path}")
+        module_logger.info(f"Plotted PMT data to `{path}`.")
 
 
     def plot_plug_sequence(self):
@@ -576,20 +595,32 @@ class PlugExperiment(object):
 
             contamination_hist_ax.set_title("Relative barcode contamination")
 
-        contamination_hist_ax.set_xlabel(
-            "Barcode control ratio\n"
-            r"$\left[\frac{\overline{barcode_{median}}}"
-            r"{\overline{control_{median}}}\right]$"
-        )
-        contamination_hist_ax.set_ylabel("Number of sample plugs")
-        misc.add_git_hash_caption(contamination_hist_fig)
-        contamination_hist_fig.tight_layout()
-        contamination_hist_fig.savefig(
-            qc_dir.joinpath(
-                f"contamination_hist.{self.config.figure_export_file_type}"
+        xlab = "Barcode to control ratio"
+
+        if self.config.figure_export_file_type == 'png':
+
+            xlab += (
+                r"\n$\left[\frac{\overline{barcode_{median}}}"
+                r"{\overline{control_{median}}}\right]$"
             )
+
+        contamination_hist_ax.set_xlabel(xlab)
+
+        contamination_hist_ax.set_ylabel("Number of sample plugs")
+
+        if self.config.plot_git_caption:
+
+            misc.add_git_hash_caption(contamination_hist_fig)
+
+        contamination_hist_fig.tight_layout()
+
+        path = qc_dir.joinpath(
+            f"contamination_hist.{self.config.figure_export_file_type}"
         )
+        contamination_hist_fig.savefig(path)
         plt.clf()
+
+        module_logger.info(f"Saving contamination histogram to `{path}`.")
 
         contamination_fig, contamination_ax = plt.subplots(
             2, 3,
@@ -638,12 +669,14 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(contamination_fig)
 
         contamination_fig.tight_layout()
-        contamination_fig.savefig(
-            qc_dir.joinpath(
-                f"contamination.{self.config.figure_export_file_type}"
-            )
+
+        path = qc_dir.joinpath(
+            f"contamination.{self.config.figure_export_file_type}"
         )
+        contamination_fig.savefig(path)
         plt.clf()
+
+        module_logger.info(f"Saving contamination scatter plots to `{path}`.")
 
         self.plot_control()
         self.plot_samples_cycles()
@@ -804,19 +837,28 @@ class PlugExperiment(object):
         control_fig.axes[-1] = grid.axes.flat[0]
 
         control_fig.tight_layout()
+
         if self.config.plot_git_caption:
+
             misc.add_git_hash_caption(control_fig)
-        control_fig.savefig(
-            qc_dir.joinpath(
-                f"control_fluorescence.{self.config.figure_export_file_type}"
-            )
+
+        path = qc_dir.joinpath(
+            f"control_fluorescence.{self.config.figure_export_file_type}"
         )
+        control_fig.savefig(path)
         plt.clf()
+
+        module_logger.info(f"Saving control plot to `{path}`.")
 
         self.seaborn_setup()
 
 
-    def plot_samples_cycles(self, label: Optional[str] = None, **kwargs):
+    def plot_samples_cycles(
+            self,
+            label: Optional[str] = None,
+            ymax: Optional[Number] = None,
+            **kwargs
+        ):
         """
         Creates a plot with raw data for the individual samples and cycles.
 
@@ -834,7 +876,10 @@ class PlugExperiment(object):
             qc_dir = self.ensure_qc_dir()
 
             sample_cycle_fig, sample_cycle_ax = (
-                self.plug_data.plot_samples_cycles(**kwargs)
+                self.plug_data.plot_samples_cycles(
+                    ylim = (None, ymax),
+                    **kwargs
+                )
             )
 
             if self.config.plot_git_caption:
@@ -847,7 +892,8 @@ class PlugExperiment(object):
                 'png'
             )
 
-            fname = f'sample_cycle_overview{"_" * bool(label)}{label}.{ftype}'
+            label = f'_{label}' if label else ''
+            fname = f'sample_cycle_overview{label}.{ftype}'
             path = qc_dir.joinpath(fname)
             sample_cycle_fig.savefig(path)
             module_logger.info(f'Saved figure to `{path}`')
