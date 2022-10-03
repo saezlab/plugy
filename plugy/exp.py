@@ -543,11 +543,13 @@ class PlugExperiment(object):
         qc_issues = []
         qc_dir = self.ensure_qc_dir()
 
+        # 1: drift of the medium only control
         self.plot_medium_control_trends()
 
+        # 2: raw PMT data
         self.plot_pmt_data()
 
-        # Plotting plug numbers
+        # 3: per sample plug counts
         plug_count_hist_fig, plug_count_hist_ax = plt.subplots()
         plug_count_hist_ax = self.plot_plug_count_hist(
             axes = plug_count_hist_ax,
@@ -563,9 +565,10 @@ class PlugExperiment(object):
         )
         plt.clf()
 
+        # 4: plug lengths (sizes)
         self.plot_length_bias()
 
-        # Plotting contamination
+        # 5: barcode dye contamination of sample plugs
         contamination = self.get_contamination()
         if contamination.mean() > self.config.contamination_threshold:
             msg = (
@@ -622,6 +625,7 @@ class PlugExperiment(object):
 
         module_logger.info(f"Saving contamination histogram to `{path}`.")
 
+        # 6: channel vs. channel scatterplot matrix
         contamination_fig, contamination_ax = plt.subplots(
             2, 3,
             sharex = "all",
@@ -678,13 +682,27 @@ class PlugExperiment(object):
 
         module_logger.info(f"Saving contamination scatter plots to `{path}`.")
 
+        # 7: control (orange) channel matrix
         self.plot_control()
+
+        # 8: raw data in sample vs. cycle grid
         self.plot_samples_cycles()
 
+        # 9: grid of plug length (size) vs. channels
         self.length_grid()
+
+        # 10: density plots of plug lengths (sizes)
         self.length_density()
+
+        # 11: density plots of plug volumes
         self.volume_density()
+
+
+        # 12: violin plots of standard deviations of samples:
+        # readout, readout:control and medium corrected readout:control
         self.sample_sd_violin()
+
+        # 13: printing coefficients of variance into the log
         self.report_cv()
 
         plt.close('all')
