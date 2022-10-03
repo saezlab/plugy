@@ -688,7 +688,7 @@ class PlugData(object):
                     std_med_c +
                     std_neg_c
                 )
-                z_factor_denominator = (
+                z_factor_denominator = abs(
                     mean_pos_c -
                     mean_med_c -
                     mean_neg_c
@@ -733,13 +733,12 @@ class PlugData(object):
                         times,
                         ' + '.join(formula_parts[0]),
                         division,
-                        '(' if modified else '|',
+                        '|',
                         ' - '.join(formula_parts[1]),
-                        ')' if modified else '|',
+                        '|',
                         the_z_factor,
                     )
                 ).capitalize()
-
             )
 
         attr = 'z_factors%s' % ('_%s' % label.strip() if label else '')
@@ -2989,6 +2988,7 @@ class PlugData(object):
         }
 
         data = self.sample_sd_df()
+        data = data[data.stat == 'std']
 
         data.cycle_nr = data.cycle_nr + 1
 
