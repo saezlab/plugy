@@ -2442,17 +2442,7 @@ class PlugData(object):
                 vmin = vmin,
                 vmax = vmax,
                 center = _center,
-                cmap = (
-                    self.config['heatmap_cmap'] or
-                    (
-                        self.config.continuous_palette_1
-                            if _center is None else
-                        sns.diverging_palette(
-                            *self.config.diverging_palette_1
-                            as_cmap = True,
-                        )
-                    )
-                ),
+                cmap = self._heatmap_cmap(2, _center),
                 **kwargs
             )
 
@@ -2471,17 +2461,7 @@ class PlugData(object):
                     vmin = vmin,
                     vmax = vmax,
                     center = _center,
-                    cmap = (
-                        self.config.heatmap_second_cmap or
-                        (
-                            self.config.continuous_palette_2
-                                if _center is None else
-                            sns.diverging_palette(
-                                *self.config.diverging_palette_2,
-                                as_cmap = True,
-                            )
-                        )
-                    ),
+                    cmap = self._heatmap_cmap(2, _center),
                     **kwargs
                 )
 
@@ -2502,6 +2482,18 @@ class PlugData(object):
         return grid
 
 
+    def _heatmap_cmap(self, idx: int, center: float | None):
+
+        return (
+            self.config[f'heatmap{"_second" if idx == 2 else ""}_cmap'] or
+            (
+                self.config[f'continuous_palette_{idx}']
+                    if center is None else
+                self.config.diverging_palette(idx)
+            )
+        )
+
+
     def _compound_heatmap_data(
             self,
             col: str, cycle: int | None = None,
@@ -2510,7 +2502,7 @@ class PlugData(object):
 
         df = self.data if df is None else df
         df = df if cycle is None else df[df.cycle_nr == cycle]
-        df = df[[column_to_plot, 'compound_a', 'compound_b']]
+        df = df[[col, 'compound_a', 'compound_b']]
         df = df.groupby(['compound_a', 'compound_b']).mean()
         df = df.reset_index()
         df = df.pivot('compound_a', 'compound_b', col)
@@ -2777,21 +2769,12 @@ class PlugData(object):
             vmax = df[var].max()
 
             center = (
-                self.medium_only(cycle = cycle)[var].median()
+                self.medium_only()[var].median()
                     if self.config.heatmap_center_scale else
                 None
             )
 
-            cmap = (
-                config.heatmap_cmap
-                    if config.heatmap_cmap is not None else
-                sns.diverging_palette(
-                    *self.config.diverging_palette_1,
-                    as_cmap = True,
-                )
-                    if center is not None else
-                self.config.continuous_palette_1
-            )
+            cmap = self._heatmap_cmap(1, center)
 
             for j, cycle in enumerate(itertools.chain(self.cycles, (None,))):
 

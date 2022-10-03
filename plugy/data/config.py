@@ -31,6 +31,7 @@ import hashlib
 
 from dataclasses import dataclass, field
 
+import seaborn as sns
 
 module_logger = logging.getLogger(__name__)
 
@@ -236,12 +237,12 @@ class PlugyConfig(object):
     # see the cmap argument for seaborn.heatmap
     heatmap_cmap: str = None
     heatmap_second_cmap: str = None
-
-
+    # default palettes for heatmaps
     continuous_palette_1: str = 'inferno'
     continuous_palette_2: str = 'viridis'
+    # these tuples are passed to seaborn.diverging_palette
     diverging_palette_1: tuple[int, int] = (240, 10)
-    diverging_palette_1: tuple[int, int] = (150, 275)
+    diverging_palette_2: tuple[int, int] = (150, 275)
 
     # shorten drug names on certain plots
     short_labels: bool = True
@@ -487,3 +488,14 @@ class PlugyConfig(object):
                 return sym
 
         return ''
+
+
+    def diverging_palette(self, idx: int = 1) -> sns.mpl.colors.Colormap:
+        """
+        Default diverging palette by its index.
+        """
+
+        return sns.diverging_palette(
+            *getattr(self, f'diverging_palette_{idx}'),
+            as_cmap = True,
+        )
