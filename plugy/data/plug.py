@@ -2448,7 +2448,14 @@ class PlugData(object):
                 vmin = vmin,
                 vmax = vmax,
                 center = _center,
-                cmap = self.config['heatmap_cmap'],
+                cmap = (
+                    self.config['heatmap_cmap'] or
+                    (
+                        'inferno'
+                            if _center is None else
+                        sns.diverging_palette(240, 10, as_cmap = True)
+                    )
+                ),
                 **kwargs
             )
 
@@ -2462,13 +2469,19 @@ class PlugData(object):
                 sns.heatmap(
                     second_scale_data,
                     annot = annot_second_scale,
-                    cmap = 'viridis',
                     fmt = '',
                     ax = ax,
                     vmin = vmin,
                     vmax = vmax,
                     center = _center,
-                    cmap = self.config['heatmap_second_cmap'],
+                    cmap = (
+                        self.config['heatmap_second_cmap'] or
+                        (
+                            'viridis'
+                                if _center is None else
+                            sns.diverging_palette(150, 275, as_cmap = True)
+                        )
+                    ),
                     **kwargs
                 )
 
