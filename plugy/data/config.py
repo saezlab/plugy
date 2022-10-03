@@ -161,7 +161,8 @@ class PlugyConfig(object):
     # if barcode comes without reaching yet this threshold,
     # the sample counter won't be increased
     min_plugs_in_sample: int = 3
-
+    # samples or compounds to be discarded
+    exclude: list = None
     # if False, the workflow stops after plug identification and
     # quantification, sample and barcode plugs won't be distinguished
     has_barcode: bool = True

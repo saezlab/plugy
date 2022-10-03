@@ -132,6 +132,7 @@ class PlugData(object):
         self._count_samples_by_cycle()
         self._discard_cycles()
         self._label_samples()
+        self.discard_samples()
         self._create_sample_df()
         self._add_z_scores()
         self._media_lin_reg_norm()
@@ -1624,6 +1625,24 @@ class PlugData(object):
             lambda nr: self.get_compound_name(nr, 1)
         )
 
+
+    def discard_samples(self, samples: list[str] = None):
+        """
+        Discard certain samples or compound channels. ``samples`` is a list
+        of sample labels or compound labels. In case of the latter, all
+        samples with any of the given compounds will be discarded.
+        """
+
+        samples = self.config.exclude if samples is None else samples
+        samples = misc.to_set(samples)
+
+        self.sample_df = self.sample_df[
+            ~(
+                self.sample_df.name.isin(samples) |
+                self.sample_df.compound_a.isin(samples) |
+                self.sample_df.compound_b.isin(samples)
+            )
+        ]
 
     def _create_sample_df(self):
 
