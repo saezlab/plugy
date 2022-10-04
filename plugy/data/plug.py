@@ -132,8 +132,8 @@ class PlugData(object):
         self._count_samples_by_cycle()
         self._discard_cycles()
         self._label_samples()
-        self.discard_samples()
         self._create_sample_df()
+        self.discard_samples()
         self._add_z_scores()
         self._media_lin_reg_norm()
         self._check_sample_df_column(
