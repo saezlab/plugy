@@ -819,65 +819,75 @@ class PlugExperiment(object):
         self._plot_base(grid, 'heatmap_matrix', 'heatmap matrix')
 
 
-    def plot_control(self):
+    def univar_overview(
+            self,
+            var: str = None,
+            var2: str = None,
+        ):
         """
-        Creates a composite figure to investigate if the control channel
-        shows a bias with other variables or correlation with the readout
-        channel.
+        Creates a composite figure to investigate one variable and discover
+        potential bias or drift across time, cycles, samples, or in relation
+        to another variable. It is especially suitable to see if the control
+        channel shows a bias with other variables or correlation with the
+        readout channel.
+
+        Args:
+            var:
+                A variable name in the plug or sample data frame.
+            var2:
+                Another variable: it will be used only for one panel,
+                a scatter plot ``var`` vs. ``var2``.
         """
 
         self.seaborn_setup(font_scale = self.config.font_scale * .7)
 
         qc_dir = self.ensure_qc_dir()
 
-        # Plotting control
-        control_fig = plt.figure(
+        fig = plt.figure(
             figsize = (20, 10),
             constrained_layout = False,
         )
-        control_fig_gs = control_fig.add_gridspec(nrows = 2, ncols = 4)
-        control_ax_sample_dist = control_fig.add_subplot(control_fig_gs[0, :])
-        control_ax_control_regression = (
-            control_fig.add_subplot(control_fig_gs[1, 0])
-        )
-        control_ax_cycle_dist = control_fig.add_subplot(control_fig_gs[1, 1])
-        control_ax_readout_correlation = (
-            control_fig.add_subplot(control_fig_gs[1, 2])
-        )
+        gs = fig.add_gridspec(nrows = 2, ncols = 4)
+        ax_sample_dist = fig.add_subplot(gs[0, :])
+        ax_control_regression = fig.add_subplot(gs[1, 0])
+        ax_cycle_dist = fig.add_subplot(gs[1, 1])
+        ax_readout_correlation = fig.add_subplot(gs[1, 2])
+        ax_heatmap = fig.add_subplot(gs[1, 3])
 
-        control_ax_control_regression = (
+        ax_control_regression = (
             self.plug_data.plot_control_regression(
-                control_ax_control_regression
+                ax_control_regression
             )
         )
-        control_ax_cycle_dist = self.plug_data.plot_control_cycle_dist(
-            control_ax_cycle_dist
+        ax_cycle_dist = self.plug_data.plot_control_cycle_dist(
+            ax_cycle_dist
         )
-        control_ax_sample_dist = self.plug_data.plot_control_sample_dist(
-            control_ax_sample_dist
+        ax_sample_dist = self.plug_data.plot_control_sample_dist(
+            ax_sample_dist
         )
-        control_ax_readout_correlation = (
+        ax_readout_correlation = (
             self.plug_data.plot_control_readout_correlation(
-                control_ax_readout_correlation
+                ax_readout_correlation
             )
         )
 
-        grid = self.plug_data.plot_compound_heatmap(
+        ax_heatmap = self.plug_data.plot_compound_heatmap(
             column_to_plot = 'control_peak_median',
+            ax =
         )
 
-        control_fig.axes[-1] = grid.axes.flat[0]
+        fig.axes[-1] = grid.axes.flat[0]
 
-        control_fig.tight_layout()
+        fig.tight_layout()
 
         if self.config.plot_git_caption:
 
-            misc.add_git_hash_caption(control_fig)
+            misc.add_git_hash_caption(fig)
 
         path = qc_dir.joinpath(
             f"control_fluorescence.{self.config.figure_export_file_type}"
         )
-        control_fig.savefig(path)
+        fig.savefig(path)
         plt.clf()
 
         module_logger.info(f"Saving control plot to `{path}`.")
