@@ -3012,6 +3012,61 @@ class PlugData(object):
         return grid
 
 
+    def univar_overview(
+            self,
+            var: str = None,
+            var2: str = None,
+            fig: mpl.figure.Figure | None = None,
+        ) -> mpl.figure.Figure:
+        """
+        Creates a composite figure to investigate one variable and discover
+        potential bias or drift across time, cycles, samples, or in relation
+        to another variable. It is especially suitable to see if the control
+        channel shows a bias with other variables or correlation with the
+        readout channel.
+
+        Args:
+            var:
+                A variable name in the plug or sample data frame.
+            var2:
+                Another variable: it will be used only for one panel,
+                a scatter plot ``var`` vs. ``var2``.
+        """
+
+        if fig is None:
+
+            fig = plt.figure(
+                figsize = (20, 10),
+                constrained_layout = False,
+            )
+
+        gs = fig.add_gridspec(nrows = 2, ncols = 4)
+
+        ax_sample_dist = fig.add_subplot(gs[0, :])
+        ax_control_regression = fig.add_subplot(gs[1, 0])
+        ax_cycle_dist = fig.add_subplot(gs[1, 1])
+        ax_readout_correlation = fig.add_subplot(gs[1, 2])
+        ax_heatmap = fig.add_subplot(gs[1, 3])
+
+        ax_sample_dist = self.plot_control_sample_dist(ax_sample_dist)
+
+        ax_control_regression = self.plot_control_regression(
+            ax_control_regression
+        )
+        ax_cycle_dist = self.plot_control_cycle_dist(ax_cycle_dist)
+
+        ax_readout_correlation = self.plot_control_readout_correlation(
+            ax_readout_correlation
+        )
+
+        ax_heatmap = self.plot_compound_heatmap(
+            column_to_plot = var,
+            ax = ax_heatmap,
+        )
+
+        return fig
+
+
     def sample_sd_df(self) -> pd.DataFrame:
         """
         Creates a data frame of readout standard deviations and coefficients

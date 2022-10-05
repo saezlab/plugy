@@ -843,41 +843,7 @@ class PlugExperiment(object):
 
         qc_dir = self.ensure_qc_dir()
 
-        fig = plt.figure(
-            figsize = (20, 10),
-            constrained_layout = False,
-        )
-        gs = fig.add_gridspec(nrows = 2, ncols = 4)
-        ax_sample_dist = fig.add_subplot(gs[0, :])
-        ax_control_regression = fig.add_subplot(gs[1, 0])
-        ax_cycle_dist = fig.add_subplot(gs[1, 1])
-        ax_readout_correlation = fig.add_subplot(gs[1, 2])
-        ax_heatmap = fig.add_subplot(gs[1, 3])
-
-        ax_control_regression = (
-            self.plug_data.plot_control_regression(
-                ax_control_regression
-            )
-        )
-        ax_cycle_dist = self.plug_data.plot_control_cycle_dist(
-            ax_cycle_dist
-        )
-        ax_sample_dist = self.plug_data.plot_control_sample_dist(
-            ax_sample_dist
-        )
-        ax_readout_correlation = (
-            self.plug_data.plot_control_readout_correlation(
-                ax_readout_correlation
-            )
-        )
-
-        ax_heatmap = self.plug_data.plot_compound_heatmap(
-            column_to_plot = 'control_peak_median',
-            ax =
-        )
-
-        fig.axes[-1] = grid.axes.flat[0]
-
+        fig = self.plug_data.univar_overview(var = var, var2 = var2)
         fig.tight_layout()
 
         if self.config.plot_git_caption:
@@ -885,12 +851,12 @@ class PlugExperiment(object):
             misc.add_git_hash_caption(fig)
 
         path = qc_dir.joinpath(
-            f"control_fluorescence.{self.config.figure_export_file_type}"
+            f'{var}_overview.{self.config.figure_export_file_type}'
         )
         fig.savefig(path)
         plt.clf()
 
-        module_logger.info(f"Saving control plot to `{path}`.")
+        module_logger.info(f"Saving overview plot of `{var}` to `{path}`.")
 
         self.seaborn_setup()
 
