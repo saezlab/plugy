@@ -2148,29 +2148,45 @@ class PlugData(object):
         return ax
 
 
-    def plot_control_cycle_dist(self, axes: plt.Axes) -> plt.Axes:
+    def violin_by_cycle(
+            self,
+            ax: mpl.axes.Axes,
+            var: str,
+        ) -> mpl.axes.Axes:
         """
-        Gathers control peak medians by cycle and plots a violin plot
-        :param axes: plt.Axes object to draw on
-        :return: plt.Axes object with the plot
+        Violin plot of one variable in the samples data frame, grouped by
+        experiment cycle.
+
+        Args:
+            ax:
+                Axes object to draw on.
+            var:
+                Continuous variable in the samples data frame, to be
+                mapped to the y axis.
+
+        Return:
+            Axes object with the plot.
         """
 
-        axes = misc.seaborn_violin_fix(
+        ax = misc.seaborn_violin_fix(
             x = self.sample_df.cycle_nr + 1,
-            y = self.sample_df.control_peak_median,
-            ax = axes,
+            y = self.sample_df[var],
+            ax = ax,
             color = self.palette[0],
             box_color = 'white',
             midpoint_color = self.palette[0],
             violin_border_width = 0,
         )
 
+        var_label = misc.label(var)
+
         if self.config.figure_titles:
 
-            axes.set_title("Control: cycle bias")
+            ax.set_title(f'{var_label}: cycle bias')
 
-        axes.set_ylabel("Control [AU]")
-        axes.set_xlabel("Cycle")
+        # TODO: AU is not appropriate for all variables
+        ax.set_ylabel(f'{var_label} [AU]')
+        ax.set_xlabel('Cycle')
 
         return axes
 
@@ -3074,20 +3090,13 @@ class PlugData(object):
 
         ax_violin = fig.add_subplot(gs[0, :])
         ax_time = fig.add_subplot(gs[1, 0])
-        ax_cycle_dist = fig.add_subplot(gs[1, 1])
+        ax_cycle = fig.add_subplot(gs[1, 1])
         ax_readout_correlation = fig.add_subplot(gs[1, 2])
         ax_heatmap = fig.add_subplot(gs[1, 3])
 
-        ax_violin = self.violin_by_sample(
-            ax = ax_violin,
-            var = var,
-        )
-
-        ax_time = self.time_drift(
-            ax = time,
-            var = var,
-        )
-        ax_cycle_dist = self.plot_control_cycle_dist(ax_cycle_dist)
+        ax_violin = self.violin_by_sample(ax = ax_violin, var = var)
+        ax_time = self.time_drift(ax = time, var = var)
+        ax_cycle = self.violin_by_cycle(ax = ax_cycle, var = var)
 
         ax_readout_correlation = self.plot_control_readout_correlation(
             ax_readout_correlation
