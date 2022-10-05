@@ -2176,45 +2176,62 @@ class PlugData(object):
         return [shorten(name) for name in names]
 
 
-    def plot_control_sample_dist(self, axes: plt.Axes) -> plt.Axes:
+    def violin_by_sample(
+            self,
+            ax: mpl.axes.Axes,
+            var: str,
+        ) -> mpl.axes.Axes:
         """
-        Gathers control peak medians by sample and plots a violin plot
-        :param axes: plt.Axes object to draw on
-        :return: plt.Axes object with the plot
+        Violin plot of one variable in the sample data frame, grouped by
+        samples.
+
+        Args:
+            ax:
+                The axes to draw on.
+            var:
+                Continuous variable to be mapped to the y axis.
+
+        Return:
+            Axes with the plot.
         """
 
         names = self.shorten_names(self.sample_df.name)
 
-        axes = sns.violinplot(
+        common_args = dict(
             x = names,
-            y = 'control_peak_median',
+            y = var,
             data = self.sample_df,
-            ax = axes,
+            ax = ax,
+        )
+
+        ax = sns.violinplot(
             color = self.palette[0],
             linewidth = 0,
             width = .97,
+            **common_args
         )
 
-        axes = sns.boxplot(
-            x = names,
-            y = 'control_peak_median',
-            data = self.sample_df,
-            ax = axes,
+        ax = sns.boxplot(
             showbox = False,
             showfliers = False,
             showcaps = False,
             whiskerprops = {'linewidth': 0.0},
             medianprops = {'color': 'white'},
+            **common_args
         )
+
+        var_label = misc.label(var)
 
         if self.config.figure_titles:
 
-            axes.set_title('Control by sample')
+            axes.set_title(f'{var_label} by sample')
 
-        axes.set_ylabel('Control [AU]')
+        # TODO: AU is not appropriate for all variables
+        axes.set_ylabel(f'{var_label} [AU]')
         axes.set_xlabel('Sample')
 
         for tick in axes.get_xticklabels():
+
             tick.set_rotation(90)
 
         return axes
@@ -3042,13 +3059,16 @@ class PlugData(object):
 
         gs = fig.add_gridspec(nrows = 2, ncols = 4)
 
-        ax_sample_dist = fig.add_subplot(gs[0, :])
+        ax_violin = fig.add_subplot(gs[0, :])
         ax_control_regression = fig.add_subplot(gs[1, 0])
         ax_cycle_dist = fig.add_subplot(gs[1, 1])
         ax_readout_correlation = fig.add_subplot(gs[1, 2])
         ax_heatmap = fig.add_subplot(gs[1, 3])
 
-        ax_sample_dist = self.plot_control_sample_dist(ax_sample_dist)
+        ax_sample_dist = self.violin_by_sample(
+            ax = ax_sample_dist,
+            var = var,
+        )
 
         ax_control_regression = self.plot_control_regression(
             ax_control_regression

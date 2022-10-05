@@ -146,6 +146,15 @@ def to_set(value):
         return {value}
 
 
+def label(name):
+    """
+    A label from variable name. Removes underscores and capitalizes the
+    first word.
+    """
+
+    return name.replace('_', ' ').capitalize()
+
+
 def first(value):
     """
     Returns first element of an iterator or the value unchanged if it's not
