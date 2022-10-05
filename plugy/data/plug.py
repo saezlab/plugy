@@ -615,18 +615,18 @@ class PlugData(object):
 
         if len(self.sample_df) > 1:
 
-            self.sample_df.insert(
+            self.sample_df = self._z_score(
+                df = self.sample_df,
+                col = 'readout_peak_median',
                 loc = 5,
-                column = "readout_peak_z_score",
-                value = stats.zscore(self.sample_df.readout_peak_median),
             )
 
             if self.normalize_using_control:
 
-                self.sample_df.insert(
+                self.sample_df = self._z_score(
+                    df = self.sample_df,
+                    col = 'readout_per_control',
                     loc = 6,
-                    column = "readout_per_control_z_score",
-                    value = stats.zscore(self.sample_df.readout_per_control),
                 )
 
         else:
@@ -2739,11 +2739,7 @@ class PlugData(object):
                     )
                 )
 
-                sample_df = sample_df.assign(
-                    readout_media_norm_z_score = stats.zscore(
-                        sample_df.readout_media_norm
-                    )
-                )
+                sample_df = self._z_score(sample_df, 'readout_media_norm')
 
             else:
 
@@ -2777,16 +2773,28 @@ class PlugData(object):
             self.sample_df = sample_df
 
 
-    def _z_score(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
+    def _z_score(
+            self,
+            df: pd.DataFrame,
+            col: str,
+            loc: int | None = None,
+        ) -> pd.DataFrame:
+
+        loc = df.shape[1] if loc is None else loc
+        zcol = f"{re.sub('_median$', '', col)}_z_score"
 
         def _z_score(df, col):
 
-            df[f'{col}_z_score'] = stats.zscore(df[col])
+            df.insert(
+                column = zcol,
+                value = stats.zscore(df[col]),
+                loc = loc,
+            )
 
             return df
 
 
-        by_cycle = self.config.z_factors_by_cycle
+        by_cycle = self.config.z_scores_by_cycle
 
         return (
             pd.concat(
