@@ -356,7 +356,7 @@ class PlugExperiment(object):
 
         self.sample_data = self.get_sample_data()
         self.append_experiments()
-        self.sample_statistics = self.calculate_statistics()
+        self.sample_statistics = self.stats()
 
 
     def append_experiments(self, experiments: list = None):
@@ -945,13 +945,13 @@ class PlugExperiment(object):
         self.seaborn_setup()
 
 
-    def calculate_statistics(self, cycle: int | None = None) -> pd.DataFrame:
+    def stats(self, cycle: int | None = None) -> pd.DataFrame:
         """
         Calculates statistics for each sample: means, standard deviations,
         Wilcoxon tests, their adjusted p-values and significances.
         """
 
-        return self.plug_data.calculate_statistics(cycle = cycle)
+        return self.plug_data.stats(cycle = cycle)
 
 
     def drug_combination_analysis(self):

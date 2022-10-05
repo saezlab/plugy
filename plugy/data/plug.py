@@ -144,6 +144,9 @@ class PlugData(object):
         self._check_sample_df_column(self.config.readout_column)
         self.calculate_z_factor()
         self.calculate_modified_z_factor()
+        self.update_baseline()
+        self.update_negative()
+        self.update_fc()
 
 
     def _detect_peaks(self):
@@ -2304,7 +2307,7 @@ class PlugData(object):
         """
 
         # pandas is such a disaster...
-        data = self.sample_df
+        data = self.sample_df.copy()
         data['the_cycle'] = data.cycle_nr.map(lambda n: f'Cycle {n + 1}')
 
         if self.ncycles > 1:
@@ -3371,7 +3374,7 @@ class PlugData(object):
         return data
 
 
-    def calculate_statistics(self, cycle: int | None = None) -> pd.DataFrame:
+    def stats(self, cycle: int | None = None) -> pd.DataFrame:
         """
         Calculates statistics for each sample: means, standard deviations,
         Wilcoxon tests, their adjusted p-values and significances.
@@ -3379,10 +3382,7 @@ class PlugData(object):
 
         module_logger.info('Calculating statistics')
 
-        col = self.config.readout_analysis_column
-
-        baseline = self.baseline_lm(col = col, baseline = 'baseline')
-        negative = self.baseline_lm(col = col, baseline = 'negative')
+        col = self.readout_col
 
         medium_only = self.medium_only()
         samples = self.sample_df
@@ -3391,18 +3391,6 @@ class PlugData(object):
         if cycle is not None:
 
             samples = samples[samples.cycle_nr == cycle]
-
-        samples['baseline'] = baseline[samples.start_time]
-        samples['negative'] = np.nan
-        samples['fc'] = np.nan
-
-        if negative is not None:
-
-            samples['negative'] = negative[samples.start_time]
-            samples['fc'] = (
-                (samples[col] - samples.negative) /
-                (samples.baseline - samples.negative)
-            )
 
         by = ['compound_a', 'compound_b', 'name']
         samples = samples[by + ['baseline', 'negative', 'fc', col]]
@@ -3413,7 +3401,7 @@ class PlugData(object):
             for c in sample_stats.columns.values
         ]
 
-        p_values = list()
+        p_values = []
 
         for combination, values in samples.groupby(by = by):
 
@@ -3443,6 +3431,58 @@ class PlugData(object):
         )
 
         return sample_stats
+
+
+    def _update_baseline(self, baseline: Literal['baseline', 'negative']):
+
+        lm = self.baseline_lm(col = self.readout_col, baseline = baseline)
+
+        self.sample_df[baseline] = (
+            np.nan
+                if lm is None else
+            lm[self.sample_df.start_time]
+        )
+
+
+    def update_baseline(self):
+        """
+        Adds a column to the samples data frame with the baseline predicted
+        by the linear model fit to the baseline (medium only) samples.
+        """
+
+        self._update_baseline(baseline = 'baseline')
+
+
+    def update_negative(self):
+        """
+        Adds a column to the samples data frame with the zero line predicted
+        by the linear model fit to the negative control samples. These
+        represent the signal detected at very low levels of the measured
+        activity.
+        """
+
+        self._update_baseline(baseline = 'negative')
+
+
+    def update_fc(self):
+        """
+        Adds a column to the samples data frame with the fold changes. Fold
+        changes are calculated by subtracting the zero (negative) level from
+        all values and dividing each value by the corresponding baseline.
+        """
+
+        samples = self.sample_df
+
+        bline = samples.baseline - samples.negative
+        bline_min = bline.min()
+        values = samples[self.readout_col] - samples.negative
+
+        if bline_min <= 0:
+
+            bline = bline - bline_min + .001
+            values = values - bline_min + .001
+
+        samples['fc'] = values / bline
 
 
     def mean_cv(self):
