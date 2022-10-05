@@ -2266,6 +2266,84 @@ class PlugData(object):
         return ax
 
 
+    def boxplot_by_sample(
+            self,
+            ax: mpl.axes.Axes,
+            var: str,
+        ) -> mpl.axes.Axes:
+        """
+        Boxplot of one variable in the sample data frame, grouped by
+        samples.
+
+        Args:
+            ax:
+                The axes to draw on.
+            var:
+                Continuous variable to be mapped to the y axis.
+
+        Return:
+            Axes with the plot.
+        """
+
+        # pandas is such a disaster...
+        data = self.sample_df
+        data['the_cycle'] = data.cycle_nr.map(lambda n: f'Cycle {n + 1}')
+
+        if self.ncycles > 1:
+
+            data = pd.concat((
+                data,
+                data.copy().assign(the_cycle = 'All'),
+            ))
+
+        # pandas is just ridiculous
+        data['the_cycle'] = data['the_cycle'].astype('category')
+        data['the_cycle'].cat.reorder_categories(
+            sorted(data['the_cycle'].cat.categories)
+        )
+
+        data['short_name'] = self.shorten_names(data.name)
+
+        ax = sns.boxplot(
+            x = 'short_name',
+            y = var,
+            data = data,
+            ax = ax,
+            hue = 'the_cycle',
+            palette = self.palette,
+            linewidth = 1.,
+            width = .97,
+        )
+
+        lh, ll = ax.get_legend_handles_labels()
+        ax.legend_.remove()
+
+        legend_args = misc.LEGEND_STYLE.copy()
+        legend_args['handletextpad'] = 1.
+
+        ax.legend(
+            lh,
+            ll,
+            loc = 2,
+            ncol = self.ncycles + 1 * (self.ncycles > 1),
+            **legend_args
+        )
+
+        if self.config.figure_titles:
+
+            var_ttl = self._label(var, unit = False)
+            ax.set_title(f'{var_ttl} by sample')
+
+        ax.set_ylabel(self._label(var))
+        ax.set_xlabel('Sample')
+
+        for tick in ax.get_xticklabels():
+
+            tick.set_rotation(90)
+
+        return ax
+
+
     def scatter(
             self,
             ax: mpl.axes.Axes,
@@ -2315,17 +2393,13 @@ class PlugData(object):
 
         lh, ll = ax.get_legend_handles_labels()
         ax.legend_.remove()
-        ll = [labels[l] if l in labels else l for l in ll]
+        ll = [labels.get(l, l) for l in ll]
 
         ax.legend(
             lh,
             ll,
-            handletextpad = .01,
             loc = 4,
-            fancybox = False,
-            borderpad = .2,
-            edgecolor = '#FFFFFF00',
-            framealpha = 1,
+            **misc.LEGEND_STYLE
         )
 
         ax.set_ylim(
@@ -3129,7 +3203,7 @@ class PlugData(object):
         ax_scatter2 = fig.add_subplot(gs[1, 3])
         ax_heatmap = fig.add_subplot(gs[1, 4])
 
-        ax_violin = self.violin_by_sample(ax = ax_violin, var = var)
+        ax_violin = self.boxplot_by_sample(ax = ax_violin, var = var)
         ax_time = self.time_drift(ax = ax_time, var = var)
         ax_cycle = self.violin_by_cycle(ax = ax_cycle, var = var)
         ax_scatter1 = self.scatter(ax = ax_scatter1, y = var2, x = var)

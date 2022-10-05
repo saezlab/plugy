@@ -59,6 +59,14 @@ LIST_LIKE = (
     ValuesView,
 )
 
+LEGEND_STYLE = dict(
+    handletextpad = .01,
+    fancybox = False,
+    borderpad = .2,
+    edgecolor = '#FFFFFF00',
+    framealpha = 1,
+)
+
 
 def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
     """
