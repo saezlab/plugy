@@ -2104,18 +2104,31 @@ class PlugData(object):
         return contamination_plot
 
 
-    def plot_control_regression(self, axes: plt.Axes) -> plt.Axes:
+    def time_drift(
+            self,
+            ax: mpl.axes.Axes,
+            var: str,
+        ) -> mpl.axes.Axes:
         """
-        Plots a scatter plot of control peak medians over experiment time
-            and applies a linear regression to it
-        :param axes: plt.Axes object to draw on
-        :return: plt.Axes object with the plot
+        Plots a scatter plot of one variable in the sample data frame against
+        experiment time, with a linear regression line.
+
+        Args:
+            ax:
+                Axes to draw on.
+            var:
+                Continuous variable in the samples data frame, to be mapped
+                to the y axis.
+
+        Return:
+            Axes object with the plot.
         """
-        axes = sns.regplot(
-            x = "start_time",
-            y = "control_peak_median",
+
+        ax = sns.regplot(
+            x = 'start_time',
+            y = var,
             data = self.sample_df,
-            ax = axes,
+            ax = ax,
             color = self.palette[0],
             scatter_kws = {
                 'alpha': .33,
@@ -2127,12 +2140,12 @@ class PlugData(object):
 
         if self.config.figure_titles:
 
-            axes.set_title("Control: time bias")
+            ax.set_title('Control: time bias')
 
-        axes.set_ylabel("Control [AU]")
-        axes.set_xlabel("Time [s]")
+        ax.set_ylabel('Control [AU]')
+        ax.set_xlabel('Time [s]')
 
-        return axes
+        return ax
 
 
     def plot_control_cycle_dist(self, axes: plt.Axes) -> plt.Axes:
@@ -2224,17 +2237,17 @@ class PlugData(object):
 
         if self.config.figure_titles:
 
-            axes.set_title(f'{var_label} by sample')
+            ax.set_title(f'{var_label} by sample')
 
         # TODO: AU is not appropriate for all variables
-        axes.set_ylabel(f'{var_label} [AU]')
-        axes.set_xlabel('Sample')
+        ax.set_ylabel(f'{var_label} [AU]')
+        ax.set_xlabel('Sample')
 
-        for tick in axes.get_xticklabels():
+        for tick in ax.get_xticklabels():
 
             tick.set_rotation(90)
 
-        return axes
+        return ax
 
 
     def plot_control_readout_correlation(self, axes: plt.Axes) -> plt.Axes:
@@ -3060,18 +3073,19 @@ class PlugData(object):
         gs = fig.add_gridspec(nrows = 2, ncols = 4)
 
         ax_violin = fig.add_subplot(gs[0, :])
-        ax_control_regression = fig.add_subplot(gs[1, 0])
+        ax_time = fig.add_subplot(gs[1, 0])
         ax_cycle_dist = fig.add_subplot(gs[1, 1])
         ax_readout_correlation = fig.add_subplot(gs[1, 2])
         ax_heatmap = fig.add_subplot(gs[1, 3])
 
-        ax_sample_dist = self.violin_by_sample(
-            ax = ax_sample_dist,
+        ax_violin = self.violin_by_sample(
+            ax = ax_violin,
             var = var,
         )
 
-        ax_control_regression = self.plot_control_regression(
-            ax_control_regression
+        ax_time = self.time_drift(
+            ax = time,
+            var = var,
         )
         ax_cycle_dist = self.plot_control_cycle_dist(ax_cycle_dist)
 
