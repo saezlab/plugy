@@ -2777,6 +2777,27 @@ class PlugData(object):
             self.sample_df = sample_df
 
 
+    def _z_score(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
+
+        def _z_score(df, col):
+
+            df[f'{col}_z_score'] = stats.zscore(df[col])
+
+            return df
+
+
+        by_cycle = self.config.z_factors_by_cycle
+
+        return (
+            pd.concat(
+                _z_score(grp.copy(), col)
+                for _, grp in df.groupby('cycle_nr').groups
+            )
+                if by_cycle else
+            _z_score(df, col)
+        )
+
+
     def append(
             self,
             plug_df: pd.DataFrame,
