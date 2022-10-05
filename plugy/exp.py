@@ -1111,8 +1111,8 @@ class PlugExperiment(object):
         statistics = statistics.set_index(["compound_a", "compound_b"])
         statistics = statistics.stars
 
-        grid = self.plug_data.plot_compound_heatmap(
-            column_to_plot = self.config.readout_analysis_column,
+        grid = self.plug_data.samples_heatmap(
+            var = self.config.readout_analysis_column,
             annotation_df = statistics,
             by_cycle = by_cycle,
         )

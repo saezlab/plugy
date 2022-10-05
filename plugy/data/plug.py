@@ -2188,7 +2188,7 @@ class PlugData(object):
         ax.set_ylabel(f'{var_label} [AU]')
         ax.set_xlabel('Cycle')
 
-        return axes
+        return ax
 
 
     @staticmethod
@@ -2400,32 +2400,44 @@ class PlugData(object):
         return ax
 
 
-    def plot_compound_heatmap(
+    def samples_heatmap(
             self,
-            column_to_plot: str,
+            var: str,
             annotation_df: pd.DataFrame = None,
             annotation_column: str = 'stars',
             by_cycle: bool = False,
             center: float | str | tuple[float] | None = None,
-            ax: mpl.axes.AxesSublot | None = None,
+            ax: mpl.axes.Axes | None = None,
             **kwargs
-        ) -> sns.FacetGrid | mpl.axes.AxesSublot:
+        ) -> sns.FacetGrid | mpl.axes.Axes:
         """
-        Plots a heatmap to visualize the different combinations
-        :param column_to_plot: Name of the column to extract values from
-        :param annotation_df: pd.DataFrame grouped by column, compound_a and
-            compound_b for annotation
-        :param annotation_column: Which column in annotation_df to use for
-            the annotation
-        :param by_cycle: Produce separate plots for each cycle.
-        :param center: Center the color scale at these values or the median
-            of these samples. Can be a tuple if plotting by cycle.
-        :return: seaborn.FacetGrid object with the plot
-        """
-        self._check_sample_df_column(column_to_plot)
+        Plots a heatmap to visualize the different combinations.
 
-        assert column_to_plot not in {"compound_a", "compound_b"},\
-            f"You can not plot this coulumn on a heatmap: `{column_to_plot}`."
+        Args:
+            var:
+                A variable in the samples data frame, to be mapped to hue.
+            annotation_df:
+                Data frame grouped by column `compound_a` and
+                `compound_b` for annotation.
+            annotation_column:
+                Which column in annotation_df to use for the annotation.
+            by_cycle:
+                Produce separate plots for each cycle.
+            center:
+                Center the color scale at these values or the median
+                of these samples. Can be a tuple if plotting by cycle.
+
+        Return:
+            An object with the figure, if axes has been provided, it is
+            returned, otherwise a grid. Warning: if ``by_cycle`` is *True*,
+            axes is provided, and the experiment has more than one cycles,
+            cycles will be plotted over each other on the same axes, which
+            is not a desired behaviour.
+        """
+        self._check_sample_df_column(var)
+
+        assert var not in {'compound_a', 'compound_b'},\
+            f'You can not plot this coulumn on a heatmap: `{var}`.'
 
         if annotation_df is not None:
 
@@ -2492,7 +2504,7 @@ class PlugData(object):
         for (i, cycle), _center in zip(enumerate(cycles), center):
 
             data = self._compound_heatmap_data(
-                col = column_to_plot,
+                col = var,
                 cycle = cycle,
                 df = self.sample_df,
             )
@@ -2559,11 +2571,8 @@ class PlugData(object):
                 )
 
             cycle_str = (' • Cycle %u' % (cycle + 1)) if by_cycle else ''
-            unit_str = 'z-score' if 'z_score' in column_to_plot else '[AU]'
-            var_str = column_to_plot.split('_')[0].capitalize()
-            ax.set_title(
-                f"{var_str} {unit_str}{cycle_str}"
-            )
+            var_label = self._label(var)
+            ax.set_title(f"{var_label} {cycle_str}")
             ax.set_ylabel("")
             ax.set_xlabel("")
 
@@ -3119,13 +3128,13 @@ class PlugData(object):
         ax_heatmap = fig.add_subplot(gs[1, 4])
 
         ax_violin = self.violin_by_sample(ax = ax_violin, var = var)
-        ax_time = self.time_drift(ax = time, var = var)
+        ax_time = self.time_drift(ax = ax_time, var = var)
         ax_cycle = self.violin_by_cycle(ax = ax_cycle, var = var)
         ax_scatter1 = self.scatter(ax = ax_scatter1, y = var2, x = var)
         ax_scatter2 = self.scatter(ax = ax_scatter2, y = var3, x = var)
 
-        ax_heatmap = self.plot_compound_heatmap(
-            column_to_plot = var,
+        ax_heatmap = self.samples_heatmap(
+            var = var,
             ax = ax_heatmap,
         )
 
