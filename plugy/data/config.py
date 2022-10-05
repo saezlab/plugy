@@ -267,8 +267,8 @@ class PlugyConfig(object):
     alpha: float = 0.05
     significance_symbols: dict = field(
         default_factory = lambda: {
-            '***': .0001,
-            '**': .001,
+            '***': .001,
+            '**': .01,
             '*': .05,
             '`': .1,
         }
