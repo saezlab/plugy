@@ -1019,20 +1019,28 @@ class PlugData(object):
         return medium_control
 
 
-    def get_media_control_lin_reg(self, readout_column: str = ""):
+    def baseline_lm(
+            self,
+            col: str | None = None,
+        ) -> misc.LinearRegression | None:
         """
-        Calculates a linear regression over time of all media control plugs
-        The readout_peak_median column is used to calculate the regression
+        Calculates a linear regression on baseline control plugs over time.
 
-        :return: Tuple with slope, intercept, rvalue, pvalue and stderr of
-        the regression. See https://docs.scipy.org/doc/scipy/reference/
-        generated/scipy.stats.linregress.html for more information about
-        the returned values.
+        Args:
+            col:
+                A column in the samples data frame. If not provided, the
+                ``readout_column`` will be used from the config.
+
+        Return:
+            Tuple with slope, intercept, rvalue, pvalue and stderr of
+            the regression. See https://docs.scipy.org/doc/scipy/reference/
+            generated/scipy.stats.linregress.html for more information about
+            the returned values.
         """
 
-        medium_control = self.medium_only()
+        baseline = self.medium_only()
 
-        if not bool(len(medium_control)):
+        if not bool(len(baseline)):
 
             module_logger.warning(
                 'Could not find medium only control samples, unable to '
@@ -1041,18 +1049,18 @@ class PlugData(object):
                 f'`medium_control_label` (currently `{self.med_ctrl_lab}`).'
             )
 
-            slope, intercept, rvalue, pvalue, stderr = (None,) * 5
+            lm = None
 
         else:
 
-            readout_column = readout_column or self.config.readout_column
+            col = col or self.config.readout_column
 
-            slope, intercept, rvalue, pvalue, stderr = stats.linregress(
-                medium_control.start_time,
-                medium_control[readout_column],
+            lm = misc.LinearRegression(
+                x = baseline.start_time,
+                y = baseline[col],
             )
 
-        return slope, intercept, rvalue, pvalue, stderr
+        return lm
 
 
     def seaborn_setup(self):
@@ -2506,6 +2514,7 @@ class PlugData(object):
             cycles will be plotted over each other on the same axes, which
             is not a desired behaviour.
         """
+
         self._check_sample_df_column(var)
 
         assert var not in {'compound_a', 'compound_b'},\
@@ -2700,42 +2709,57 @@ class PlugData(object):
 
     def _check_sample_df_column(self, column: str):
         """
-        Checks if column is in sample_df
-        :param column: Column to check
+        Checks if column is in sample data frame.
+
+        Args:
+            column:
+                The column to check.
         """
+
         try:
-            assert column in self.sample_df.columns.to_list(), f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!"
+
+            msg = (
+                f"Column {column} not in the column names of sample_df"
+                f"({self.sample_df.columns.to_list()}), specify a column "
+                "from the column names!"
+            )
+
+            assert column in self.sample_df.columns.to_list(), msg
+
         except AssertionError:
-            module_logger.critical(f"Column {column} not in the column names of sample_df ({self.sample_df.columns.to_list()}), specify a column from the column names!")
+
+            module_logger.critical(msg)
+
             raise
 
 
-    def _media_lin_reg_norm(self):
+    def _media_lin_reg_norm(self) -> pd.DataFrame:
         """
-        Normalizes sample_df using media control regression
-
-        :return: updated sample_df
+        Regresses out the baseline from the readout signal in ``sample_df``.
+        The baseline is defined by the level of the medium only samples.
+        As these are repeated several times over the experiment, their drift
+        can be captured by a linear regression, and in order to adjust the
+        readout signal by regressing out this drift.
         """
 
         if self.normalize_using_media_control_lin_reg:
 
             sample_df = self.sample_df
 
-            if self.normalize_using_control:
-                readout_column = "readout_per_control"
-            else:
-                readout_column = "readout_peak_median"
-
-            slope, intercept, _, _, _ = self.get_media_control_lin_reg(
-                readout_column=readout_column
+            readout_column = (
+                'readout_per_control'
+                    if self.normalize_using_control else
+                'readout_peak_median'
             )
 
-            if slope and intercept:
+            lm = self.baseline_lm(col = readout_column)
+
+            if lm:
 
                 sample_df = sample_df.assign(
                     readout_media_norm = (
                         sample_df[readout_column] /
-                        (sample_df["start_time"] * slope + intercept)
+                        lm[sample_df['start_time']]
                     )
                 )
 
@@ -3267,8 +3291,10 @@ class PlugData(object):
         Calculates statistics for each sample in the samples data frame.
 
         Args:
-            long (bool): Return a long or wide format data frame.
-            kwargs: A mapping where keys are column names while values are
+            long:
+                Create long or wide format data frame.
+            kwargs:
+                A mapping where keys are column names while values are
                 aggregate function names or functions. For one column more
                 than one statistics can be calculated by passing a tuple
                 as value.

@@ -37,6 +37,7 @@ import subprocess as sp
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import scipy.stats as stats
 
 
 SIMPLE_TYPES = (
@@ -214,6 +215,57 @@ def ntuple_str(nt, pretty_floats = True):
 def sample_label(*compounds) -> str:
 
     return ' + '.join(sorted(compounds)[:2])
+
+
+class LinearRegression:
+
+    def __init__(self, x: Iterable[float], y: Iterable[float]):
+        """
+        Fits a linear regression.
+
+        Args:
+            x:
+                The independent variable.
+            y:
+                The dependent variable.
+        """
+
+        self.x = np.array(list(x))
+        self.y = np.array(list(y))
+        self.fit()
+
+
+    def fit(self):
+        """
+        Perform the fit.
+        """
+
+        (
+            self.slope,
+            self.intercept,
+            self.rvalue,
+            self.pvalue,
+            self.stderr,
+        ) = stats.linregress(self.x, self.y)
+
+
+    def __getitem__(self, x):
+
+        return self.predict(x)
+
+
+    def predict(self, x):
+        """
+        For a number x or a numpy array of numbers returns the y value(s)
+        predicted by the model.
+        """
+
+        return self.slope * x + self.intercept
+
+
+    def __repr__(self):
+
+        return f'<Linear model: y = x * {self.slope} + {self.intercept}>'
 
 
 def matplotlib_331_fix():
