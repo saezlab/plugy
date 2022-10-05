@@ -32,8 +32,6 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
-import statsmodels.stats.multitest as statsmod
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -953,71 +951,7 @@ class PlugExperiment(object):
         Wilcoxon tests, their adjusted p-values and significances.
         """
 
-        module_logger.info('Calculating statistics')
-
-        col = self.config.readout_analysis_column
-
-        baseline = self.plug_data.baseline_lm(col = col, baseline = 'baseline')
-        negative = self.plug_data.baseline_lm(col = col, baseline = 'negative')
-
-        medium_only = self.plug_data.medium_only()
-        samples = self.plug_data.sample_df
-        samples = samples[~samples.isin(medium_only)].dropna()
-
-        if cycle is not None:
-
-            samples = samples[samples.cycle_nr == cycle]
-
-        samples['baseline'] = baseline[samples.start_time]
-        samples['fc'] = np.nan
-
-        if negative is not None:
-
-            samples['negative'] = negative[samples.start_time]
-            samples['fc'] = (
-                (samples[col] - samples.negative) /
-                (samples.baseline - samples.negative)
-            )
-
-        by = ['compound_a', 'compound_b', 'name']
-        samples = samples[by + ['baseline', 'fc', col]]
-
-        sample_stats = samples.groupby(by = by).agg([np.mean, np.std])
-        sample_stats.columns = [
-            '_'.join(c)
-            for c in sample_stats.columns.values
-        ]
-
-        p_values = list()
-
-        for combination, values in samples.groupby(by = by):
-
-            p_values.append(
-                stats.ranksums(
-                    x = values[col],
-                    y = medium_only[col],
-                )[1]
-            )
-
-        sample_stats = sample_stats.assign(pval = p_values)
-
-        significance, p_adjusted, _, alpha_corr_bonferroni = (
-            statsmod.multipletests(
-                pvals = sample_stats.reset_index().pval,
-                alpha = self.config.alpha,
-                method = 'bonferroni',
-            )
-        )
-
-        stars = [self.config.significance_stars(p) for p in p_adjusted]
-
-        sample_stats = sample_stats.assign(
-            p_adjusted = p_adjusted,
-            significant = significance,
-            stars = stars,
-        )
-
-        return sample_stats
+        return self.plug_data.calculate_statistics(cycle = cycle)
 
 
     def drug_combination_analysis(self):
