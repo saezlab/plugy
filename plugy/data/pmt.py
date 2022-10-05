@@ -45,7 +45,7 @@ module_logger = logging.getLogger(__name__)
 @dataclass
 class PmtData(object):
 
-    input_file: pl.Path
+    input_file: str | pl.Path
     acquisition_rate: int = 300
     cut: tuple = (None, None)
     correct_acquisition_time: bool = True
@@ -85,12 +85,16 @@ class PmtData(object):
 
     def __post_init__(self):
 
+        self.input_file = pl.Path(self.input_file)
+
         module_logger.info(
-            f"Creating PmtData object from file {self.input_file.absolute()}"
+            f'Creating PmtData object from file {self.input_file.absolute()}'
         )
-        module_logger.debug(f"Configuration:")
+        module_logger.debug('Configuration:')
+
         for k, v in self.__dict__.items():
-            module_logger.debug(f"{k}: {v}")
+
+            module_logger.debug(f'{k}: {v}')
 
         self.data = self.read_txt()
         self.data = self.set_channel_values()
