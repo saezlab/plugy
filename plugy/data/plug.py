@@ -19,7 +19,7 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
-from typing import Optional
+from typing import Literal
 
 import sys
 import re
@@ -136,7 +136,7 @@ class PlugData(object):
         self._create_sample_df()
         self.discard_samples()
         self._add_z_scores()
-        self._media_lin_reg_norm()
+        self._baseline_adjust()
         self._check_sample_df_column(
             self.config.readout_analysis_column
         )
@@ -1022,6 +1022,7 @@ class PlugData(object):
     def baseline_lm(
             self,
             col: str | None = None,
+            baseline: Literal['baseline', 'negative'] = 'baseline',
         ) -> misc.LinearRegression | None:
         """
         Calculates a linear regression on baseline control plugs over time.
@@ -1030,6 +1031,9 @@ class PlugData(object):
             col:
                 A column in the samples data frame. If not provided, the
                 ``readout_column`` will be used from the config.
+            baseline:
+                Use the medium only samples or the negative controls as
+                baseline.
 
         Return:
             Tuple with slope, intercept, rvalue, pvalue and stderr of
@@ -1038,12 +1042,17 @@ class PlugData(object):
             the returned values.
         """
 
-        baseline = self.medium_only()
+        get_baseline = dict(
+            baseline = self.medium_only,
+            negative = self.negative_controls,
+        )
 
-        if not bool(len(baseline)):
+        baseline_df = get_baseline[baseline]()
+
+        if not bool(len(baseline_df)):
 
             module_logger.warning(
-                'Could not find medium only control samples, unable to '
+                'Could not find baseline samples, unable to '
                 'fit a linear regression on them. If the experiment '
                 'contains such samples, check the config value of '
                 f'`medium_control_label` (currently `{self.med_ctrl_lab}`).'
@@ -1056,8 +1065,8 @@ class PlugData(object):
             col = col or self.config.readout_column
 
             lm = misc.LinearRegression(
-                x = baseline.start_time,
-                y = baseline[col],
+                x = baseline_df.start_time,
+                y = baseline_df[col],
             )
 
         return lm
@@ -1717,8 +1726,8 @@ class PlugData(object):
     def plot_samples_cycles(
             self,
             # these type hints look pretty terrible
-            ylim: tuple[Optional[float], Optional[float]] = (None, None),
-            samples: Optional[list[str]] = None,
+            ylim: tuple[(float | None,) * 2] = (None, None),
+            samples: list[str] | None = None,
         ) -> tuple[mpl.figure.Figure, mpl.axes.Axes]:
         """
         Creates a plot with raw data for the individual samples and cycles.
@@ -2733,7 +2742,7 @@ class PlugData(object):
             raise
 
 
-    def _media_lin_reg_norm(self) -> pd.DataFrame:
+    def _baseline_adjust(self) -> pd.DataFrame:
         """
         Regresses out the baseline from the readout signal in ``sample_df``.
         The baseline is defined by the level of the medium only samples.
