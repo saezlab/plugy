@@ -19,7 +19,7 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
-from typing import Optional
+from typing import Iterable, Optional
 from numbers import Number
 
 import sys
@@ -682,8 +682,8 @@ class PlugExperiment(object):
 
         module_logger.info(f"Saving contamination scatter plots to `{path}`.")
 
-        # 7: control (orange) channel matrix
-        self.plot_control()
+        # 7: composite single channel insights figures
+        self.univar_overviews()
 
         # 8: raw data in sample vs. cycle grid
         self.plot_samples_cycles()
@@ -822,7 +822,8 @@ class PlugExperiment(object):
     def univar_overview(
             self,
             var: str = None,
-            var2: str = None,
+            var2: str = 'readout_peak_median',
+            var3: str = 'control_peak_median',
         ):
         """
         Creates a composite figure to investigate one variable and discover
@@ -843,7 +844,11 @@ class PlugExperiment(object):
 
         qc_dir = self.ensure_qc_dir()
 
-        fig = self.plug_data.univar_overview(var = var, var2 = var2)
+        fig = self.plug_data.univar_overview(
+            var = var,
+            var2 = var2,
+            var3 = var3,
+        )
         fig.tight_layout()
 
         if self.config.plot_git_caption:
@@ -859,6 +864,32 @@ class PlugExperiment(object):
         module_logger.info(f"Saving overview plot of `{var}` to `{path}`.")
 
         self.seaborn_setup()
+
+
+    def univar_overviews(
+            self,
+            variables: Iterable[str] | None = None,
+            var2: str | None = None,
+        ):
+        """
+        Calls ``univar_overview`` for each channel and the derived variables.
+        It means creating a composite figure for each of these variables.
+        """
+
+        default_vars = (
+            'readout_peak_median',
+            'control_peak_median',
+            'readout_peak_z_score',
+            'readout_per_control',
+            'readout_per_control_z_score',
+            'readout_media_norm',
+            'readout_media_norm_z_score',
+        )
+        variables = misc.to_tuple(variables) or default_vars
+
+        for var in variables:
+
+            self.univar_overview(var = var)
 
 
     def plot_samples_cycles(
