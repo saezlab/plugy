@@ -2464,7 +2464,7 @@ class PlugData(object):
                 vmin = vmin,
                 vmax = vmax,
                 center = _center,
-                cmap = self._heatmap_cmap(2, _center),
+                cmap = self._heatmap_cmap(1, _center),
                 **kwargs
             )
 
