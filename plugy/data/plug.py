@@ -2178,7 +2178,7 @@ class PlugData(object):
             violin_border_width = 0,
         )
 
-        var_label = misc.label(var)
+        var_label = self._label(var)
 
         if self.config.figure_titles:
 
@@ -2249,7 +2249,7 @@ class PlugData(object):
             **common_args
         )
 
-        var_label = misc.label(var)
+        var_label = self._label(var)
 
         if self.config.figure_titles:
 
@@ -2304,8 +2304,8 @@ class PlugData(object):
             ax = ax,
         )
 
-        xlab = misc.label(x)
-        ylab = misc.label(y)
+        xlab = self._label(x)
+        ylab = self._label(y)
 
         if self.config.figure_titles:
 
@@ -3083,7 +3083,8 @@ class PlugData(object):
     def univar_overview(
             self,
             var: str = None,
-            var2: str = None,
+            var2: str = 'readout_peak_median',
+            var3: str = 'control_peak_median',
             fig: mpl.figure.Figure | None = None,
         ) -> mpl.figure.Figure:
         """
@@ -3104,22 +3105,24 @@ class PlugData(object):
         if fig is None:
 
             fig = plt.figure(
-                figsize = (20, 10),
+                figsize = (25, 10),
                 constrained_layout = False,
             )
 
-        gs = fig.add_gridspec(nrows = 2, ncols = 4)
+        gs = fig.add_gridspec(nrows = 2, ncols = 5)
 
         ax_violin = fig.add_subplot(gs[0, :])
         ax_time = fig.add_subplot(gs[1, 0])
         ax_cycle = fig.add_subplot(gs[1, 1])
-        ax_scatter = fig.add_subplot(gs[1, 2])
-        ax_heatmap = fig.add_subplot(gs[1, 3])
+        ax_scatter1 = fig.add_subplot(gs[1, 2])
+        ax_scatter2 = fig.add_subplot(gs[1, 3])
+        ax_heatmap = fig.add_subplot(gs[1, 4])
 
         ax_violin = self.violin_by_sample(ax = ax_violin, var = var)
         ax_time = self.time_drift(ax = time, var = var)
         ax_cycle = self.violin_by_cycle(ax = ax_cycle, var = var)
-        ax_scatter = self.scatter(ax = ax_scatter, y = var2, x = var)
+        ax_scatter1 = self.scatter(ax = ax_scatter1, y = var2, x = var)
+        ax_scatter2 = self.scatter(ax = ax_scatter2, y = var3, x = var)
 
         ax_heatmap = self.plot_compound_heatmap(
             column_to_plot = var,
@@ -3542,3 +3545,23 @@ class PlugData(object):
         """
 
         return self.plug_df.end_time.max()
+
+
+    @staticmethod
+    def _label(var: str) -> str:
+        """
+        Axis label from variable names of the samples data frame.
+        """
+
+        label = (
+            misc.label(var).
+            replace(' peak median', '').
+            replace('z score', '[z-score]').
+            replace('media norm', '(baseline corr.)')
+        )
+
+        if not label.endswith(']'):
+
+            label = f'{label} [AU]'
+
+        return label
