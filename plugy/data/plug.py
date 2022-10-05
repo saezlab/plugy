@@ -2339,8 +2339,9 @@ class PlugData(object):
             annotation_column: str = 'stars',
             by_cycle: bool = False,
             center: float | str | tuple[float] | None = None,
+            ax: mpl.axes.AxesSublot | None = None,
             **kwargs
-        ) -> sns.FacetGrid:
+        ) -> sns.FacetGrid | mpl.axes.AxesSublot:
         """
         Plots a heatmap to visualize the different combinations
         :param column_to_plot: Name of the column to extract values from
@@ -2407,16 +2408,18 @@ class PlugData(object):
             module_logger.error(msg)
             raise ValueError(msg)
 
-        # creating the empty grid
-        grid = sns.FacetGrid(
-            data = self.sample_df,
-            col = 'cycle_nr' if by_cycle else None,
-            height = 7,
-            aspect = (
-                (.5 * len(cycles) if by_cycle else 1) *
-                aspect_correction
-            ),
-        )
+        if ax is None:
+
+            # creating the empty grid
+            grid = sns.FacetGrid(
+                data = self.sample_df,
+                col = 'cycle_nr' if by_cycle else None,
+                height = 7,
+                aspect = (
+                    (.5 * len(cycles) if by_cycle else 1) *
+                    aspect_correction
+                ),
+            )
 
         for (i, cycle), _center in zip(enumerate(cycles), center):
 
@@ -2452,7 +2455,7 @@ class PlugData(object):
                         annotation_df.columns != self.heatmap_second_scale
                     ] = ''
 
-            ax = grid.axes.flat[i]
+            ax = ax if grid is None else grid.axes.flat[i]
 
             vmin, vmax = self.heatmap_override_scale or (None, None)
 
@@ -2501,7 +2504,7 @@ class PlugData(object):
                 ylim = ax.get_ylim()
                 ax.set_ylim(ylim[0] + .5, ylim[1] - .5)
 
-        return grid
+        return ax if grid is None else grid
 
 
     def _heatmap_cmap(self, idx: int, center: float | None):
