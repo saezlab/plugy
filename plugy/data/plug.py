@@ -22,6 +22,7 @@
 from typing import Optional
 
 import sys
+import re
 import logging
 import pickle
 import importlib as imp
@@ -2138,11 +2139,14 @@ class PlugData(object):
             },
         )
 
+        var_label = self._label(var)
+        var_title = self._label(var, unit = False)
+
         if self.config.figure_titles:
 
-            ax.set_title('Control: time bias')
+            ax.set_title(f'{var_title}: time bias')
 
-        ax.set_ylabel('Control [AU]')
+        ax.set_ylabel(var_label)
         ax.set_xlabel('Time [s]')
 
         return ax
@@ -2178,14 +2182,12 @@ class PlugData(object):
             violin_border_width = 0,
         )
 
-        var_label = self._label(var)
-
         if self.config.figure_titles:
 
-            ax.set_title(f'{var_label}: cycle bias')
+            var_ttl = self._label(var, unit = False)
+            ax.set_title(f'{var_ttl}: cycle bias')
 
-        # TODO: AU is not appropriate for all variables
-        ax.set_ylabel(f'{var_label} [AU]')
+        ax.set_ylabel(self._label(var))
         ax.set_xlabel('Cycle')
 
         return ax
@@ -2249,14 +2251,12 @@ class PlugData(object):
             **common_args
         )
 
-        var_label = self._label(var)
-
         if self.config.figure_titles:
 
-            ax.set_title(f'{var_label} by sample')
+            var_ttl = self._label(var, unit = False)
+            ax.set_title(f'{var_ttl} by sample')
 
-        # TODO: AU is not appropriate for all variables
-        ax.set_ylabel(f'{var_label} [AU]')
+        ax.set_ylabel(self._label(var))
         ax.set_xlabel('Sample')
 
         for tick in ax.get_xticklabels():
@@ -2304,16 +2304,14 @@ class PlugData(object):
             ax = ax,
         )
 
-        xlab = self._label(x)
-        ylab = self._label(y)
-
         if self.config.figure_titles:
 
-            ax.set_title(f'{ylab}-{xlab} correlation')
+            xttl = self._label(x, unit = False)
+            yttl = self._label(y, unit = False)
+            ax.set_title(f'{yttl}-{xttl} correlation')
 
-        # TODO: AU is not appropriate for all variables
-        ax.set_xlabel('{xlab} [AU]')
-        ax.set_ylabel('{ylab} [AU]')
+        ax.set_xlabel(self._label(x))
+        ax.set_ylabel(self._label(y))
 
         lh, ll = ax.get_legend_handles_labels()
         ax.legend_.remove()
@@ -2535,7 +2533,7 @@ class PlugData(object):
                         annotation_df.columns != self.heatmap_second_scale
                     ] = ''
 
-            ax = ax if grid is None else grid.axes.flat[i]
+            ax = grid.axes.flat[i] if ax is None else ax
 
             vmin, vmax = self.heatmap_override_scale or (None, None)
 
@@ -2581,7 +2579,7 @@ class PlugData(object):
                 ylim = ax.get_ylim()
                 ax.set_ylim(ylim[0] + .5, ylim[1] - .5)
 
-        return ax if grid is None else grid
+        return grid if ax is None else ax
 
 
     def _heatmap_cmap(self, idx: int, center: float | None):
@@ -3118,7 +3116,11 @@ class PlugData(object):
                 constrained_layout = False,
             )
 
-        gs = fig.add_gridspec(nrows = 2, ncols = 5)
+        gs = fig.add_gridspec(
+            nrows = 2,
+            ncols = 5,
+            width_ratios = [1.] * 4 + [1.5],
+        )
 
         ax_violin = fig.add_subplot(gs[0, :])
         ax_time = fig.add_subplot(gs[1, 0])
@@ -3557,7 +3559,7 @@ class PlugData(object):
 
 
     @staticmethod
-    def _label(var: str) -> str:
+    def _label(var: str, unit: bool = True) -> str:
         """
         Axis label from variable names of the samples data frame.
         """
@@ -3572,5 +3574,9 @@ class PlugData(object):
         if not label.endswith(']'):
 
             label = f'{label} [AU]'
+
+        if not unit:
+
+            label = re.sub(' \[.*\]', '', label)
 
         return label
