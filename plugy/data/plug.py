@@ -2266,11 +2266,27 @@ class PlugData(object):
         return ax
 
 
-    def plot_control_readout_correlation(self, axes: plt.Axes) -> plt.Axes:
+    def scatter(
+            self,
+            ax: mpl.axes.Axes,
+            y: str,
+            x: str,
+        ) -> mpl.axes.Axes:
         """
-        Correlates control and readout peak medians
-        :param axes: plt.Axes object to draw on
-        :return: plt.Axes object with the plot
+        Scatter plot between two variables in the sample data frame. Sample
+        sequence index and experiment cycle are mapped to hue and shape,
+        respectively.
+
+        Args:
+            ax:
+                Axes object to draw on.
+            y:
+                Name of a continuous variable in the samples data frame.
+            x:
+                Name of a continuous variable in the samples data frame.
+
+        Return:
+            Axes object with the plot.
         """
 
         labels = {
@@ -2278,26 +2294,32 @@ class PlugData(object):
             'cycle_nr': 'Cycle',
         }
 
-        axes = sns.scatterplot(
-            x = 'control_peak_median',
-            y = 'readout_peak_median',
+        ax = sns.scatterplot(
+            x = x,
+            y = y,
             hue = 'sample_nr',
             style = self.sample_df.cycle_nr + 1,
             alpha = .7,
             data = self.sample_df,
-            ax = axes,
+            ax = ax,
         )
+
+        xlab = misc.label(x)
+        ylab = misc.label(y)
 
         if self.config.figure_titles:
 
-            axes.set_title('Readout-control correlation')
+            ax.set_title(f'{ylab}-{xlab} correlation')
 
-        axes.set_xlabel('Control [AU]')
-        axes.set_ylabel('Readout [AU]')
-        lh, ll = axes.get_legend_handles_labels()
-        axes.legend_.remove()
+        # TODO: AU is not appropriate for all variables
+        ax.set_xlabel('{xlab} [AU]')
+        ax.set_ylabel('{ylab} [AU]')
+
+        lh, ll = ax.get_legend_handles_labels()
+        ax.legend_.remove()
         ll = [labels[l] if l in labels else l for l in ll]
-        axes.legend(
+
+        ax.legend(
             lh,
             ll,
             handletextpad = .01,
@@ -2308,16 +2330,16 @@ class PlugData(object):
             framealpha = 1,
         )
 
-        axes.set_ylim(
-            self.sample_df.readout_peak_median.min() * 0.95,
-            self.sample_df.readout_peak_median.max() * 1.05,
+        ax.set_ylim(
+            self.sample_df[y].min() * 0.95,
+            self.sample_df[y].max() * 1.05,
         )
-        axes.set_xlim(
-            self.sample_df.control_peak_median.min() * 0.95,
-            self.sample_df.control_peak_median.max() * 1.5,
+        ax.set_xlim(
+            self.sample_df[x].min() * 0.95,
+            self.sample_df[x].max() * 1.5,
         )
 
-        return axes
+        return ax
 
 
     def save(self, file_path: pl.Path):
@@ -3091,16 +3113,13 @@ class PlugData(object):
         ax_violin = fig.add_subplot(gs[0, :])
         ax_time = fig.add_subplot(gs[1, 0])
         ax_cycle = fig.add_subplot(gs[1, 1])
-        ax_readout_correlation = fig.add_subplot(gs[1, 2])
+        ax_scatter = fig.add_subplot(gs[1, 2])
         ax_heatmap = fig.add_subplot(gs[1, 3])
 
         ax_violin = self.violin_by_sample(ax = ax_violin, var = var)
         ax_time = self.time_drift(ax = time, var = var)
         ax_cycle = self.violin_by_cycle(ax = ax_cycle, var = var)
-
-        ax_readout_correlation = self.plot_control_readout_correlation(
-            ax_readout_correlation
-        )
+        ax_scatter = self.scatter(ax = ax_scatter, y = var2, x = var)
 
         ax_heatmap = self.plot_compound_heatmap(
             column_to_plot = var,
