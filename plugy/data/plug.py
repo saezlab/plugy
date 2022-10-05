@@ -2520,7 +2520,7 @@ class PlugData(object):
                 annotation_column,
             )
 
-        cycles = self.sample_df.cycle_nr.unique() if by_cycle else (None,)
+        cycles = self.cycles if by_cycle else (None,)
 
         second_scale = (
             self.heatmap_second_scale in set(self.sample_df.compound_a) or
@@ -2653,7 +2653,7 @@ class PlugData(object):
                 ylim = ax.get_ylim()
                 ax.set_ylim(ylim[0] + .5, ylim[1] - .5)
 
-        return grid if ax is None else ax
+        return grid if 'grid' in locals() else ax
 
 
     def _heatmap_cmap(self, idx: int, center: float | None):
