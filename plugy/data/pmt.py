@@ -119,31 +119,62 @@ class PmtData(object):
 
     def read_txt(self) -> pd.DataFrame:
         """
-        Reads input_file
-        :return: pd.DataFrame containing the PMT data of all channels
-        """
-        module_logger.info(f"Reading file {self.input_file.absolute()}")
-        if self.input_file.exists():
-            if self.input_file.suffix == ".gz":
-                module_logger.info("Detected gzipped file")
-                with gzip.open(self.input_file, "rt") as f:
-                    header_info = self.parse_header(f)
+        Reads the ``input_file``.
 
-            elif self.input_file.suffix == ".txt":
-                module_logger.info("Detected uncompressed txt file")
-                with self.input_file.open("rt") as f:
+        Return:
+            Data frame containing the PMT data of all channels.
+        """
+
+        module_logger.info(f"Reading file {self.input_file.absolute()}")
+
+        if self.input_file.exists():
+
+            with self.input_file.open('rb') as f:
+
+                gz = f.read(2) == b'\x1f\x8b'
+
+            if gz:
+
+                module_logger.info('Detected gzipped file')
+
+                with gzip.open(self.input_file, 'rt') as f:
+
                     header_info = self.parse_header(f)
 
             else:
-                raise NotImplementedError(f"Input file has to be either .txt or .txt.gz, {self.input_file.suffix} files are not implemented!")
 
-            data_frame = pd.read_csv(self.input_file, sep = "\t", decimal = header_info["decimal_separator"], skiprows = header_info["end_of_header"], header = None).iloc[:, 1:]
-            data_frame.columns = ["time", "green", "orange", "uv"]
+                module_logger.info('Detected uncompressed txt file')
+
+                with self.input_file.open('rt') as f:
+
+                    header_info = self.parse_header(f)
+
+            data_frame = pd.read_csv(
+                self.input_file,
+                sep = '\t',
+                decimal = header_info['decimal_separator'],
+                skiprows = header_info['end_of_header'],
+                header = None,
+            ).iloc[:, 1:]
+
+            data_frame.columns = (
+                ['time'] +
+                [
+                    it[0] for it in
+                    sorted(
+                        self.channels.values(),
+                        key = lambda it: it[1],
+                    )
+                ]
+            )
 
             return data_frame
 
         else:
-            raise FileNotFoundError(f"Input file ({self.input_file.absolute()}) does not exist! Check the path!")
+
+            raise FileNotFoundError(
+                f'Input file `{self.input_file.absolute()}` does not exist.'
+            )
 
 
     def parse_header(self, file) -> dict:
@@ -151,9 +182,15 @@ class PmtData(object):
         Parses the LabView header and extracts information in form of a dict
         "end_of_header" : Line number of the first data line
         "decimal_separator" : Type of decimal separator
-        :param file: read opened text file object
-        :return: dictionary containing end_of_header and decimal_separator
+
+        Args:
+            file:
+                Read opened text file object.
+
+        Return:
+            Dictionary with `end_of_header` and `decimal_separator`.
         """
+
         info = dict()
         info["end_of_header"] = self.find_data(file)
         info["decimal_separator"] = self.detect_decimal_separator(file)
@@ -163,37 +200,63 @@ class PmtData(object):
     @staticmethod
     def detect_decimal_separator(file) -> str:
         """
-        Parses the LabView header and extracts the decimal separator
-        :param file: read opened text file object
-        :return: String containing the decimal separator
+        Parses the LabView header and extracts the decimal separator.
+
+        Args:
+            file:
+                Read opened text file object.
+
+        Return:
+            String containing the decimal separator
         """
+
         file.seek(0)
+
         for line in file:
-            if line.startswith("Decimal_Separator"):
+
+            if line.startswith('Decimal_Separator'):
+
                 sep = line.split()[1]
-                module_logger.debug(f"Detected decimal separator: {sep}")
+                module_logger.debug(f'Detected decimal separator: {sep}')
+
                 return sep
 
-        module_logger.error("Automatic decimal separator detection failed, falling back to ',' as decimal separator.")
-        return ","
+        module_logger.error(
+            'Automatic decimal separator detection failed, '
+            'falling back to "," as decimal separator.'
+        )
+
+        return ','
+
 
     @staticmethod
     def find_data(file) -> int:
         """
-        Finds the ending of the header in a multichannel acquisition output file.
-        Identifies data by its leading \t
-        :param file: File object
-        :return: Line number of the first data line
+        Finds the ending of the header in a multichannel acquisition output
+        file. Identifies data by searching for a leading tab character.
+
+        Args:
+            file:
+                File object.
+
+        Return:
+            Line number of the first data line
         """
+
         file.seek(0)
         idx = -1
+
         for idx, line in enumerate(file):
-            if re.match(pattern = r"\t\d", string = line) is not None:
+
+            if re.match(pattern = r'\t\d', string = line) is not None:
+
                 break
 
-        module_logger.debug(f"Detected end of header in line {idx}")
-        assert idx > -1, "No lines detected in input_file! Check the contents of the file!"
-        assert idx < 50, f"Automatically detected header length exceeds 50 lines ({idx})"
+        module_logger.debug(f'Detected end of header in line {idx}')
+        assert idx > -1,\
+            'No lines detected in input_file! Check the contents of the file!'
+        assert idx < 50,\
+            f'Automatically detected header length exceeds 50 lines ({idx})'
 
         return idx
 
@@ -201,9 +264,16 @@ class PmtData(object):
     def cut_data(self, **kwargs) -> pd.DataFrame:
         """
         Returns data between time range specified in cut
-        :param kwargs: "cut": specify an upper and lower limit (lower, upper) other than the one in the object already
-        :return: pd.DataFrame containing the data in the time range
+
+        Args:
+            kwargs:
+                Specify an upper and lower limit (lower, upper) other than the
+                one in the object already.
+
+        Return:
+            Data frame containing the data in the time range.
         """
+
         module_logger.debug(f"Cutting {self.__repr__()}")
 
         if "cut" in kwargs.keys():
@@ -214,18 +284,26 @@ class PmtData(object):
         df = self.data
 
         try:
+
             if cut[0] >= cut[1]:
-                raise AttributeError(f"Cut has to be specified like cut = (min, max) you specified {cut}")
+
+                raise AttributeError(
+                    'Cut has to be specified like cut = (min, max) '
+                    f'you specified {cut}'
+                )
+
         except TypeError:
             # in case of comparison with None
             pass
 
         if cut[0] is not None:
-            module_logger.debug(f"Cutting data before t = {cut[0]}")
+
+            module_logger.debug(f'Cutting data before t = {cut[0]}')
             df = df.loc[df.time >= cut[0]]
 
         if cut[1] is not None:
-            module_logger.debug(f"Cutting data after t = {cut[1]}")
+
+            module_logger.debug(f'Cutting data after t = {cut[1]}')
             df = df.loc[df.time <= cut[1]]
 
         return df
@@ -236,6 +314,7 @@ class PmtData(object):
         Sets & corrects values in the multichannel acquisition data.
         :return: DataFrame with the corrected data
         """
+
         time_between_samplings = 1 / self.acquisition_rate
 
         df = self.data.copy()
@@ -250,7 +329,8 @@ class PmtData(object):
 
         if self.correct_acquisition_time:
 
-            module_logger.info("Correcting acquisition time")
+            module_logger.info('Correcting acquisition time')
+
             df = df.assign(
                 time = np.linspace(
                     self.data.time[0],
@@ -278,6 +358,7 @@ class PmtData(object):
         Multiplies the corresponding channels PMT output by a factor provided
         in ``fake_gains``.
         """
+
         df = self.data
 
         for channel in self.config.channel_names.values():
@@ -291,7 +372,7 @@ class PmtData(object):
             if fake_gain != 1.0:
 
                 module_logger.info(
-                    f"Applying fake gain for {channel} channel: {fake_gain}"
+                    f'Applying fake gain for {channel} channel: {fake_gain}'
                 )
                 df[channel] = df[channel] * fake_gain
 
@@ -303,20 +384,22 @@ class PmtData(object):
             axes: plt.Axes,
             cut: tuple = (None, None),
             ylim: tuple = (None, None),
-            n_x_ticks: Union[int, float] = None,
+            n_x_ticks: int | float = None,
         ) -> plt.Axes:
         """
         Plots the raw PMT data to the specified axes object.
 
-        :param axes:
-            plt.Axes object to draw on
-        :param cut:
-            Tuple to specify upper and lower time bounds for the pmt
-            data to be plotted (lower, upper)
+        Args:
+            axes:
+                Axes object to draw on.
+            cut:
+                Tuple to specify upper and lower time bounds for the pmt
+                data to be plotted (lower, upper).
 
-        :return:
+        Return:
             The axes object with the plot
         """
+
         module_logger.debug('Plotting PMT data')
         df = self.cut_data(cut = cut)
 
@@ -497,8 +580,8 @@ class PmtData(object):
         if self.barcode_raw_threshold:
 
             module_logger.warning(
-                f"Setting barcode channel to 1 for "
-                f"barcode values > {self.barcode_raw_threshold}"
+                f'Setting barcode channel to 1 for '
+                f'barcode values > {self.barcode_raw_threshold}'
             )
 
             barcode = self.config.channels["barcode"][0]
@@ -517,7 +600,7 @@ class PmtData(object):
         for channel, (channel_color, _) in self.channels.items():
 
             module_logger.debug(
-                f"Running peak detection for {channel} channel"
+                f'Running peak detection for {channel} channel'
             )
             peaks, properties = sig.find_peaks(
                 self.data[channel_color],
@@ -634,7 +717,7 @@ class PmtData(object):
                 'Creating plug list without merging close plugs!'
             )
 
-            for row in self.peak_df.sort_values(by = "left_ips"):
+            for row in self.peak_df.sort_values(by = 'left_ips'):
 
                 peak_list.append(
                     self.quantify_interval(
@@ -646,7 +729,7 @@ class PmtData(object):
          # Build plug_df DataFrame
         module_logger.debug('Building peak_df DataFrame')
         channels = [
-            f"{str(key)}_peak_median"
+            f'{str(key)}_peak_median'
             for key in self.config.channels.keys()
         ]
 
@@ -683,12 +766,12 @@ class PmtData(object):
     def _detection_issues_message(self):
 
         return (
-            f"You may want to try:\n"
-            f"\t- Increase `peak_max_width` (currently {self.peak_max_width})"
-            f" if plugs are too short to be detected\n"
-            f"\t- Decrease `width_rel_height` (currently "
-            f"{self.width_rel_height}) if plugs are wider than tall\n"
-            f"\t- Cut the data using the `cut` parameter (currently "
-            f"{self.cut}) to remove parts from the beginning and end "
-            f"which might look like a sample but in fact is not."
+            f'You may want to try:\n'
+            f'\t- Increase `peak_max_width` (currently {self.peak_max_width})'
+            f' if plugs are too short to be detected\n'
+            f'\t- Decrease `width_rel_height` (currently '
+            f'{self.width_rel_height}) if plugs are wider than tall\n'
+            f'\t- Cut the data using the `cut` parameter (currently '
+            f'{self.cut}) to remove parts from the beginning and end '
+            f'which might look like a sample but in fact is not.'
         )
