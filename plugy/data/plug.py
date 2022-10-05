@@ -3374,10 +3374,26 @@ class PlugData(object):
         return data
 
 
-    def stats(self, cycle: int | None = None) -> pd.DataFrame:
+    def stats(
+            self,
+            cycle: int | None = None,
+            extra_cols: list[str] = None,
+        ) -> pd.DataFrame:
         """
         Calculates statistics for each sample: means, standard deviations,
         Wilcoxon tests, their adjusted p-values and significances.
+
+        Args:
+            cycle:
+                Use only this experiment cycle. If None, all cycles will be
+                used.
+            extra_cols:
+                Keep also these columns, calculate their means and standard
+                deviations.
+
+        Returns:
+            A data frame with the sample level statistics, with compounds
+            in row multi index.
         """
 
         module_logger.info('Calculating statistics')
@@ -3393,7 +3409,12 @@ class PlugData(object):
             samples = samples[samples.cycle_nr == cycle]
 
         by = ['compound_a', 'compound_b', 'name']
-        samples = samples[by + ['baseline', 'negative', 'fc', col]]
+        default = ['length', 'baseline', 'negative', 'fc', col]
+        extra = [
+            c for c in misc.to_tuple(extra_cols)
+            if c in samples and c not in by + default
+        ]
+        samples = samples[by + extra + default]
 
         sample_stats = samples.groupby(by = by).agg([np.mean, np.std])
         sample_stats.columns = [

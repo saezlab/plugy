@@ -945,13 +945,29 @@ class PlugExperiment(object):
         self.seaborn_setup()
 
 
-    def stats(self, cycle: int | None = None) -> pd.DataFrame:
+    def stats(
+            self,
+            cycle: int | None = None,
+            extra_cols: list[str] = None,
+        ) -> pd.DataFrame:
         """
         Calculates statistics for each sample: means, standard deviations,
         Wilcoxon tests, their adjusted p-values and significances.
+
+        Args:
+            cycle:
+                Use only this experiment cycle. If None, all cycles will be
+                used.
+            extra_cols:
+                Keep also these columns, calculate their means and standard
+                deviations.
+
+        Returns:
+            A data frame with the sample level statistics, with compounds
+            in row multi index.
         """
 
-        return self.plug_data.stats(cycle = cycle)
+        return self.plug_data.stats(cycle = cycle, extra_cols = extra_cols)
 
 
     def drug_combination_analysis(self):
