@@ -947,59 +947,76 @@ class PlugExperiment(object):
         self.seaborn_setup()
 
 
-    def calculate_statistics(self) -> pd.DataFrame:
+    def calculate_statistics(self, cycle: int | None = None) -> pd.DataFrame:
         """
-        Calculates statistics
+        Calculates statistics for each sample: means, standard deviations,
+        Wilcoxon tests, their adjusted p-values and significances.
         """
-        module_logger.info("Calculating statistics")
-        media_data = self.plug_data.medium_only()
-        compound_data = self.plug_data.sample_df[
-            ~self.plug_data.sample_df.isin(media_data)
-        ].dropna()
 
-        group_columns = ["compound_a", "compound_b", "name"]
-        sample_stats = compound_data.groupby(by = group_columns)[
-            self.config.readout_analysis_column
-        ].agg([np.mean, np.std])
+        module_logger.info('Calculating statistics')
+
+        col = self.config.readout_analysis_column
+
+        baseline = self.plug_data.baseline_lm(col = col, baseline = 'baseline')
+        negative = self.plug_data.baseline_lm(col = col, baseline = 'negative')
+
+        medium_only = self.plug_data.medium_only()
+        samples = self.plug_data.sample_df
+        samples = samples[~samples.isin(medium_only)].dropna()
+
+        if cycle is not None:
+
+            samples = samples[samples.cycle_nr == cycle]
+
+        samples['baseline'] = baseline[samples.start_time]
+        samples['fc'] = np.nan
+
+        if negative is not None:
+
+            samples['negative'] = negative[samples.start_time]
+            samples['fc'] = (
+                (samples[col] - samples.negative) /
+                (samples.baseline - samples.negative)
+            )
+
+        by = ['compound_a', 'compound_b', 'name']
+        samples = samples[by + ['baseline', 'fc', col]]
+
+        sample_stats = samples.groupby(by = by).agg([np.mean, np.std])
+        sample_stats.columns = [
+            '_'.join(c)
+            for c in sample_stats.columns.values
+        ]
 
         p_values = list()
 
-        for combination, values in compound_data.groupby(by = group_columns):
+        for combination, values in samples.groupby(by = by):
 
             p_values.append(
                 stats.ranksums(
-                    x = values[self.config.readout_analysis_column],
-                    y = media_data[self.config.readout_analysis_column]
+                    x = values[col],
+                    y = medium_only[col],
                 )[1]
             )
 
         sample_stats = sample_stats.assign(pval = p_values)
+
         significance, p_adjusted, _, alpha_corr_bonferroni = (
             statsmod.multipletests(
                 pvals = sample_stats.reset_index().pval,
                 alpha = self.config.alpha,
-                method = "bonferroni",
+                method = 'bonferroni',
             )
         )
+
         stars = [self.config.significance_stars(p) for p in p_adjusted]
+
         sample_stats = sample_stats.assign(
             p_adjusted = p_adjusted,
             significant = significance,
             stars = stars,
         )
 
-        # Renaming columns to avoid shadowing mean function
-        sample_stats.columns = [
-            "mean_z_score",
-            "std_z_score",
-            "pval",
-            "p_adjusted",
-            "significant",
-            "stars",
-        ]
-
-        # # Reindex based on sample_df from plug.PlugData object
-        # sample_stats = sample_stats.reindex(self.plug_data.sample_df.name.unique())
         return sample_stats
 
 
