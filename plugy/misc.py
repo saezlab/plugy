@@ -35,6 +35,7 @@ import inspect
 import subprocess as sp
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import seaborn as sns
 import numpy as np
 import scipy.stats as stats
@@ -275,6 +276,40 @@ class LinearRegression:
     def __repr__(self):
 
         return f'<Linear model: y = x * {self.slope} + {self.intercept}>'
+
+
+def vstripes(
+        ax: mpl.axes.Axes,
+        pos: list | None = None,
+        width: float | None = None,
+        fill: str = '#CCCCCC',
+    ) -> mpl.axes.Axes:
+    """
+    Adds vertical background stripes to a matplotlib plot.
+    """
+
+    pos = pos or [
+        t.get_position()[0]
+        for i, t in enumerate(ax.get_xticklabels())
+        if i % 2
+    ]
+
+    width = width or (pos[0] - pos[1]) / 2
+    width = width / 2
+
+    xmin, xmax = ax.get_xlim()
+
+    for x in pos:
+
+        ax.axvspan(
+            xmin = max(x - width, xmin),
+            xmax = min(x + width, xmax),
+            facecolor = fill,
+            alpha = .4,
+            zorder = 0,
+        )
+
+    return ax
 
 
 def matplotlib_331_fix():

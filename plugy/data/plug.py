@@ -1177,14 +1177,14 @@ class PlugData(object):
             return self.highlight_plugs_vspan(axes)
 
 
-    def highlight_plugs_below_peak(self, axes: plt.Axes):
+    def highlight_plugs_below_peak(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
 
         plug_patches = {
             'readout': [],
             'barcode': [],
         }
 
-        xmin, xmax = axes.get_xlim()
+        xmin, xmax = ax.get_xlim()
 
         for plug in self.plug_df.itertuples():
 
@@ -1209,7 +1209,7 @@ class PlugData(object):
 
         for key, color in colors.items():
 
-            axes.add_collection(
+            ax.add_collection(
                 mpl_coll.PatchCollection(
                     plug_patches[key],
                     facecolors = color,
@@ -1217,12 +1217,12 @@ class PlugData(object):
                 )
             )
 
-        return axes
+        return ax
 
 
-    def highlight_plugs_vspan(self, axes: plt.Axes):
+    def highlight_plugs_vspan(self, ax: mpl.axes.Axes) -> mpl.axes.Axes:
 
-        xmin, xmax = axes.get_xlim()
+        xmin, xmax = ax.get_xlim()
 
         for plug in self.plug_df.itertuples():
 
@@ -1240,14 +1240,14 @@ class PlugData(object):
                 )
             )
 
-            axes.axvspan(
+            ax.axvspan(
                 xmin = max(plug.start_time, xmin),
                 xmax = min(plug.end_time, xmax),
                 facecolor = color,
                 alpha = .4,
             )
 
-        return axes
+        return ax
 
 
     def highlight_samples(self, axes: plt.Axes):
@@ -2335,6 +2335,10 @@ class PlugData(object):
             linewidth = 1.,
             width = .97,
         )
+
+        self._bpax = ax
+
+        ax = misc.vstripes(ax)
 
         lh, ll = ax.get_legend_handles_labels()
         ax.legend_.remove()
