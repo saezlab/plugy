@@ -25,6 +25,7 @@ from numbers import Number
 import sys
 import logging
 import collections
+import itertools
 import importlib as imp
 import traceback
 import typing
@@ -874,15 +875,7 @@ class PlugExperiment(object):
         It means creating a composite figure for each of these variables.
         """
 
-        default_vars = (
-            'readout_peak_median',
-            'control_peak_median',
-            'readout_peak_z_score',
-            'readout_per_control',
-            'readout_per_control_z_score',
-            'readout_media_norm',
-            'readout_media_norm_z_score',
-        )
+        default_vars = misc.CHANNEL_VARS
         variables = misc.to_tuple(variables) or default_vars
 
         for var in variables:
@@ -968,6 +961,50 @@ class PlugExperiment(object):
         """
 
         return self.plug_data.stats(cycle = cycle, extra_cols = extra_cols)
+
+
+    def stats_table(
+            self,
+            by_cycle: bool = True,
+            exp_summary: bool = True,
+            extra_cols: bool | list[str] = True,
+        ) -> pd.DataFrame:
+        """
+        A large table of statistics.
+
+        Args:
+            by_cycle:
+                Include statistics for each cycle.
+            exp_summary:
+                Include statistics for the entire experiment.
+            extra_cols:
+                Include extra columns, besides the defaults. Alternatively,
+                a list of column names that overrides the extra columns.
+
+        Return:
+            A data frame of the statistics with conditions in row multi index.
+        """
+
+        extra_cols = (
+            list(extra_cols)
+                if isinstance(extra_cols, misc.LIST_LIKE) else
+            misc.CHANNEL_VARS
+                if extra_cols else
+            ()
+        )
+
+        tables = []
+
+        for cycle in itertools.chain(
+            self.plug_data.cycles if by_cycle else (),
+            (None,) if exp_summary else ()
+        ):
+
+            tbl = self.stats(cycle = cycle, extra_cols = extra_cols)
+            tbl['cycle_nr'] = np.nan if cycle is None else cycle
+            tables.append(tbl)
+
+        return pd.concat(tables)
 
 
     def drug_combination_analysis(self):

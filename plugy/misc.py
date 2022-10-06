@@ -68,6 +68,15 @@ LEGEND_STYLE = dict(
     framealpha = 1,
 )
 
+CHANNEL_VARS = (
+    'readout_peak_median',
+    'control_peak_median',
+    'readout_peak_z_score',
+    'readout_per_control',
+    'readout_per_control_z_score',
+    'readout_media_norm',
+    'readout_media_norm_z_score',
+)
 
 def add_git_hash_caption(fig: plt.Figure, offset: float = 0.8):
     """
