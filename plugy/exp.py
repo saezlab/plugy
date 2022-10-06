@@ -999,6 +999,29 @@ class PlugExperiment(object):
         return self.plug_data.stats_table(**args)
 
 
+    def _stats_table_export(
+            self,
+            path: str | None = None,
+            ftype: Literal['tsv', 'xlsx'] = 'tsv',
+            **kwargs
+        ):
+        """
+        Export a table of statistics to TSV.
+
+        Args:
+            path:
+                Path or file name. Default directory is *results*, default
+                file name is *stats.tsv*.
+            kwargs:
+                Passed to ``stats_table`.
+        """
+
+        table = self.stats_table(**kwargs)
+
+        path = path or 'stats.{ftype}'
+
+
+
     def drug_combination_analysis(self):
         """
         Analyzes drug combinations and produces result plots
@@ -1254,14 +1277,14 @@ class PlugExperiment(object):
 
     def pmt_data_to_excel(
             self,
-            fname = None,
+            path = None,
             sheet_name = 'PMT_data',
             **kwargs,
         ):
 
         self._to_excel(
             df = self.pmt_data.data,
-            fname = fname,
+            path = path,
             sheet_name = sheet_name,
             fname_suffix = 'pmt',
             label = 'PMT data',
@@ -1271,14 +1294,14 @@ class PlugExperiment(object):
 
     def raw_plugs_to_excel(
             self,
-            fname = None,
+            path = None,
             sheet_name = 'Plugs_raw',
             **kwargs,
         ):
 
         self._to_excel(
             df = self.plug_data.plug_df,
-            fname = fname,
+            path = path,
             sheet_name = sheet_name,
             fname_suffix = 'plugs_raw',
             label = 'raw plug data',
@@ -1290,7 +1313,7 @@ class PlugExperiment(object):
 
         self._to_excel(
             df = self.plug_data.sample_df,
-            fname = fname,
+            path = path,
             sheet_name = sheet_name,
             fname_suffix = 'plugs',
             label = 'plug data',
@@ -1300,14 +1323,14 @@ class PlugExperiment(object):
 
     def samples_to_excel(
             self,
-            fname = None,
+            path = None,
             sheet_name = 'Samples',
             **kwargs,
         ):
 
         self._to_excel(
             df = self.sample_data,
-            fname = fname,
+            path = path,
             sheet_name = sheet_name,
             fname_suffix = 'samples',
             label = 'sample data',
@@ -1317,14 +1340,18 @@ class PlugExperiment(object):
 
     def stats_to_excel(
             self,
-            fname = None,
+            path = None,
             sheet_name = 'Statistics',
             **kwargs,
         ):
 
+        if not hasattr(self, 'sample_statistics'):
+
+            self.sample_statistics = self.stats()
+
         self._to_excel(
             df = self.sample_statistics,
-            fname = fname,
+            path = path,
             sheet_name = sheet_name,
             fname_suffix = 'stats',
             label = 'sample statistics',
@@ -1332,24 +1359,100 @@ class PlugExperiment(object):
         )
 
 
+    def _export(
+            self,
+            df,
+            path = None,
+            fname_suffix = None,
+            ftype: str = 'tsv',
+            label = 'data',
+            sheet_name = 'Sheet1',
+            **kwargs,
+        ):
+
+        methods = {
+            'tsv': 'csv',
+            'xlsx': 'excel',
+            'tex': 'latex',
+            'md': 'markdown',
+        }
+
+        path = path or self.config.result_dir
+
+        if os.path.isdir(path):
+
+            fname_suffix = fname_suffix or 'untitled'
+            fname = f'{self.pmt_data.input_file.stem}_{fname_suffix}.{ftype}'
+            path = os.path.join(path, fname)
+
+        if not os.path.dirname(path):
+
+            path = os.path.join(self.config.result_dir, path)
+
+
+        if 'index' not in kwargs:
+
+            kwargs['index'] = isinstance(df.index, pd.MultiIndex)
+
+        if ftype == 'tsv':
+
+            kwargs['sep'] = '\t'
+
+        if ftype == 'xlsx':
+
+            kwargs['sheet_name'] = sheet_name
+
+        method = f'to_{methods.get(ftype, ftype)}'
+
+        getattr(df, method)(fname, **kwargs)
+
+        module_logger.info(f'Exported {data} to `{path}`.')
+
+
     def _to_excel(
             self,
             df,
-            fname = None,
+            path = None,
             fname_suffix = None,
             label = 'data',
             sheet_name = 'Sheet1',
             **kwargs,
         ):
 
-        fname = (
-            fname or
-            '%s_%s.xlsx' % (self.pmt_data.input_file.stem, fname_suffix)
-        )
+        args = locals()
+        args.pop('self')
+        args.pop('kwargs')
 
-        if 'index' not in kwargs:
+        self._export(ftype = 'xlsx', **args, **kwargs)
 
-            kwargs['index'] = isinstance(df.index, pd.MultiIndex)
 
-        df.to_excel(fname, sheet_name = sheet_name, **kwargs)
-        module_logger.info('Exported %s to %s' % (label, fname))
+    def _to_tsv(
+            self,
+            df,
+            path = None,
+            fname_suffix = None,
+            label = 'data',
+            **kwargs,
+        ):
+
+        args = locals()
+        args.pop('self')
+        args.pop('kwargs')
+
+        self._export(ftype = 'tsv', **args, **kwargs)
+
+
+    def _to_csv(
+            self,
+            df,
+            path = None,
+            fname_suffix = None,
+            label = 'data',
+            **kwargs,
+        ):
+
+        args = locals()
+        args.pop('self')
+        args.pop('kwargs')
+
+        self._export(ftype = 'csv', **args, **kwargs)
