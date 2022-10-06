@@ -23,6 +23,7 @@ from typing import Iterable, Optional
 from numbers import Number
 
 import sys
+import re
 import logging
 import collections
 import itertools
@@ -968,6 +969,7 @@ class PlugExperiment(object):
             by_cycle: bool = True,
             exp_summary: bool = True,
             extra_cols: bool | list[str] = True,
+            sort_by: list[str] | None = None,
         ) -> pd.DataFrame:
         """
         A large table of statistics.
@@ -980,6 +982,10 @@ class PlugExperiment(object):
             extra_cols:
                 Include extra columns, besides the defaults. Alternatively,
                 a list of column names that overrides the extra columns.
+            sort_by:
+                Sort the conditions by these column names. For descending
+                order prefix the column name with a hat (^). Cycle will
+                always be the first column to sort by.
 
         Return:
             A data frame of the statistics with conditions in row multi index.
@@ -993,6 +999,10 @@ class PlugExperiment(object):
             ()
         )
 
+        sort_by = ('cycle_nr',) + misc.to_tuple(sort_by)
+        ascending = [not c[0] == '^' for c in sort_by]
+        sort_by = [re.sub('^[\^]', '', c) for c in sort_by]
+
         tables = []
 
         for cycle in itertools.chain(
@@ -1004,7 +1014,10 @@ class PlugExperiment(object):
             tbl['cycle_nr'] = np.nan if cycle is None else cycle
             tables.append(tbl)
 
-        return pd.concat(tables)
+        tables = pd.concat(tables)
+        tables.sort_values(by = sort_by, ascending = ascending, inplace = True)
+
+        return tables
 
 
     def drug_combination_analysis(self):
