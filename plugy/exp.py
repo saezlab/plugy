@@ -1278,6 +1278,25 @@ class PlugExperiment(object):
         self._plot_base(grid, 'volumes_density', 'plug volume density plots')
 
 
+    def volume_boxplot(self, flow_rate: float | None = None):
+        """
+        Boxplots about plug volumes. Three panels are created, with barcode
+        plugs, sample plugs and both togther.
+
+        Args:
+            flow_rate (float): The flow rate used at the data acquisition
+                in microlitres per hour.
+        """
+
+        grid = self.plug_data.size_density(
+            boxplot = True,
+            volume = True,
+            flow_rate = flow_rate,
+        )
+
+        self._plot_base(grid, 'volumes_boxplot', 'plug volume boxplots')
+
+
     def sample_sd_violin(self):
 
         grid = self.plug_data.sample_sd_violin()
