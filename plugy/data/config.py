@@ -120,6 +120,8 @@ class PlugyConfig(object):
     )
     # PMT acquisition rate in Hz
     acquisition_rate: int = 300
+    # flow rate used at the data acquisition, in microlitres per hour
+    flow_rate: float = 800.
     # crop the data by removing the segments before the first
     # and after the second element of this tuple (in seconds)
     cut: tuple = (None, None)

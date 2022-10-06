@@ -312,6 +312,23 @@ def vstripes(
     return ax
 
 
+class class_or_instancemethod(classmethod):
+    """
+    Decorates a method to be both class- and instance method.
+    See more at https://stackoverflow.com/a/28238047/854988.
+    """
+
+    def __get__(self, instance, type_):
+
+        descr_get = (
+            super().__get__
+                if instance is None else
+            self.__func__.__get__
+        )
+
+        return descr_get(instance, type_)
+
+
 def matplotlib_331_fix():
 
     def get_extents(self, transform = None, **kwargs):

@@ -1249,7 +1249,18 @@ class PlugExperiment(object):
         self._plot_base(grid, 'lengths_density', 'plug length density plots')
 
 
-    def volume_density(self, flow_rate: float = 800.):
+    def length_boxplot(self):
+        """
+        Boxplots about plug lengths. Three panels are created, with barcode
+        plugs, sample plugs and both togther.
+        """
+
+        grid = self.plug_data.size_density(boxplot = True)
+
+        self._plot_base(grid, 'lengths_boxplot', 'length boxplots')
+
+
+    def volume_density(self, flow_rate: float | None = None):
         """
         Density plots and histograms about plug volumes. Three panels are
         created, with barcode plugs, sample plugs and both togther.

@@ -1956,7 +1956,7 @@ class PlugData(object):
             )
 
 
-    def add_volume_column(self, flow_rate: float = 800., df = 'plug'):
+    def add_volume_column(self, flow_rate: float = None, df = 'plug'):
         """
         Creates a new column ``volume`` in ``sample_df`` with the volumes of
         the plugs in nanolitres.
@@ -1968,7 +1968,7 @@ class PlugData(object):
                 "sample".
         """
 
-        attr = self._check_df(df, 'add_length_column')
+        attr = self._check_df(df, 'add_volume_column')
 
         if attr:
 
@@ -2316,6 +2316,10 @@ class PlugData(object):
                 data,
                 data.copy().assign(the_cycle = 'All'),
             ))
+        data = self.by_cycle_and_all(
+            df = self.sample_df,
+            label_col = 'the_cycle',
+        )
 
         # pandas is just ridiculous
         data['the_cycle'] = data['the_cycle'].astype('category')
@@ -2367,6 +2371,35 @@ class PlugData(object):
             tick.set_rotation(90)
 
         return ax
+
+
+    @staticmethod
+    def by_cycle_and_all(
+            df: pd.DataFrame,
+            label_col: str | None = None,
+        ) -> pd.DataFrame:
+        """
+        Creates a data frame with records both by cycle and in a pool of
+        all records. Records are duplicated in this data frame that is
+        required for visualization purposes.
+        """
+
+        data = df.copy()
+
+        if data.cycle_nr.nunique() > 1:
+
+            # pandas is such a disaster...
+            data_all = data.copy()
+            data_all['cycle_nr'] = np.nan
+            data = pd.concat((data, data_all))
+
+        if label_col:
+
+            data[label_col] = data.cycle_nr.map(
+                lambda n: 'All' if np.isnan(n) else f'Cycle {int(n + 1)}'
+            )
+
+        return data
 
 
     def scatter(
@@ -3084,7 +3117,7 @@ class PlugData(object):
         df = df.copy()
 
         # these warnings stuff just filter out the pandas setting
-        # with copy warnings, which are an annoying example of the
+        # with copy warnings, which is an annoying example of the
         # bad design of pandas
         with warnings.catch_warnings():
 
@@ -3094,11 +3127,11 @@ class PlugData(object):
         return df
 
 
-    @classmethod
+    @misc.class_or_instancemethod
     def volumes(
-            cls,
-            df: pd.DataFrame,
-            flow_rate: float = 800.,
+            cls_self,
+            df: pd.DataFrame | None = None,
+            flow_rate: float | None = None,
         ) -> pd.DataFrame:
         """
         Creates a new column with plug volume. The volumes are calculated by
@@ -3109,7 +3142,8 @@ class PlugData(object):
             df (pandas.DataFrame): A data frame with `start_time` and
                 `end_time` columns.
             flow_rate (float): The flow rate used at the data acquisition
-                in microlitres per hour.
+                in microlitres per hour. If not provided the value from
+                the config will be used.
 
         Returns:
             (pandas.DataFrame): A copy of the data frame with a new column
@@ -3118,11 +3152,35 @@ class PlugData(object):
                 that will be added too.
         """
 
+        if isinstance(cls_self, type):
+
+            if df is None:
+
+                msg = 'volumes: no data frame provided'
+                module_logger.error(msg)
+
+                raise ValueError(msg)
+
+            if flow_rate is None:
+
+                flow_rate = PlugyConfig.flow_rate
+                msg = (
+                    'volumes: no flow rate provided, '
+                    f'using the default from config ({flow_rate})'
+                )
+                module_logger.warn(msg)
+                warnings.warn(msg)
+
+        else:
+
+            df = cls_self.data if df is None else df
+            flow_rate = flow_rate or cls_self.config.flow_rate
+
         df = df.copy()
 
         if 'length' not in df.columns:
 
-            df = cls.lengths(df)
+            df = cls_self.lengths(df)
 
         # dividing by 3600 for hours -> seconds conversion
         # multiplying by 1000 for microlitres -> nanoliters conversion
@@ -3131,18 +3189,19 @@ class PlugData(object):
         return df
 
 
-    def volume_stats(self, flow_rate: float = 800.):
+    def volume_stats(self, flow_rate: float | None = None) -> dict:
         """
         Prints and returns statistics about the volume of the sample plugs.
 
         Args:
-            flow_rate (float): The flow rate used at the data acquisition
+            flow_rate:
+                The flow rate used at the data acquisition
                 in microlitres per hour.
 
-        Returns:
-            (dict): A dictionary with cycle numbers and the string "all" as
-                keys and dictionaries of statistics about the sample plug
-                volumes as values.
+        Return:
+            A dictionary with cycle numbers and the string "all" as
+            keys and dictionaries of statistics about the sample plug
+            volumes as values.
         """
 
         data = self.volumes(self.sample_df, flow_rate = flow_rate)
@@ -3161,26 +3220,29 @@ class PlugData(object):
     def size_density(
             self,
             volume: bool = False,
-            flow_rate: float = 800.,
+            flow_rate: float | None = None,
+            boxplot: bool = False,
         ) -> sns.FacetGrid:
         """
         Density plot of plug sizes, either lengths in seconds or volumes
         in nanolitres.
 
         Args:
-            volume (bool): Use plug volumes in nanolitres instead of lengths
-                in seconds.
-            flow_rate (float): The flow rate used at the data acquisition
-                in microlitres per hour.
+            volume:
+                Use plug volumes in nanolitres instead of lengths in seconds.
+            flow_rate:
+                The flow rate used at the data acquisition in microlitres
+                per hour.
+            boxplot:
+                Create boxplot instead of density plot.
 
-        Returns:
-            (seaborn.FacetGrid): A grid with 3 subplots, each a density plot
-                of plug sizes: barcode plugs, sample plugs and both
-                together.
+        Return:
+            A grid with 3 subplots, each a density plot of plug sizes:
+            barcode plugs, sample plugs and both together.
         """
 
         data = self.sample_and_barcode_plugs
-        data = self.volumes(data, flow_rate = flow_rate)
+        data = self.volumes(df = data, flow_rate = flow_rate)
 
         # these warnings stuff just filter out the pandas setting
         # with copy warnings, which are an annoying example of the
@@ -3198,19 +3260,80 @@ class PlugData(object):
         data_both['group'] = 'Both'
         data = pd.concat([data, data_both])
 
+        if boxplot:
+
+            data = self.by_cycle_and_all(data, label_col = 'the_cycle')
+
+        # stupid seaborn
+        data['dummy_x'] = ''
+
+        lab = 'Plug %s [%s]' % (
+            'volume' if volume else 'length',
+            'nl' if volume else 's',
+        )
+
         grid = sns.FacetGrid(
             data,
             col = 'group',
             despine = False,
             height = 4,
         )
-        grid.map(
-            sns.histplot,
-            'volume' if volume else 'length',
-            kde = True,
-            color = self.config.palette[0],
-            line_kws = {'color': self.config.palette[1]},
-        )
+
+        if boxplot:
+
+            grid.map(
+                sns.boxplot,
+                # fantastic api design from seaborn:
+                # aesthetics can be passed only as positional args
+                # not as kwargs
+                # this way it's not possible to pass empty x,
+                # neither some variables as vectors or scalars,
+                # elsewhere seaborn made it mandatory to use keyword
+                # arguments exactly bc positional args are more error
+                # prone; furthermore, this behaviour is not documented,
+                # and result only in obscure errors in downstream functions.
+                # `map_dataframe` accepts variables as keyword arguments,
+                # but they can be only column names, not vectors, neither
+                # None. painful.
+                # thanks seaborn for this great design!
+                # next time I will think twice before relying on seaborn,
+                # writing stuff from scratch would have taken fraction of
+                # the time
+                'dummy_x',
+                'volume' if volume else 'length',
+                'the_cycle',
+                order = [''],
+                hue_order = sorted(data.the_cycle.unique()),
+                palette = self.palette,
+                linewidth = 1.,
+                width = .97,
+            )
+
+            # seaborn is so easy to use
+            grid.add_legend(
+                bbox_to_anchor=(1., .8),
+                loc = 2,
+                borderaxespad = 0.,
+            )
+
+            xlab = ''
+            ylab = lab
+
+        else:
+
+            grid.map(
+                sns.histplot,
+                'volume' if volume else 'length',
+                kde = True,
+                color = self.palette[0],
+                line_kws = {'color': self.palette[1]},
+            )
+
+            xlab = lab
+            ylab = 'Density'
+
+        # stupid seaborn
+        data.drop('dummy_x', axis = 1)
 
         for ax in grid.axes.flatten():
 
@@ -3220,10 +3343,7 @@ class PlugData(object):
                 ax.get_title().split('=')[-1].strip()
             )
 
-        xlab = 'Plug %s [%s]' % (
-            'volume' if volume else 'length',
-            'nl' if volume else 's',
-        )
+        grid.axes.flatten()[0].yaxis.set_label_text(ylab)
         grid.axes.flatten()[0].xaxis.set_label_text('')
         grid.axes.flatten()[1].xaxis.set_label_text(xlab)
         grid.axes.flatten()[2].xaxis.set_label_text('')
