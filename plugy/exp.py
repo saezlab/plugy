@@ -762,12 +762,12 @@ class PlugExperiment(object):
         )
         media_control_ax[0] = (
             self.plug_data.plot_medium_control_trends(
-                axes = media_control_ax[0],
+                ax = media_control_ax[0],
             )
         )
         media_control_ax[1] = (
             self.plug_data.plot_medium_control_trends(
-                axes = media_control_ax[1],
+                ax = media_control_ax[1],
                 by_sample = True,
             )
         )

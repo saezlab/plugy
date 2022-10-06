@@ -1840,30 +1840,39 @@ class PlugData(object):
     # QC Plots
     def plot_medium_control_trends(
             self,
-            axes: plt.Axes,
-            by_sample = False,
-        ) -> plt.Axes:
+            ax: mpl.axes.Axes,
+            by_sample: bool = False,
+        ) -> mpl.axes.Axes:
         """
         Plots a scatter plot with readout medians for the media control
         over the experiment time.
 
-        :param axes: plt.Axes object to draw on
-        :param by_sample: True to plot swarmplot by sample number
-        :return: plt.Axes object with the plot
+        Args:
+            axes:
+                Axes object to draw on.
+            by_sample:
+                True to plot swarmplot by sample number.
+
+        Return:
+            Axes object with the plot.
         """
 
         self.seaborn_setup()
 
         if self.normalize_using_control:
+
             readout_column = 'readout_per_control'
             ylab = 'Readout control ratio'
+
         else:
+
             readout_column = 'readout_peak_median'
             ylab = 'Readout median'
 
         plot_data = self.medium_only()
 
         with warnings.catch_warnings():
+
             warnings.simplefilter('ignore')
             # stupid pandas again
             plot_data['cycle_nr'] = plot_data['cycle_nr'] + 1
@@ -1874,59 +1883,57 @@ class PlugData(object):
 
                 warnings.simplefilter('ignore')
 
-                axes = sns.swarmplot(
+                ax = sns.swarmplot(
                     x = 'sample_nr',
                     y = readout_column,
                     data = plot_data,
-                    ax = axes,
+                    ax = ax,
                     hue = 'cycle_nr',
                     dodge = True,
                     palette = list(self.palette),
                     size = self.scatter_dot_size,
                 )
 
-            axes.set_xlabel('Sample')
-            axes.get_legend().set_title('Cycle')
+            ax.set_xlabel('Sample')
+            ax.get_legend().set_title('Cycle')
 
         else:
 
-            slope, intercept, rvalue, _, _ = (
-                self.get_media_control_lin_reg(readout_column)
-            )
+            lm = self.baseline_lm(col = readout_column)
 
             with warnings.catch_warnings():
 
                 warnings.simplefilter('ignore')
 
-                axes = sns.scatterplot(
+                ax = sns.scatterplot(
                     x = 'start_time',
                     y = readout_column,
                     data = plot_data,
-                    ax = axes,
+                    ax = ax,
                     color = self.palette[0],
                     s = self.scatter_dot_size * 10,
                     alpha = .66,
                 )
 
-            misc.plot_line(slope, intercept, axes)
+            misc.plot_line(lm.slope, lm.intercept, ax)
 
-            label = axes.text(
+            label = ax.text(
                 0.7,
                 0.9,
-                f'R²: {round(rvalue, 2)}',
-                transform = axes.transAxes,
+                f'R²: {round(lm.rvalue, 2)}',
+                transform = ax.transAxes,
             )
 
             label.set_bbox(dict(facecolor = 'white', alpha = 0.8))
-            axes.set_xlabel('Time [s]')
+            ax.set_xlabel('Time [s]')
 
         if self.config.figure_titles:
 
-            axes.set_title('Values from medium control plugs')
+            ax.set_title('Values from medium control plugs')
 
-        axes.set_ylabel(ylab)
+        ax.set_ylabel(ylab)
 
-        return axes
+        return ax
 
 
     @property
@@ -3521,6 +3528,8 @@ class PlugData(object):
         """
 
         module_logger.info('Calculating statistics')
+
+        self.add_length_column(df = 'sample')
 
         col = self.readout_col
 
