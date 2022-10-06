@@ -203,6 +203,7 @@ class PlugExperiment(object):
 
         self.drug_combination_analysis()
         self.close_figures()
+        self.stats_table_tsv()
 
 
     def _set_workflow_param(self):
