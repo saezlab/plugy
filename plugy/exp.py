@@ -23,6 +23,7 @@ from typing import Iterable, Optional
 from numbers import Number
 
 import sys
+import os
 import logging
 import collections
 import importlib as imp
@@ -1002,7 +1003,53 @@ class PlugExperiment(object):
     def _stats_table_export(
             self,
             path: str | None = None,
-            ftype: Literal['tsv', 'xlsx'] = 'tsv',
+            ftype: str = 'tsv',
+            by_cycle: bool = True,
+            exp_summary: bool = True,
+            extra_cols: bool | list[str] = True,
+            sort_by: list[str] | None = None,
+            multi_index: bool = True,
+            **kwargs
+        ):
+        """
+        Export a table of statistics.
+
+        Args:
+            path:
+                Path or file name. Default directory is *results*, default
+                file name is *results/<input-name>_stats-table.<ftype>*.
+            ftype:
+                File type, such as "csv", "tsv", "xlsx", or any other type
+                supported by ``pandas``.
+            kwargs:
+                Passed to pandas export (``to_...``) functions.
+        """
+
+        table = self.stats_table(
+            by_cycle = by_cycle,
+            exp_summary = exp_summary,
+            extra_cols = extra_cols,
+            sort_by = sort_by,
+            multi_index = multi_index,
+        )
+
+        defaults = dict(
+            fname_suffix = 'stats-table',
+            sheet_name = f'stats__{self.pmt_data.input_file.stem}',
+            label = 'large stats table',
+        )
+        defaults.update(kwargs)
+
+        self._export(df = table, path = path, ftype = ftype, **defaults)
+
+
+    def stats_table_tsv(
+            self,
+            path: str | None = None,
+            by_cycle: bool = True,
+            exp_summary: bool = True,
+            extra_cols: bool | list[str] = True,
+            sort_by: list[str] | None = None,
             **kwargs
         ):
         """
@@ -1011,15 +1058,50 @@ class PlugExperiment(object):
         Args:
             path:
                 Path or file name. Default directory is *results*, default
-                file name is *stats.tsv*.
+                file name is *results/<input-name>_stats-table.tsv*.
             kwargs:
-                Passed to ``stats_table`.
+                Passed to ``pandas.DataFrame.to_csv``.
+
+        The rest of the arguments are described at ``stats_table``.
         """
 
-        table = self.stats_table(**kwargs)
+        args = locals()
+        args.pop('self')
+        args.pop('kwargs')
+        args['ftype'] = 'tsv'
 
-        path = path or 'stats.{ftype}'
+        self._stats_table_export(**args, **kwargs)
 
+
+    def stats_table_excel(
+            self,
+            path: str | None = None,
+            by_cycle: bool = True,
+            exp_summary: bool = True,
+            extra_cols: bool | list[str] = True,
+            sort_by: list[str] | None = None,
+            multi_index: bool = True,
+            **kwargs
+        ):
+        """
+        Export a table of statistics to XLSX.
+
+        Args:
+            path:
+                Path or file name. Default directory is *results*, default
+                file name is *results/<input-name>_stats-table.xlsx*.
+            kwargs:
+                Passed to ``pandas.DataFrame.to_excel``.
+
+        The rest of the arguments are described at ``stats_table``.
+        """
+
+        args = locals()
+        args.pop('self')
+        args.pop('kwargs')
+        args['ftype'] = 'xlsx'
+
+        self._stats_table_export(**args, **kwargs)
 
 
     def drug_combination_analysis(self):
@@ -1377,6 +1459,7 @@ class PlugExperiment(object):
             'md': 'markdown',
         }
 
+        ftype = ftype.lower()
         path = path or self.config.result_dir
 
         if os.path.isdir(path):
@@ -1404,9 +1487,9 @@ class PlugExperiment(object):
 
         method = f'to_{methods.get(ftype, ftype)}'
 
-        getattr(df, method)(fname, **kwargs)
+        getattr(df, method)(path, **kwargs)
 
-        module_logger.info(f'Exported {data} to `{path}`.')
+        module_logger.info(f'Exported {label} to `{path}`.')
 
 
     def _to_excel(
