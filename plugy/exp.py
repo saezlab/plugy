@@ -23,10 +23,8 @@ from typing import Iterable, Optional
 from numbers import Number
 
 import sys
-import re
 import logging
 import collections
-import itertools
 import importlib as imp
 import traceback
 import typing
@@ -995,37 +993,10 @@ class PlugExperiment(object):
             A data frame of the statistics with conditions in row multi index.
         """
 
-        extra_cols = (
-            list(extra_cols)
-                if isinstance(extra_cols, misc.LIST_LIKE) else
-            misc.CHANNEL_VARS
-                if extra_cols else
-            ()
-        )
+        args = locals()
+        args.pop('self')
 
-        sort_by = ('cycle_nr',) + misc.to_tuple(sort_by)
-        ascending = [not c[0] == '^' for c in sort_by]
-        sort_by = [re.sub('^[\^]', '', c) for c in sort_by]
-
-        tables = []
-
-        for cycle in itertools.chain(
-            self.plug_data.cycles if by_cycle else (),
-            (None,) if exp_summary else ()
-        ):
-
-            tbl = self.stats(cycle = cycle, extra_cols = extra_cols)
-            tbl['cycle_nr'] = np.nan if cycle is None else cycle
-            tables.append(tbl)
-
-        tables = pd.concat(tables)
-        tables.sort_values(by = sort_by, ascending = ascending, inplace = True)
-
-        if not multi_index:
-
-            tables.reset_index(inplace = True)
-
-        return tables
+        return self.plug_data.stats_table(**args)
 
 
     def drug_combination_analysis(self):

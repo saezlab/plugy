@@ -3454,6 +3454,70 @@ class PlugData(object):
         return sample_stats
 
 
+    def stats_table(
+            self,
+            by_cycle: bool = True,
+            exp_summary: bool = True,
+            extra_cols: bool | list[str] = True,
+            sort_by: list[str] | None = None,
+            multi_index: bool = True,
+        ) -> pd.DataFrame:
+        """
+        A large table of statistics.
+
+        Args:
+            by_cycle:
+                Include statistics for each cycle.
+            exp_summary:
+                Include statistics for the entire experiment.
+            extra_cols:
+                Include extra columns, besides the defaults. Alternatively,
+                a list of column names that overrides the extra columns.
+            sort_by:
+                Sort the conditions by these column names. For descending
+                order prefix the column name with a hat (^). Cycle will
+                always be the first column to sort by.
+            multi_index:
+                Keep conditions in multi index. If `False`, the multi index
+                will be turned into regular columns.
+
+        Return:
+            A data frame of the statistics with conditions in row multi index.
+        """
+
+        extra_cols = (
+            list(extra_cols)
+                if isinstance(extra_cols, misc.LIST_LIKE) else
+            misc.CHANNEL_VARS
+                if extra_cols else
+            ()
+        )
+
+        sort_by = ('cycle_nr',) + misc.to_tuple(sort_by)
+        ascending = [not c[0] == '^' for c in sort_by]
+        sort_by = [re.sub('^[\^]', '', c) for c in sort_by]
+
+        tables = []
+
+        for cycle in itertools.chain(
+            self.cycles if by_cycle else (),
+            (None,) if exp_summary else ()
+        ):
+
+            tbl = self.stats(cycle = cycle, extra_cols = extra_cols)
+            tbl['cycle_nr'] = np.nan if cycle is None else cycle
+            tables.append(tbl)
+
+        tables = pd.concat(tables)
+        tables.sort_values(by = sort_by, ascending = ascending, inplace = True)
+
+        if not multi_index:
+
+            tables.reset_index(inplace = True)
+
+        return tables
+
+
     def _update_baseline(self, baseline: Literal['baseline', 'negative']):
 
         lm = self.baseline_lm(col = self.readout_col, baseline = baseline)
