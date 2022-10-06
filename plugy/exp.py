@@ -970,6 +970,7 @@ class PlugExperiment(object):
             exp_summary: bool = True,
             extra_cols: bool | list[str] = True,
             sort_by: list[str] | None = None,
+            multi_index: bool = True,
         ) -> pd.DataFrame:
         """
         A large table of statistics.
@@ -986,6 +987,9 @@ class PlugExperiment(object):
                 Sort the conditions by these column names. For descending
                 order prefix the column name with a hat (^). Cycle will
                 always be the first column to sort by.
+            multi_index:
+                Keep conditions in multi index. If `False`, the multi index
+                will be turned into regular columns.
 
         Return:
             A data frame of the statistics with conditions in row multi index.
@@ -1016,6 +1020,10 @@ class PlugExperiment(object):
 
         tables = pd.concat(tables)
         tables.sort_values(by = sort_by, ascending = ascending, inplace = True)
+
+        if not multi_index:
+
+            tables.reset_index(inplace = True)
 
         return tables
 
