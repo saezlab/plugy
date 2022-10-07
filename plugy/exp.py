@@ -694,10 +694,12 @@ class PlugExperiment(object):
         # 10: density plots of plug lengths (sizes)
         self.length_density()
         self.length_boxplot()
+        self.length_by_sample()
 
         # 11: density plots of plug volumes
         self.volume_density()
         self.volume_boxplot()
+        self.volume_by_sample()
 
         # 12: violin plots of standard deviations of samples:
         # readout, readout:control and medium corrected readout:control
