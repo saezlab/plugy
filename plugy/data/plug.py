@@ -19,7 +19,7 @@
 # Webpage: https://github.com/saezlab/plugy
 #
 
-from typing import Literal
+from typing import Iterator, Literal
 
 import sys
 import re
@@ -2298,6 +2298,7 @@ class PlugData(object):
             self,
             ax: mpl.axes.Axes,
             var: str,
+            order: list[str] | None = None,
         ) -> mpl.axes.Axes:
         """
         Boxplot of one variable in the sample data frame, grouped by
@@ -2308,6 +2309,8 @@ class PlugData(object):
                 The axes to draw on.
             var:
                 Continuous variable to be mapped to the y axis.
+            order:
+                Order of labels on the x axis.
 
         Return:
             Axes with the plot.
@@ -2323,6 +2326,7 @@ class PlugData(object):
                 data,
                 data.copy().assign(the_cycle = 'All'),
             ))
+
         data = self.by_cycle_and_all(
             df = self.sample_df,
             label_col = 'the_cycle',
@@ -2334,7 +2338,7 @@ class PlugData(object):
             sorted(data['the_cycle'].cat.categories)
         )
 
-        data['short_name'] = self.shorten_names(data.name)
+        data = self._short_name_order(order = order, df = data)
 
         ax = sns.boxplot(
             x = 'short_name',
@@ -2346,8 +2350,6 @@ class PlugData(object):
             linewidth = 1.,
             width = .97,
         )
-
-        self._bpax = ax
 
         ax = misc.vstripes(ax)
 
@@ -2378,6 +2380,32 @@ class PlugData(object):
             tick.set_rotation(90)
 
         return ax
+
+    def _short_name_order(
+            self,
+            order: list[str] | None = None,
+            df: pd.DataFrame | None = None,
+        ) -> pd.DataFrame:
+        """
+        Makes sure the data has a "short_name" column and its categories
+        are ordered.
+        """
+
+        df = df if isinstance(df, pd.DataFrame) else self.data
+
+        df['short_name'] = self.shorten_names(df.name)
+
+        if order:
+
+            order = self.shorten_names(order)
+            df['short_name'] = df.short_name.astype('category')
+            # pandas syntax is beautiful, isn't it?
+            df['short_name'] = df['short_name'].cat.set_categories(
+                order,
+                ordered = True,
+            )
+
+        return df
 
 
     @staticmethod
@@ -3011,6 +3039,100 @@ class PlugData(object):
                     t.set_text(legend_labels[t.get_text()])
 
         return grid
+
+
+    def size_by_sample(
+            self,
+            volume: bool = False,
+            fig: mpl.figure.Figure | None = None,
+            xticklabels: bool = False,
+        ) -> mpl.figure.Figure:
+        """
+        Composite figure of plug sizes by sample.
+        """
+
+        if fig is None:
+
+            fig = plt.figure(
+                figsize = (25, 10),
+                constrained_layout = False,
+            )
+
+        gs = fig.add_gridspec(
+            nrows = 2,
+            ncols = 1,
+            height_ratios = [4, 1],
+        )
+
+        ax_violin = fig.add_subplot(gs[0, 0])
+        ax_sum = fig.add_subplot(gs[1, 0])
+
+        self.add_length_column(df = 'sample')
+        self.add_volume_column(df = 'sample')
+
+        order = sorted(self.sample_names, key = self.volume_of)
+
+        var = 'volume' if volume else 'length'
+
+        ax_violin = self.boxplot_by_sample(ax = ax_violin, var = var, order = order)
+        ax_sum = self.size_sum_by_sample(ax = ax_sum, volume = volume, order = order)
+        ax_sum = misc.vstripes(ax = ax_sum)
+
+        if not xticklabels:
+
+            ax_violin.get_xaxis().set_ticks([])
+            ax_violin.set_xlabel('')
+
+        return fig
+
+
+    def size_sum_by_sample(
+            self,
+            ax: mpl.axes.Axes,
+            volume: bool = False,
+            order: list[str] | None = None,
+        ) -> mpl.axes.Axes:
+        """
+        Sum of plug sizes by sample.
+        """
+
+        var = 'volume' if volume else 'length'
+
+        df = (
+            self.sample_df.
+            groupby(['compound_a', 'compound_b', 'name']).
+            agg({var: 'sum'}).
+            reset_index()
+        )
+
+        df.loc[df.name == 'Cell Control', var] = (
+            df.loc[df.name == 'Cell Control', var] /
+            self.nsamples_of('Cell Control') *
+            self.ncycles
+        )
+
+        df = self._short_name_order(order = order, df = df)
+
+        ax = sns.stripplot(
+            data = df,
+            x = 'short_name',
+            y = var,
+            ax = ax,
+            color = self.palette[0],
+            s = self.scatter_dot_size,
+            jitter = False,
+        )
+
+        ax.set_ylabel(f'Total {var} [{"nl" if volume else "s"}]')
+        ax.set_xlabel('Sample')
+        ax.set_xlim(-.85, self.nconditions - .15)
+        ax.set_ylim(ax.get_ylim()[0] - 2, ax.get_ylim()[1] + 2)
+
+        for tick in ax.get_xticklabels():
+
+            tick.set_rotation(90)
+
+        return ax
 
 
     def heatmap_matrix(self, **kwargs) -> mpl.figure.Figure:
@@ -3883,6 +4005,36 @@ class PlugData(object):
 
 
     @property
+    def sample_names(self) -> list[str]:
+
+        return list(self.data.name.unique())
+
+
+    def itersamples(self, cycle: int | None = None) -> Iterator[pd.DataFrame]:
+        """
+        Iterate over samples as data frame slices.
+        """
+
+        df = self.cycle(cycle)
+
+        for sample in self.sample_names:
+
+            yield self.sample(sample, df)
+
+    __iter__ = itersamples
+
+
+    def iterplugs(self, cycle: int | None = None) -> Iterator[tuple]:
+        """
+        Iterate over plugs as named tuples (data frame rows).
+        """
+
+        df = self.cycle(cycle)
+
+        return df.itertuples()
+
+
+    @property
     def nplugs(self) -> int:
         """
         Number of plugs.
@@ -3899,6 +4051,17 @@ class PlugData(object):
 
         return self._numof('sample_nr')
 
+
+    @property
+    def nconditions(self) -> int:
+        """
+        Number of conditions (different from the number of samples as multiple
+        samples might have the same condition).
+        """
+
+        return self._numof('name')
+
+
     @property
     def ncycles(self) -> int:
         """
@@ -3908,9 +4071,75 @@ class PlugData(object):
         return self._numof('cycle_nr')
 
 
+    def nsamples_of(self, sample: str, cycle: int | None = None) -> int:
+        """
+        Number of samples labelled as ``name``.
+        """
+
+        data = self.cycle(cycle)
+
+        return (
+            data[data.name == sample].
+            groupby('cycle_nr').
+            sample_nr.
+            nunique().
+            sum()
+        )
+
+
+    def nplugs_of(self, sample: str) -> int:
+        """
+        Number of plugs in samples of ``name``.
+        """
+
+        return self.data[self.data.name == sample].shape[0]
+
+
+    def _size_of(
+            self,
+            sample: str,
+            cycle: int | None = None,
+            volume: bool = False,
+        ) -> float:
+
+        data = self.cycle(cycle)
+
+        self.add_length_column(df = 'sample')
+        var = 'length'
+
+        if volume:
+
+            self.add_volume_column(df = 'sample')
+            var = 'volume'
+
+        return data[data.name == sample][var].sum()
+
+
+    def length_of(self, sample: str, cycle: int | None = None) -> float:
+        """
+        Total plug length within one condition.
+
+        Return:
+            Length in seconds.
+        """
+
+        return self._size_of(sample = sample, cycle = cycle)
+
+
+    def volume_of(self, sample: str, cycle: int | None = None) -> float:
+        """
+        Total plug volume within one condition.
+
+        Return:
+            Volume in nanolitres.
+        """
+
+        return self._size_of(sample = sample, cycle = cycle, volume = True)
+
+
     def _numof(self, col: str) -> int:
 
-        return self.plug_df[col].nunique() if hasattr(self, 'plug_df') else 0
+        return 0 if self.data is None else self.data[col].nunique()
 
 
     def __repr__(self) -> str:
@@ -4035,6 +4264,11 @@ class PlugData(object):
         Axis label from variable names of the samples data frame.
         """
 
+        units = dict(
+            length = 's',
+            volume = 'nl',
+        )
+
         label = (
             misc.label(var).
             replace(' peak median', '').
@@ -4044,7 +4278,8 @@ class PlugData(object):
 
         if not label.endswith(']'):
 
-            label = f'{label} [AU]'
+            unit = units.get(var, 'AU')
+            label = f'{label} [{unit}]'
 
         if not unit:
 

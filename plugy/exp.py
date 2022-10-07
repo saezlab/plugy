@@ -1298,6 +1298,28 @@ class PlugExperiment(object):
         self._plot_base(grid, 'volumes_boxplot', 'plug volume boxplots')
 
 
+    def length_by_sample(self):
+        """
+        Violin plot of plug lengths by sample, with dotplot of sample total
+        plug sizes.
+        """
+
+        fig = self.plug_data.size_by_sample()
+
+        self._plot_base(fig, 'length_by_sample', 'plug lengths by sample')
+
+
+    def volume_by_sample(self):
+        """
+        Violin plot of plug volumes by sample, with dotplot of total sample
+        volumes.
+        """
+
+        fig = self.plug_data.size_by_sample(volume = True)
+
+        self._plot_base(fig, 'volume_by_sample', 'plug volumes by sample')
+
+
     def sample_sd_violin(self):
 
         grid = self.plug_data.sample_sd_violin()
